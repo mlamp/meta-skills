@@ -10,7 +10,7 @@ Layout of real/:
 - real/<name>/<commit-date>-<sha7>/ — one snapshot: the skill's files at that upstream commit, unmodified.
 - real/<name>/PROVENANCE.md — source repo, path, license, each snapshot's full SHA, re-fetch command, retrieval date.
 - When upstream history moved, take a pair (oldest useful + current) so review output can be compared across versions.
-- Third-party license copies live at real/LICENSE-<source>.txt. A source with no license gets a warning in its PROVENANCE and must be resolved before this repo goes public.
+- Third-party licenses: when upstream ships a per-skill license, it rides inside each snapshot; otherwise a repo-level copy lands at real/LICENSE-<source>.txt. A source with no license gets a warning in its PROVENANCE and must be resolved before this repo goes public.
 
 Rules:
 
