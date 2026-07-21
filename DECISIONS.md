@@ -1,54 +1,163 @@
-# Decisions — append-only
+# Decisions — durable record
 
-One short entry per decision: the call, and why. Newest at the bottom. A decision is reversed by a new entry marking the old one superseded — never by editing history.
+One short entry per decision: what was decided and why. Newest at the bottom. Reverse a decision by adding a new entry that marks the old one superseded — never by rewriting what was decided. Wording may be compressed later if meaning, numbers, dates, and order stay unchanged (D-018).
 
 ## D-001 · 2026-07-21 · Repo purpose and working style
-Home of meta-skills: skills that review and improve other skills and agentic tools. All binding text is plain english and one-pass readable. Weight-bearing choices go to the user as options with a recommendation; the outcome lands here, when it's made — not at session end.
 
-## D-002 · 2026-07-21 · Layout: skills/ + symlink promotion
-Skills are authored in skills/<name>/SKILL.md with frontmatter status: draft | testing | proven. Proven skills become usable everywhere via a symlink in ~/.claude/skills. Rejected: plugin-marketplace scaffolding (overhead before a first skill exists) and project-local .claude/skills (unusable elsewhere). Why: the cheapest structure that works everywhere and is easy to restructure later.
+This repo holds meta-skills: skills that review and improve other skills and agentic tools. Binding text must use plain english and be clear in one pass. Give the user options and a recommendation for important choices. Record the outcome here when it is made, not at session end.
 
-## D-003 · 2026-07-21 · Research is unproven input, filed in three layers
-Papers land as raw PDFs in research/sources/ (ingestion only), one distilled note per paper in research/notes/ (the read layer), and every borrowed idea in research/CLAIMS.md with status untested | testing | validated | refuted plus the test that would move it. Nothing from a paper is treated as true until validated here.
+## D-002 · 2026-07-21 · Layout: skills/ and symlink promotion
 
-## D-004 · 2026-07-21 · Claim hygiene: own evidence or [UNVERIFIED] + falsifier
-An effectiveness claim in binding text either cites our own evidence (a D-number, a ledger entry, a fixture result) or carries [UNVERIFIED] plus "Falsifier:" naming the recorded thing that would prove it wrong. A tag without a falsifier doesn't count.
+Author skills in `skills/<name>/SKILL.md`. Frontmatter status is `draft`, `testing`, or `proven`. Make proven skills available everywhere through a symlink in `~/.claude/skills`.
 
-## D-005 · 2026-07-21 · Cold-reader probe on binding text
-New skill or rule text lands only after a model with no session context restates its obligations correctly. What it misreads gets fixed or consciously dismissed. First applied same day to this repo's CLAUDE.md (cold reader: Kimi K3, headless, file piped in, no session context): all four scenario answers correct, no misreads.
+This is the smallest structure that works everywhere and remains easy to change later. No plugin-marketplace scaffolding before the first skill exists. No project-local `.claude/skills` — those skills are unavailable elsewhere.
 
-## D-006 · 2026-07-21 · Measurement: fixtures from day one, ledger designed with skill #1
-Every skill run should leave a record; the ledger schema and location are decided during skill #1 design, when we know what a run produces. fixtures/ holds the eval corpus from day one: real SKILL.md files plus planted-defect files whose flaw manifests make recall computable. Scores use repeated runs and, when the score matters, a second model family. The repeated-runs rule is a prior, not a result — the claims behind it are C10/C11, untested.
+## D-003 · 2026-07-21 · Research has three layers
 
-## D-007 · 2026-07-21 · Real fixtures: vendored pinned snapshots with provenance, pairs where history moved
-A real fixture is a skill's files copied unmodified at a pinned upstream commit, under fixtures/real/<name>/<commit-date>-<sha7>/, with PROVENANCE.md recording source, path, license, full SHAs, and re-fetch commands. Snapshots never change; a new upstream state gets a new snapshot dir. Where upstream history moved, take a pair (oldest useful + current) — the first probe for C07. First corpus: grill-with-docs and tdd (mattpocock/skills, MIT, version pairs — both slimmed sharply upstream; grill-with-docs is now a 7-line alias to sibling skills), and karpathy-guidelines (multica-ai/andrej-karpathy-skills, ~195k stars, no license — vendored while this repo is private, resolve before any public push; unchanged upstream since 2026-01-28). Why: fixtures must not move under recorded results, and provenance keeps every snapshot re-fetchable and auditable.
+Raw PDFs go in `research/sources/` (ingestion only). One distilled note per paper goes in `research/notes/` (the read layer). Every borrowed idea goes in `research/CLAIMS.md` with status `untested`, `testing`, `validated`, or `refuted`, plus the test that would change its status.
 
-## D-008 · 2026-07-21 · Fixture licensing: check per skill, not per repo; Anthropic document skills excluded
-Licenses are verified per skill directory before vendoring — one repo can mix terms. anthropics/skills has no top-level license; its example skills carry Apache-2.0 LICENSE.txt files, but the document skills (pdf, docx, pptx, xlsx) carry a source-available license that forbids retaining copies, reproduction, derivatives, and distribution — they are never vendored, private repo or not. When upstream ships per-skill licenses, the license file rides inside each snapshot; otherwise a repo-level copy lands at fixtures/real/LICENSE-<source>.txt. Corpus adds under this entry: frontend-design and skill-creator (anthropics/skills, Apache-2.0, version pairs), writing-skills and test-driven-development (obra/superpowers, MIT, version pairs). Rejected for now, re-openable: claude-api (74k SKILL.md specimen, heavy — 66 files), mcp-builder (no gap it fills uniquely), brainstorming (churn is companion-app plumbing, not skill text). Surveyed, not taken: affaan-m/ECC (231k stars, MIT) — no new structural axis over what the corpus already covers.
+Research is unproven input. Treat nothing from a paper as true until it is validated here.
 
-## D-009 · 2026-07-21 · Skill #1 job definition and name: review-skill
-Input: a full skill directory (SKILL.md plus references and scripts); a lone SKILL.md is accepted, with directory-dependent checks reported as skipped, never guessed. Output: findings — each with smell ID, location, an evidence quote, why it matters, and a concrete fix — plus rubric dimension scores and a ledger entry. The reviewer never edits the reviewed files. Non-goals for v0: applying fixes (a separate skill's job), measuring runtime effectiveness (the eval harness's job), and reviewing non-SKILL.md artifacts such as CLAUDE.md or agent definitions. Name: review-skill — verb-first, no collision with the built-in /review (GitHub PRs). Rejected: grade-skill and audit-skill (undersell findings and fixes), transcript input (no fixture has transcripts yet; revisit when our own skills have ledger history).
+## D-004 · 2026-07-21 · Claim hygiene
 
-## D-010 · 2026-07-21 · Cold-reader probe: optional step, probe model user-configurable
-The review includes a cold-reader probe — a context-free cheap model restates the skill's obligations and the restatement is scored — mechanizing D-005 as a rubric check. The probe model is whatever the user names in the invocation (e.g. "cold-reader: haiku headless"); with none named, the skill uses an available cheap headless model, and if none exists it scores cold-reader comprehension by judge estimate, explicitly marked estimated. Rejected: required probe (breaks the skill where no second model exists), no probe in v0 (an estimate of what a context-free reader would misread is exactly the unverified-claim shape this repo distrusts).
+An effectiveness claim in binding text must cite our own evidence — a D-number, a ledger entry, a fixture result. Otherwise mark it `[UNVERIFIED]` and add `Falsifier:` naming the recorded result that would prove it wrong. A tag without a falsifier does not count.
 
-## D-011 · 2026-07-21 · Rubric v0 for review-skill: two layers, six dimensions, 1–4 anchors, binary findings + blocker flag
-Layer 1 is mechanical, run by a script in the skill directory, pass/fail: body ≤ 5,000 words (threshold from C05, untested), name ≤ 64 chars, description ≤ 1,024 chars, no backslash paths, no XML in the description, frontmatter parses with name and description present, referenced files exist on disk. Layer 2 is judgment, six dimensions each scored 1–4 against written anchors, no midpoint: trigger & description (CSD USN NTPD MUR; weighted per C12/C04), instruction quality (TSW SOC TOB MDT MT; per C08), grounding & examples (ME TSS; per C09), verification & safeguards (NVS EWP NAH RL NPT NG BG MC), context economy & delegation (UD MUS plus soft length judgment), cold-reader comprehension (fed by the D-010 probe). Every judgment finding is binary — present with a smell ID, location, evidence quote, and fix — plus one blocker flag meaning the skill fails its job if unfixed. Rejected: a flat 26-smell checklist (no readable verdict, no home for judgment beyond the catalog), the paper's 10 groups as dimensions (uneven, and our claims weight trigger and instruction quality higher), 1–5 or 3-level scales (midpoint hiding; too coarse to show improvement), severity ladders (unanchored judgment that varies run to run and manifests cannot ground-truth).
+## D-005 · 2026-07-21 · Cold-reader probe
 
-## D-012 · 2026-07-21 · Ledger: ledger/runs.jsonl, append-only, full schema, N=5 for evidence
-One line per run in ledger/runs.jsonl; repeated runs of one review share a batch_id; a line is never edited. Fields: run_id, batch_id, date, target {path, fixture, snapshot}, reviewer {skill, version_sha, model, effort}, repeats_in_batch, static results, findings [{smell_id, location, evidence, blocker, fix}], scores per dimension, probe {model, misreads} or {estimated: true}, vs_manifest {recall, precision, adjudications} for planted fixtures, notes. Schema documented in ledger/README.md. Scores cited as evidence come from a 5-run batch with variance; ad-hoc reviews may be single runs, marked repeats_in_batch: 1, never cited as evidence. Rejected: markdown-per-batch (every C10/C11 computation would need a parser for hand-written prose), minimal schema (loses reviewer version, batch grouping, and manifest joins), N=5 on casual runs (5× cost pushes people to skip the ledger entirely).
+New skill or rule text lands only after a model with no session context correctly restates its obligations. Fix or consciously dismiss every misread.
 
-## D-013 · 2026-07-21 · Planted fixtures: derived from vendored permissive skills, manifest outside the fixture dir
-A planted fixture is a copy of a permissively-licensed real snapshot with ~10–12 deliberate flaws: at least one per judgment dimension, at least two static. The manifest lives beside the fixture directory, not inside it — the reviewer reads the whole directory and must never see the answer key. Recall = planted flaws caught / planted flaws. Precision = (planted + user-confirmed pre-existing findings) / all findings — real bases carry ~10 pre-existing smells (C02), so off-manifest findings are adjudicated, not auto-counted as false positives. Unlicensed sources are never derived from. Rejected: authoring clean bases from scratch (our "clean" is unproven; pre-existing smells would be present but unlabeled, silently corrupting precision).
+First applied to this repo's `CLAUDE.md`: Kimi K3, headless, file piped in, no session context. All four scenario questions correct, no misreads.
 
-## D-014 · 2026-07-21 · Skill #1 landed as draft; both gates passed; experiments queued
-review-skill landed at skills/review-skill, status draft, after passing both kickoff gates. Self-application: run r-20260721-001 in ledger/runs.jsonl — three findings (ME: no ledger-line example reachable outside this repo; NVS: no pre-emit completeness check; NG: no behavior for a path without SKILL.md), none blockers, all fixed in-session. Cold-reader probe: Kimi K3 headless, SKILL.md only, seven scenario questions, all obligations restated correctly, no misreads. First planted fixtures: tdd-p1 and frontend-design-p1, twelve flaws each, manifests sibling to the fixture dirs; static plants verified to trip the checker, which also got a detector fix (trailing-backslash dir paths) and a real-data caveat (illustrative paths in teaching skills false-positive the REF check — the skill now says to confirm REF/BP evidence in context). Validation experiments queued in docs/experiments.md (E-01 to E-05). No claim status moves — nothing has been measured yet.
+## D-006 · 2026-07-21 · Fixtures and run records from day one
 
-## D-015 · 2026-07-21 · Ledger v2: the model authors the report, a compiler script owns the record
-Supersedes the writer mechanics of D-012 (schema intent stands; the transport changes) and amends D-011's evidence rule. The model authors exactly one artifact per review — the markdown report in a fixed template — and runs scripts/finalize.py, which parses the whole report (total parse: unknown, duplicate, or stray content is a loud, model-actionable error), validates scores and smell IDs, extracts every finding's evidence itself from a cited span (file + line range + short anchor snippet; anchor mismatch fails with nearby-line hints — so a hallucinated finding cannot enter the ledger), re-runs static checks rather than trusting transcription, generates all machine facts (run_id content-addressed, timestamp, reviewer git sha, target file SHAs, schema_version), serializes with json.dumps, and commits: direct append with O_APPEND + fsync + duplicate-run_id refusal when a ledger is present, --outbox one-file-per-run for parallel batch runs with a single --drain step as the only shared-ledger writer, --print when neither exists. Truncation is never silent (omitted_findings field). The model never writes JSON, run IDs, dates, or SHAs. Why: three independent advisors (a second-family model, a third-family model, and web evidence) converged on report-as-source-of-truth compiled by a deterministic gatekeeper; measured free-hand JSON failure rates run 5–10% vs <0.1% for enforced paths, and our own first ledger line carried a model-invented placeholder timestamp. Rejected: model-written JSON with a validator (valid-JSON-with-corrupted-content survives it), YAML/TOML intermediates (relocate escaping errors), transcript hooks (config outside the skill dir, private transcript format), hash chains and commit receipts for now (tamper-evidence against accidents only; revisit on the first recorded incident). Rule of thumb, kept: the probabilistic component authors; the deterministic component frames, verifies, and commits.
+Every skill run should leave a record. Design the ledger schema and location with skill #1, once its output is known.
 
-## D-016 · 2026-07-21 · DECISIONS.md holds durable decisions only
-An entry earns its place when future work must honor it or consciously reverse it. Run-scoped operational calls — which fixture a batch ran on, which probe model, batch naming — are never entries; they live in the run's own records (ledger lines, batch ids, experiment notes). Trigger: E-01 setup was about to log its second-family fixture pick as an entry; the user drew the line at durable-only. CLAUDE.md's "every decision lands in DECISIONS.md" is reworded to match — fix the old rule, don't add a caveat.
+`fixtures/` holds the eval corpus from day one: real `SKILL.md` files and planted-defect files whose flaw manifests make recall measurable. Scores use repeated runs. When a score matters, also use a second model family.
 
-## D-017 · 2026-07-21 · Adjudication lines: ledger/adjudicate.py is their writer; spans TSVs are derived answer keys
-Planted-fixture results land as type: adjudication ledger lines — one per batch, referencing run_ids, carrying per-flaw catch rates, recall and precision after user verdicts, pairwise-Jaccard agreement, flip lists, score variance, and every adjudication verdict. Their only writer is ledger/adjudicate.py: it auto-matches findings to flaws (equal smell ID plus cited span overlapping the flaw span in fixtures/planted/<name>.spans.tsv, or a static check id), routes everything unmatched to the user (verdicts: flaw:<n> near-credit | pre-existing | fp), and does all arithmetic and serialization itself — the D-015 division of labor, reusing finalize.py's append guard. The ledger "only writer" rule is now: finalize.py writes review lines, adjudicate.py writes adjudication lines, nothing else writes anything. Spans TSVs sit beside the manifests with the same answer-key status: never shown to reviewers, never edited after a recorded result references them. First applied in E-01 (adj-20260721-aeea8221b2, -0beccec7a6, -b58423aa64).
+The repeated-runs rule was a prior, not a result — the claims behind it, C10 and C11, were untested when this was decided.
+
+## D-007 · 2026-07-21 · Real fixtures are pinned snapshots
+
+Copy each real fixture unchanged from a pinned upstream commit into `fixtures/real/<name>/<commit-date>-<sha7>/`. Add `PROVENANCE.md` with the source, path, license, full SHAs, and re-fetch commands.
+
+Never change a snapshot. A newer upstream state gets a new snapshot directory. Where upstream history moved, keep a pair — oldest useful plus current. The pairs are the first probe for C07.
+
+First corpus:
+
+- `grill-with-docs` and `tdd` from `mattpocock/skills`, MIT, version pairs. Both were sharply reduced upstream; `grill-with-docs` is now a seven-line alias to sibling skills.
+- `karpathy-guidelines` from `multica-ai/andrej-karpathy-skills`, ~195k stars, no license, unchanged upstream since 2026-01-28. Vendored while this repo is private; the license must be resolved before any public push.
+
+Pinned snapshots keep recorded results stable. Provenance keeps every snapshot auditable and re-fetchable.
+
+## D-008 · 2026-07-21 · Check fixture licenses per skill
+
+Verify the license of each skill directory before vendoring — one repo can mix terms. When upstream ships a per-skill license, it rides inside the snapshot. Otherwise a repo-level copy lands at `fixtures/real/LICENSE-<source>.txt`.
+
+`anthropics/skills` has no top-level license. Its example skills carry Apache-2.0 `LICENSE.txt` files. Its document skills — `pdf`, `docx`, `pptx`, `xlsx` — use a source-available license that forbids retaining copies, reproduction, derivatives, and distribution. Never vendor them, even in a private repo.
+
+Corpus adds under this entry, all version pairs: `frontend-design` and `skill-creator` (`anthropics/skills`, Apache-2.0); `writing-skills` and `test-driven-development` (`obra/superpowers`, MIT).
+
+Considered and not taken, re-openable: `claude-api` (heavy, 66 files), `mcp-builder` (no unique gap), `brainstorming` (churn is app plumbing, not skill text), `affaan-m/ECC` (no new structural axis).
+
+## D-009 · 2026-07-21 · Skill #1 is review-skill
+
+`review-skill` reviews a full skill directory: `SKILL.md`, references, and scripts. A lone `SKILL.md` is accepted; directory-dependent checks are then reported as skipped, never guessed.
+
+Output: findings — each with smell ID, location, evidence quote, why it matters, and a concrete fix — plus rubric scores and a ledger entry. The reviewer never edits the reviewed files.
+
+Not in v0: applying fixes (a separate skill's job), measuring runtime effectiveness (the eval harness's job), and reviewing non-`SKILL.md` artifacts such as `CLAUDE.md` or agent definitions. Transcript input was also rejected for v0 — no fixture has transcripts; revisit when our own skills have ledger history.
+
+The name is verb-first and does not collide with the built-in `/review` command for GitHub pull requests.
+
+## D-010 · 2026-07-21 · Cold-reader probes are optional and configurable
+
+A review includes a cold-reader probe: a cheap model with no context restates the skill's obligations, and the restatement is scored.
+
+Use the model the user names, such as `cold-reader: haiku headless`. If none is named, use an available cheap headless model. If none is available, estimate cold-reader comprehension by judge and mark it explicitly as estimated.
+
+The probe is optional so the skill still works where no second model exists. It stays in v0 because it mechanizes D-005 as a rubric check.
+
+## D-011 · 2026-07-21 · review-skill rubric v0
+
+Two layers.
+
+Layer 1 is a mechanical pass/fail script in the skill directory. It checks: body at most 5,000 words (threshold from C05, untested), name at most 64 characters, description at most 1,024 characters, no backslash paths, no XML in the description, frontmatter parses with `name` and `description` present, referenced files exist on disk.
+
+Layer 2 scores six judgment dimensions from 1 to 4 against written anchors, with no midpoint:
+
+- Trigger and description: CSD, USN, NTPD, MUR — weighted first, per C12 and C04.
+- Instruction quality: TSW, SOC, TOB, MDT, MT — per C08.
+- Grounding and examples: ME, TSS — per C09.
+- Verification and safeguards: NVS, EWP, NAH, RL, NPT, NG, BG, MC.
+- Context economy and delegation: UD, MUS, plus a soft length judgment.
+- Cold-reader comprehension, fed by the D-010 probe.
+
+Every judgment finding is binary: present with a smell ID, location, evidence quote, and fix, plus one blocker flag meaning the skill fails its job if unfixed.
+
+Rejected: a flat 26-smell checklist (no readable verdict), the paper's 10 groups as dimensions (uneven), 1–5 or 3-level scales (midpoint hiding), and severity ladders (unanchored judgment that varies run to run).
+
+## D-012 · 2026-07-21 · Ledger schema and evidence threshold
+
+Runs are append-only lines in `ledger/runs.jsonl`. A line is never edited. Repeated runs of one review share a `batch_id`. Schema documented in `ledger/README.md`.
+
+Fields: `run_id`, `batch_id`, `date`, `target {path, fixture, snapshot}`, `reviewer {skill, version_sha, model, effort}`, `repeats_in_batch`, static results, `findings [{smell_id, location, evidence, blocker, fix}]`, scores per dimension, `probe {model, misreads}` or `{estimated: true}`, `vs_manifest {recall, precision, adjudications}` for planted fixtures, `notes`.
+
+A score may be cited as evidence only from a five-run batch with variance. Ad hoc reviews may be single runs, marked `repeats_in_batch: 1`, and are never cited as evidence.
+
+## D-013 · 2026-07-21 · Planted fixtures and hidden manifests
+
+Build each planted fixture from a permissively licensed real snapshot. Plant about 10–12 deliberate flaws: at least one per judgment dimension, at least two static.
+
+The manifest lives beside the fixture directory, never inside it. The reviewer reads the whole directory and must not see the answer key.
+
+Recall = planted flaws caught / planted flaws. Precision = (planted + user-confirmed pre-existing findings) / all findings. Real bases carry about 10 pre-existing smells (C02), so off-manifest findings are adjudicated, never auto-counted as false positives.
+
+Never derive from an unlicensed source. Never author a "clean" base from scratch — unlabeled pre-existing smells would silently corrupt precision.
+
+## D-014 · 2026-07-21 · review-skill landed as draft
+
+`review-skill` landed at `skills/review-skill`, status `draft`, after passing both kickoff gates: a self-review (run `r-20260721-001` in the ledger — three non-blocking findings, all fixed in-session) and a clean cold-reader probe (Kimi K3 headless, `SKILL.md` only, seven scenario questions, no misreads).
+
+First planted fixtures: `tdd-p1` and `frontend-design-p1`, 12 flaws each, manifests sibling to the fixture directories. Static plants were verified to trip the checker. The checker also got a fix (trailing-backslash directory paths) and a caveat: illustrative paths in teaching skills can false-positive the REF check, so the skill now says to confirm REF and BP evidence in context.
+
+Experiments E-01 through E-05 queued in `docs/experiments.md`. No claim status moved — nothing had been measured yet.
+
+## D-015 · 2026-07-21 · Ledger v2 compiles reports into records
+
+Supersedes the writer mechanics of D-012 (schema intent stands) and amends D-011's evidence rule.
+
+The model authors exactly one artifact per review: a markdown report in a fixed template. It then runs `scripts/finalize.py`.
+
+`finalize.py` parses the whole report — unknown, duplicate, or stray content is a loud, model-actionable error. It validates scores and smell IDs. For every finding it extracts the evidence itself from the cited file, line range, and anchor snippet; an anchor mismatch fails with nearby-line hints, so a hallucinated finding cannot enter the ledger. It re-runs static checks instead of trusting transcription. It generates all machine facts — content-addressed `run_id`, timestamp, reviewer git SHA, target file SHAs, `schema_version` — and serializes with `json.dumps`.
+
+Commit paths: with a ledger present, direct append with `O_APPEND` plus `fsync` and duplicate-`run_id` refusal. Parallel batches use `--outbox`, one file per run, with a single `--drain` step as the only shared-ledger writer. `--print` when neither exists.
+
+Truncation is never silent (`omitted_findings`). The model never writes JSON, run IDs, dates, or SHAs.
+
+Three independent advisors — a second-family model, a third-family model, and web evidence — converged on this design. Measured free-hand JSON failure rates run 5–10%, against under 0.1% for enforced paths; our own first ledger line carried a model-invented placeholder timestamp. Hash chains and commit receipts are deferred until the first recorded incident.
+
+Rule of thumb, kept: the probabilistic component authors; the deterministic component frames, verifies, and commits.
+
+## D-016 · 2026-07-21 · DECISIONS.md stores durable decisions only
+
+An entry belongs here only when future work must follow it or consciously reverse it.
+
+Run-scoped calls do not belong here. Fixture picks, probe models, and batch names live in ledger lines, batch IDs, and experiment notes.
+
+Set when E-01 setup was about to record its second-family fixture pick as an entry. `CLAUDE.md` was changed from "every decision lands in DECISIONS.md" to the durable-decision rule — the old rule was fixed, not caveated.
+
+## D-017 · 2026-07-21 · Adjudication records and hidden spans
+
+Planted-fixture results land as ledger lines with `type: adjudication`, one per batch, referencing its `run_ids`. Each records per-flaw catch rates, recall and precision after user verdicts, pairwise-Jaccard agreement, flip lists, score variance, and every adjudication verdict.
+
+Only `ledger/adjudicate.py` writes adjudication lines. It matches a finding to a flaw when the smell ID is equal and the cited span overlaps the flaw span in `fixtures/planted/<name>.spans.tsv`, or when the static check ID matches. Everything unmatched goes to the user; verdicts are `flaw:<n>` (near-match credit), `pre-existing`, or `fp`. The script does all arithmetic and serialization and reuses the append guard from `finalize.py`.
+
+The ledger writer rule is now: `finalize.py` writes review lines, `adjudicate.py` writes adjudication lines, nothing else writes anything.
+
+Spans TSVs sit beside the manifests with the same answer-key status: never shown to reviewers, never edited after a recorded result references them.
+
+First used in E-01: `adj-20260721-aeea8221b2`, `adj-20260721-0beccec7a6`, `adj-20260721-b58423aa64`.
+
+## D-018 · 2026-07-21 · One-time tidy of this file
+
+Every entry above was rewritten in plain english and compressed. Numbers, dates, order, and meanings are unchanged; git history keeps the originals. The header rule now allows this kind of compression; reversals still require a new entry. The first draft came from a second-family model and was reviewed and corrected entry by entry here.
