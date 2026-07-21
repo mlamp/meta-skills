@@ -6,7 +6,7 @@ Two layers (D-011). Layer 1 is mechanical and scripted. Layer 2 is judgment: six
 
 Run `scripts/static_checks.py <path>`. Checks: FM-parse (frontmatter parses, name and description present), LSN (name ≤ 64 chars), LSD (description ≤ 1,024 chars), XID (no XML/HTML tags in description), LSB (body ≤ 5,000 words), BP (no backslash paths), REF (files referenced in the body exist on disk; skipped for a lone SKILL.md).
 
-The 5,000-word cap is C05 [UNVERIFIED]. Falsifier: the C05 A/B — a long skill vs its distilled variant on the same tasks — showing no outcome difference. Report an LSB fail as a finding, but say it rests on an untested threshold.
+The 5,000-word cap is C05 [UNVERIFIED]. Falsifier: the C05 A/B — a long skill vs its distilled variant on the same tasks — showing no outcome difference. An LSB fail becomes a finding automatically at finalize, like every non-overridden static fail — don't file it by hand too; note in the report that the threshold is untested.
 
 ## Layer 2 — dimensions and anchors
 

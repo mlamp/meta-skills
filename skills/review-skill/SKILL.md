@@ -21,10 +21,10 @@ Division of labor (D-015): you author the analysis — one markdown report. `scr
 
 Do all six steps, in order. Do every dimension and every smell in it, even when the skill looks clean — a clean-looking file is what an unchecked smell looks like. Track progress by dimension so a partial review is visible as partial.
 
-1. Static checks, early look. Run `scripts/static_checks.py <path>` to see mechanical results now (the finalizer re-runs them authoritatively at commit). A REF or BP hit on paths that are illustrations — in a skill that teaches skill-making, say — is a false positive: plan a Static override with a reason, not a finding. An LSB fail rests on an untested threshold (C05) — say so when reporting it.
+1. Static checks, early look. Run `scripts/static_checks.py <path>` to see mechanical results now. The finalizer re-runs them authoritatively at commit and files every non-overridden fail as a finding itself — never hand-file a static fail. A REF or BP hit on paths that are illustrations — in a skill that teaches skill-making, say — is a false positive: plan a Static override with a reason. An LSB fail rests on an untested threshold (C05) — say so in Notes.
 2. Read `references/rubric.md` — dimensions, anchors, and per-smell definitions live there. Read every file in the target directory.
-3. Judgment pass. Work through dimensions 1–5 in rubric order; check every smell in each against its definition. Before leaving each dimension, ask the absence question: what does this skill's job imply should exist in this dimension that is absent? The job is what the file itself promises — its description's claims and the situations its steps will hit — not generic best practice. Prompts, not required elements: a rule for a foreseeable conflict, a plan or review gate, a caveat for a known failure mode, a concrete spec where format matters. File an absence only when the missing guidance would change behavior on a task the description claims to handle — most dimensions in most skills have none. Absent guidance leaves no flawed sentence to notice; it is found by asking, not by reading alone. File it under the smell that names the gap (none quite fits — use the closest and mark it Uncertain), cite the span where the missing guidance belongs (the closest section or heading), anchor on text that is actually there, and name in Why the promise or step that implies the missing guidance. A finding records: smell ID, File, Lines (a span of at most 40 lines), Anchor (a few words verbatim from that span), Why it matters, a concrete Fix, and a blocker marker when the skill fails its job if this stands. No span, no finding — the finalizer extracts the real quote from your span and refuses evidence that isn't in the file. Unsure whether a hit is real — mark it Uncertain for the user to adjudicate; don't silently drop or assert it.
-4. Cold-reader probe. The probe model — the one the user named, else any available cheap headless CLI — gets exactly two things: the fixed probe prompt from references/rubric.md, verbatim, and the full target SKILL.md. No session context, no other files, no improvised questions. Note its misreads. No probe model available — estimate and write "estimated".
+3. Judgment pass. Work through dimensions 1–5 in rubric order; check every smell in each against its definition. Before leaving each dimension, ask the absence question: what does this skill's job imply should exist in this dimension that is absent? The job is what the file itself promises — its description's claims and the situations its steps will hit — not generic best practice. Prompts, not required elements: a rule for a foreseeable conflict, a plan or review gate, a caveat for a known failure mode, a concrete spec where format matters. File an absence only when the missing guidance would change behavior on a task the description claims to handle — most dimensions in most skills have none. Absent guidance leaves no flawed sentence to notice; it is found by asking, not by reading alone. File it under the smell that names the gap (if no smell quite fits, file under the closest one and mark that finding Uncertain), cite the span where the missing guidance belongs (the closest section or heading), anchor on text that is actually there, and name in Why the promise or step that implies the missing guidance. A finding records: smell ID, File, Lines (a span of at most 40 lines), Anchor (a few words verbatim from that span), Why it matters, a concrete Fix, and a blocker marker when the skill fails its job if this stands. No span, no finding — the finalizer extracts the real quote from your span and refuses evidence that isn't in the file. Unsure whether a hit is real — mark it Uncertain for the user to adjudicate; don't silently drop or assert it.
+4. Cold-reader probe. The probe model — the one the user named, else any available cheap headless CLI — gets exactly two things: the fixed probe prompt from references/rubric.md, verbatim, and the full target SKILL.md. No session context, no other files, no improvised questions. Run the probe from a directory outside any project — headless CLIs load project context (CLAUDE.md) from the cwd, which would silently break the no-context guarantee. Note its misreads. No probe model available — estimate and write "estimated".
 5. Score all six dimensions 1–4 against the anchors. Pick the anchor that describes the file; there is no midpoint to split.
 6. Finalize. Write the report (template below) to a scratch file, then run one of:
    - solo: `python3 scripts/finalize.py <report> <target>` — appends to ledger/runs.jsonl when the working directory has one, else prints the line for the user to file.
@@ -83,9 +83,21 @@ Why: The description says what the skill does but has no when-to-use clause and 
 Fix: Add a when-to-use clause and trigger keywords to the description.
 ```
 
+An absence finding from the same fixture — the missing thing has no line of its own, so the span is where it belongs, the anchor is text that exists, and Why names the promise that implies it:
+
+```
+### F2 · MT
+File: SKILL.md
+Lines: 1-7
+Anchor: creates docs (ADR's and glossary)
+Why: The description promises ADR and glossary documents, but nothing in the file says what they must contain or where they go — the promise implies a spec that is absent.
+Fix: State the required contents and location of the ADRs and the glossary.
+```
+
 ## Rules
 
 - Never edit, move, or reformat the reviewed files — including fixing the flaws you found.
+- Asked to improve a skill: run the review and return the findings and fixes — applying them is a separate task, never this skill's.
 - Never write or edit a ledger line by hand; finalize.py is the only writer, in every mode.
 - Every finding cites a span and anchor from the target. A finding whose evidence the finalizer cannot extract does not land.
 - A clean pass on a smell is not a finding; report findings, not compliance.
