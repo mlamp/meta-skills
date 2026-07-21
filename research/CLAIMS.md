@@ -19,7 +19,7 @@ Notes in research/notes/, PDFs in research/sources/.
 - C06 [untested] An LLM judge can detect the semantic smells around F1 0.78 — good enough to pre-screen, not to auto-fail.
   Test: label a fixture subset ourselves; compute precision/recall for our judge, per model family. Evidence: —
 - C07 [untested] Smells persist once introduced unless deliberately fixed.
-  Test: our own skills' git history after 2–3 months. Evidence: —
+  Test: version-pair fixtures in fixtures/real/ (review old vs current snapshots); later, our own skills' git history. Evidence: —
 
 ## From arXiv:2509.20497 (prompt debt study)
 
