@@ -17,9 +17,11 @@ DESC_CAP = 1024   # LSD
 
 def parse_frontmatter(text):
     """Naive YAML subset: top-level 'key: value' pairs, folded/literal blocks,
-    and indented plain-scalar continuations. Returns (dict | None, body)."""
+    and indented plain-scalar continuations. Returns (dict | None, body, body_offset)
+    where body_offset is the number of file lines before the body, so evidence
+    can cite file line numbers."""
     if not text.startswith("---"):
-        return None, text
+        return None, text, 0
     lines = text.split("\n")
     end = None
     for i, line in enumerate(lines[1:], start=1):
@@ -27,7 +29,7 @@ def parse_frontmatter(text):
             end = i
             break
     if end is None:
-        return None, text
+        return None, text, 0
     fm, body = {}, "\n".join(lines[end + 1:])
     key = None
     for line in lines[1:end]:
@@ -38,10 +40,11 @@ def parse_frontmatter(text):
             fm[key] = "" if val in (">", ">-", "|", "|-") else val
         elif key and line.startswith((" ", "\t")) and line.strip():
             fm[key] = (fm[key] + " " + line.strip()).strip()
-    return fm, body
+    return fm, body, end + 1
 
 
-def find_backslash_paths(body):
+def find_backslash_paths(body, offset=0):
+    """Line numbers in hits are file line numbers: body line + offset."""
     hits = []
     patterns = [
         r"[A-Za-z]:\\[^\s`\"']+",                              # drive letter
@@ -50,7 +53,7 @@ def find_backslash_paths(body):
         r"(?:[A-Za-z0-9_.-]{2,}\\){2,}(?=\s|$)",               # dir path, trailing backslash
         r"[A-Za-z0-9_-]{2,}\\[A-Za-z0-9_-]+\.[A-Za-z0-9]{1,4}\b",  # seg\file.ext
     ]
-    for n, line in enumerate(body.split("\n"), start=1):
+    for n, line in enumerate(body.split("\n"), start=1 + offset):
         for p in patterns:
             for m in re.finditer(p, line):
                 hits.append(f"line {n}: {m.group(0)}")
@@ -90,7 +93,7 @@ def main():
         sys.exit(2)
 
     text = skill_md.read_text(encoding="utf-8")
-    fm, body = parse_frontmatter(text)
+    fm, body, body_offset = parse_frontmatter(text)
     checks = {}
 
     def result(cid, ok, evidence):
@@ -122,7 +125,7 @@ def main():
     result("LSB", words <= WORD_CAP, [f"body is {words} words (cap {WORD_CAP})"] if words > WORD_CAP else [])
     checks["LSB"]["evidence"].insert(0, f"body word count: {words}")
 
-    bp = find_backslash_paths(body)
+    bp = find_backslash_paths(body, body_offset)
     result("BP", not bp, bp)
 
     if mode == "dir":

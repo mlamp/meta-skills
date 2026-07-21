@@ -161,3 +161,9 @@ First used in E-01: `adj-20260721-aeea8221b2`, `adj-20260721-0beccec7a6`, `adj-2
 ## D-018 · 2026-07-21 · One-time tidy of this file
 
 Every entry above was rewritten in plain english and compressed. Numbers, dates, order, and meanings are unchanged; git history keeps the originals. The header rule now allows this kind of compression; reversals still require a new entry. The first draft came from a second-family model and was reviewed and corrected entry by entry here.
+
+## D-019 · 2026-07-21 · Absence pass and fixed cold-reader probe (amends D-011)
+
+E-01 measured two reviewer defects: every pure deletion of real guidance was missed by every run (the rubric only interrogated present text), and cold-reader was the only dimension with score range 2 across identical runs (probe questions were improvised per run).
+
+The judgment pass now ends each dimension with the absence question — what does this skill's job imply should exist here that is absent? — and an absence finding cites the span where the missing guidance belongs. The cold-reader probe uses a fixed five-question prompt in the rubric, verbatim, never improvised. Two cues sharpened: an absent output spec files as MT, not ME; NTPD requires an explicit first- or second-person pronoun, so imperative descriptions ("Use when…") don't count. First validation: E-06.

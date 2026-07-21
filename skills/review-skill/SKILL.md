@@ -1,7 +1,7 @@
 ---
 name: review-skill
 description: Reviews an agent skill — a skill directory or a single SKILL.md — against a two-layer rubric, scripted static checks plus six judged dimensions, and returns smell-tagged findings with evidence quotes and concrete fixes, 1–4 scores per dimension, and a ledger line. It never edits the reviewed files. Use when asked to review, critique, score, audit, or improve a skill, a SKILL.md, or a skill directory. Keywords, skill review, SKILL.md, skill smells, rubric, skill quality, trigger description, cold reader.
-status: draft
+status: testing
 allowed-tools: Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/*)
 ---
 
@@ -23,8 +23,8 @@ Do all six steps, in order. Do every dimension and every smell in it, even when 
 
 1. Static checks, early look. Run `scripts/static_checks.py <path>` to see mechanical results now (the finalizer re-runs them authoritatively at commit). A REF or BP hit on paths that are illustrations — in a skill that teaches skill-making, say — is a false positive: plan a Static override with a reason, not a finding. An LSB fail rests on an untested threshold (C05) — say so when reporting it.
 2. Read `references/rubric.md` — dimensions, anchors, and per-smell definitions live there. Read every file in the target directory.
-3. Judgment pass. Work through dimensions 1–5 in rubric order; check every smell in each against its definition. A finding records: smell ID, File, Lines (a span of at most 40 lines), Anchor (a few words verbatim from that span), Why it matters, a concrete Fix, and a blocker marker when the skill fails its job if this stands. No span, no finding — the finalizer extracts the real quote from your span and refuses evidence that isn't in the file. Unsure whether a hit is real — mark it Uncertain for the user to adjudicate; don't silently drop or assert it.
-4. Cold-reader probe. Give ONLY the target SKILL.md (no session context, no other files) to the probe model — the one the user named, else any available cheap headless CLI. Ask it to restate the skill's obligations and answer 2–4 scenario questions. Note its misreads. No probe model available — estimate and write "estimated".
+3. Judgment pass. Work through dimensions 1–5 in rubric order; check every smell in each against its definition. Before leaving each dimension, ask the absence question: what does this skill's job imply should exist in this dimension that is absent? The job is what the file itself promises — its description's claims and the situations its steps will hit — not generic best practice. Prompts, not required elements: a rule for a foreseeable conflict, a plan or review gate, a caveat for a known failure mode, a concrete spec where format matters. File an absence only when the missing guidance would change behavior on a task the description claims to handle — most dimensions in most skills have none. Absent guidance leaves no flawed sentence to notice; it is found by asking, not by reading alone. File it under the smell that names the gap (none quite fits — use the closest and mark it Uncertain), cite the span where the missing guidance belongs (the closest section or heading), anchor on text that is actually there, and name in Why the promise or step that implies the missing guidance. A finding records: smell ID, File, Lines (a span of at most 40 lines), Anchor (a few words verbatim from that span), Why it matters, a concrete Fix, and a blocker marker when the skill fails its job if this stands. No span, no finding — the finalizer extracts the real quote from your span and refuses evidence that isn't in the file. Unsure whether a hit is real — mark it Uncertain for the user to adjudicate; don't silently drop or assert it.
+4. Cold-reader probe. The probe model — the one the user named, else any available cheap headless CLI — gets exactly two things: the fixed probe prompt from references/rubric.md, verbatim, and the full target SKILL.md. No session context, no other files, no improvised questions. Note its misreads. No probe model available — estimate and write "estimated".
 5. Score all six dimensions 1–4 against the anchors. Pick the anchor that describes the file; there is no midpoint to split.
 6. Finalize. Write the report (template below) to a scratch file, then run one of:
    - solo: `python3 scripts/finalize.py <report> <target>` — appends to ledger/runs.jsonl when the working directory has one, else prints the line for the user to file.
@@ -63,7 +63,7 @@ Economy: <1-4>
 Cold-Reader: <1-4>
 
 ## Probe-Misreads
-- <what the cold reader got wrong, one bullet each — or the word none>
+- <what the cold reader got wrong, quoting its words, one bullet each — or the word none>
 
 ## Static overrides
 - <CHECK>: drop — <reason>         <- only for false-positive static fails

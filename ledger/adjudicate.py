@@ -151,14 +151,23 @@ def cmd_match(args):
 
 
 def cmd_commit(args):
-    rows = Path(args.worksheet).read_text(encoding="utf-8").strip().split("\n")
+    # No whole-text strip: it would eat the last row's trailing tab when the
+    # verdict cell is empty, turning "verdict missing" into a field-count error.
+    rows = Path(args.worksheet).read_text(encoding="utf-8").split("\n")
+    while rows and not rows[-1].strip():
+        rows.pop()
     verdicts = {}  # (batch, cluster_no) -> verdict
-    for row in rows[1:]:
+    for lineno, row in enumerate(rows[1:], start=2):
         parts = row.split("\t")
+        if len(parts) == 7:
+            parts.append("")  # editor stripped the trailing tab of an empty verdict
         if len(parts) != 8:
-            die(f"worksheet row has {len(parts)} fields, want 8: {row!r}")
+            die(f"worksheet line {lineno}: has {len(parts)} fields, want 8: {row!r}")
         b, cno, smell, loc, run_list, n_runs, why, verdict = parts
         verdict = verdict.strip()
+        if not verdict:
+            die(f"worksheet line {lineno}: cluster {b}#{cno} verdict is empty — "
+                f"fill the last column with flaw:<n> | pre-existing | fp")
         if not VERDICTS.match(verdict):
             die(f"cluster {b}#{cno}: verdict {verdict!r} not in flaw:<n> | pre-existing | fp")
         verdicts[(b, int(cno))] = verdict
