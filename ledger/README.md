@@ -1,11 +1,11 @@
 # ledger — run records
 
-Every review commits one line to `runs.jsonl`. Append-only: a line is never edited or deleted. The only writer is `skills/review-skill/scripts/finalize.py` (D-015): the model authors a markdown report; the finalizer parses and validates it, extracts every evidence quote from the spans the report cites, runs the static checks, generates the machine facts, serializes with a JSON encoder, and commits. Never write or edit a line by hand, in any mode.
+Every review commits one line to `runs.jsonl`. Append-only: a line is never edited or deleted. Review lines are written only by `skills/review-skill/scripts/finalize.py` (D-015): the model authors a markdown report; the finalizer parses and validates it, extracts every evidence quote from the spans the report cites, runs the static checks, generates the machine facts, serializes with a JSON encoder, and commits. Adjudication lines are written only by `ledger/adjudicate.py` (D-017). Nothing else writes anything; never write or edit a line by hand, in any mode.
 
 Schema v2 fields (one JSON object per line):
 
 - `schema_version` — 2. Line 1 of runs.jsonl predates this schema (v1, hand-assembled, no schema_version field) — kept as history, never edited.
-- `type` — `review`. Recall/precision from planted-fixture runs land later as `adjudication` lines referencing run_ids — `vs_manifest` in a review line is null at commit time because adjudication happens after the run.
+- `type` — `review` or `adjudication`. Recall/precision from planted-fixture runs land as `adjudication` lines referencing run_ids — `vs_manifest` in a review line is null at commit time because adjudication happens after the run. An adjudication line (written by `ledger/adjudicate.py`, D-017) carries: `batch_id`, `run_ids`, `manifest_sha256_16`, `spans_sha256_16`, `per_flaw` catch rates, `recall` and `precision` (per-run, mean, min, max, stdev; recall also union), `agreement` (pairwise Jaccard, flaw flips, missed-all), `score_stats` per dimension, and every `adjudications` verdict (`flaw:<n>` near-credit | `pre-existing` | `fp`).
 - `run_id` — `r-YYYYMMDD-<10 hex>`, content-addressed (hash over payload + batch id + seq): an identical re-run dedupes; legitimate repeats in a batch differ by seq and don't collide.
 - `batch_id`, `batch_seq` — assigned by the eval harness; solo runs default to `b-YYYYMMDD-solo`, seq 1.
 - `date` — ISO 8601, from the script's clock, never the model.

@@ -6,18 +6,18 @@ Notes in research/notes/, PDFs in research/sources/. The harness that runs the t
 
 ## From arXiv:2607.01456 (skill smells study)
 
-- C01 [untested] The 26-smell catalog works as a review rubric for SKILL.md files — most hits are worth fixing.
-  Test: run the smell checks on real fixtures; user spot-checks findings; survives if precision stays useful (~70%+). Evidence: —
-- C02 [untested] Smells are pervasive: real skills average ~10 smells, so near-zero hits means a broken detector, not a clean corpus.
-  Test: median hits per file across 10+ real fixtures. Evidence: —
+- C01 [testing] The 26-smell catalog works as a review rubric for SKILL.md files — most hits are worth fixing.
+  Test: run the smell checks on real fixtures; user spot-checks findings; survives if precision stays useful (~70%+). Evidence: E-01 (adj-20260721-aeea8221b2, -0beccec7a6, -b58423aa64): precision after user adjudication 1.0 / 0.969 / 1.0 per batch — 2 false positives across 15 runs. Planted corpus only; the real-fixture spot-check (E-02) still has to run.
+- C02 [testing] Smells are pervasive: real skills average ~10 smells, so near-zero hits means a broken detector, not a clean corpus.
+  Test: median hits per file across 10+ real fixtures. Evidence: E-01 adjudication confirmed pre-existing smells in unmodified base text: 4 in the frontend-design base SKILL.md (TSW, ME, RL, BG), 1 in tdd's mocking.md (MDT). Direction agrees; the per-file median needs E-02.
 - C03 [untested] The 13-component taxonomy covers what real SKILL.md bodies contain; usable as the structural vocabulary of review output.
   Test: classify fixtures' H2 sections against it; unclassifiable share stays low. Evidence: —
 - C04 [untested] Descriptions shaped [what it does] + [when to use] + [keywords] trigger better than free-form ones.
   Test: A/B one skill with both description forms on trigger-worthy and distractor tasks, repeated runs; compare invocation precision/recall. Evidence: —
 - C05 [untested] Bodies over ~5,000 words hurt outcomes (context bloat).
   Test: A/B a long skill vs its distilled variant on the same tasks. Evidence: —
-- C06 [untested] An LLM judge can detect the semantic smells around F1 0.78 — good enough to pre-screen, not to auto-fail.
-  Test: label a fixture subset ourselves; compute precision/recall for our judge, per model family. Evidence: —
+- C06 [testing] An LLM judge can detect the semantic smells around F1 0.78 — good enough to pre-screen, not to auto-fail.
+  Test: label a fixture subset ourselves; compute precision/recall for our judge, per model family. Evidence: E-01, pooled over the 18 planted semantic flaws: claude-fable-5 recall 0.778, precision 0.979, F1 ≈ 0.87 — every miss is a pure-deletion flaw; kimi-k3 on tdd-p1 F1 ≈ 0.98. At or above the paper's 0.78 on this corpus, insertion-heavy as it is.
 - C07 [untested] Smells persist once introduced unless deliberately fixed.
   Test: version-pair fixtures in fixtures/real/ (review old vs current snapshots); later, our own skills' git history. Evidence: —
 
@@ -32,7 +32,7 @@ Notes in research/notes/, PDFs in research/sources/. The harness that runs the t
 
 - C10 [untested] Consistency across repeated runs predicts correctness (paper: 32–55pp gap).
   Test: fixture evals with 5+ repeats; correlate run agreement with pass/fail. Evidence: —
-- C11 [untested] Single-run evals flip verdicts; N runs + variance is the floor for any recorded score.
-  Test: re-run a batch of single-run verdicts ×5; measure the flip rate. Evidence: —
+- C11 [testing] Single-run evals flip verdicts; N runs + variance is the floor for any recorded score.
+  Test: re-run a batch of single-run verdicts ×5; measure the flip rate. Evidence: E-01: finding-level flips 0/12 flaws for claude-fable-5 (both fixtures, pairwise Jaccard 1.0) but 2/12 for kimi-k3; score-level variance is real and concentrates in the probe-fed cold-reader dimension (range 2 across identical runs). A single run can misreport scores by 2 points and, on the second family, silently miss flaws.
 - C12 [untested] Divergence concentrates at the first real decision (paper: 69% at step 2), so trigger/when-to-use guidance deserves outsized review weight.
   Test: compare where eval trajectories diverge with strong vs weak trigger sections. Evidence: —

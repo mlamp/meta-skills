@@ -16,6 +16,7 @@ Layout of planted/:
 
 - planted/<base>-p<n>/ — the fixture: a copy of a permissively-licensed real snapshot with deliberate flaws (D-013).
 - planted/<base>-p<n>.manifest.md — the answer key, sibling to the fixture dir, never inside it: a reviewer reading the directory must not see it.
+- planted/<base>-p<n>.spans.tsv — machine-readable flaw spans derived from the manifest; ledger/adjudicate.py's match input (D-017). Same answer-key status and rules as the manifest.
 
 Rules:
 

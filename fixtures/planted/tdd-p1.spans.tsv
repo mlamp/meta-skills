@@ -1,0 +1,13 @@
+flaw	smell	file	start	end	static
+1	XID	SKILL.md	3	3	XID
+2	CSD	SKILL.md	1	4	-
+3	REF	SKILL.md	16	16	REF
+4	TSW	SKILL.md	60	62	-
+5	RL	SKILL.md	60	63	-
+6	TOB	SKILL.md	64	67	-
+7	TSS	SKILL.md	64	67	-
+8	SOC	SKILL.md	64	71	-
+9	BP	SKILL.md	71	73	BP
+10	UD	SKILL.md	74	90	-
+11	ME	SKILL.md	91	98	-
+12	BG	SKILL.md	99	110	-
