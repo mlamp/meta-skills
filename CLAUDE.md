@@ -9,8 +9,8 @@ Skills that review and improve other skills and agentic tools.
 - Imported ideas (papers, outside practices) are unproven until validated here. Each one lives in research/CLAIMS.md with a status and a test.
 - An effectiveness claim in binding text cites our own evidence or carries [UNVERIFIED] plus "Falsifier:" naming the recorded thing that would prove it wrong.
 - New skill or rule text lands only after a cold reader — a cheap model with no session context — restates its obligations correctly.
-- Measure when we can. Repeated runs, not single runs (prior: C10, C11 — untested). A score that matters gets a second opinion from a different model family.
-- Every skill run should leave a record. Ledger schema: decided with skill #1 (D-006).
+- Measure when we can. A score cited as evidence comes from a 5-run batch with variance (prior: C10, C11 — untested) and gets a second opinion from a different model family. Single runs are context, never evidence.
+- Every skill run leaves one line in ledger/runs.jsonl (schema: ledger/README.md, D-012).
 
 ## Map
 
@@ -19,4 +19,5 @@ Skills that review and improve other skills and agentic tools.
 - research/sources/ — raw PDFs. Ingestion only.
 - research/notes/ — one distilled note per paper. Read these, not the PDFs.
 - research/CLAIMS.md — every borrowed idea: status, the test that moves it, the evidence.
+- ledger/ — append-only run records: runs.jsonl, one JSON line per run.
 - docs/ — session prompts and design docs.

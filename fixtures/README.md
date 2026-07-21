@@ -12,8 +12,20 @@ Layout of real/:
 - When upstream history moved, take a pair (oldest useful + current) so review output can be compared across versions.
 - Third-party licenses: when upstream ships a per-skill license, it rides inside each snapshot; otherwise a repo-level copy lands at real/LICENSE-<source>.txt. A source with no license gets a warning in its PROVENANCE and must be resolved before this repo goes public.
 
+Layout of planted/:
+
+- planted/<base>-p<n>/ — the fixture: a copy of a permissively-licensed real snapshot with deliberate flaws (D-013).
+- planted/<base>-p<n>.manifest.md — the answer key, sibling to the fixture dir, never inside it: a reviewer reading the directory must not see it.
+
 Rules:
 
 - A real/ snapshot never changes, period — it is a pinned upstream state. New upstream state → new snapshot dir.
 - A planted/ fixture never changes after a recorded result references it. Fix by adding a new fixture.
 - Manifests list flaws plainly: one line per flaw, where it sits, what a reviewer should say about it.
+
+Eval protocol (D-012, D-013):
+
+- A recorded score = 5 repeated runs, one batch_id in ledger/runs.jsonl, reported with variance. Prior: C10/C11, untested.
+- Recall = planted flaws caught / planted flaws. Match on smell ID + location; near-matches adjudicated by the user.
+- Precision = (planted + user-confirmed pre-existing findings) / all findings. Off-manifest findings are adjudicated, never auto-counted as false positives — real bases carry their own smells (C02).
+- A score that matters gets a second opinion from a different model family, run headless.

@@ -2,7 +2,7 @@
 
 Borrowed ideas are unproven here until our own evidence moves them. Status: untested | testing | validated | refuted. Every claim names the test that would move it. Evidence means our own records — ledger entries, fixture results, D-numbers — never "the paper says so".
 
-Notes in research/notes/, PDFs in research/sources/.
+Notes in research/notes/, PDFs in research/sources/. The harness that runs the tests: review-skill (D-009–D-013), planted fixtures under fixtures/planted/, records in ledger/runs.jsonl, queue in docs/experiments.md.
 
 ## From arXiv:2607.01456 (skill smells study)
 
