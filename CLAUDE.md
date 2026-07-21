@@ -5,7 +5,7 @@ Skills that review and improve other skills and agentic tools.
 ## Rules
 
 - Plain english. Short sentences. One pass must be enough. No contradictions — fix the old rule, don't add a caveat.
-- Weight-bearing choices go to the user as options with a recommendation. Every decision lands in DECISIONS.md.
+- Weight-bearing choices go to the user as options with a recommendation. Durable decisions land in DECISIONS.md; run-scoped calls (fixture picks, batch naming, probe choice) stay in the run's own records — ledger lines, experiment notes.
 - Imported ideas (papers, outside practices) are unproven until validated here. Each one lives in research/CLAIMS.md with a status and a test.
 - An effectiveness claim in binding text cites our own evidence or carries [UNVERIFIED] plus "Falsifier:" naming the recorded thing that would prove it wrong.
 - New skill or rule text lands only after a cold reader — a cheap model with no session context — restates its obligations correctly.
