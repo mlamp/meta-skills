@@ -1,7 +1,7 @@
 ---
 name: review-skill
 description: Reviews an agent skill — a skill directory or a single SKILL.md — against a two-layer rubric, scripted static checks plus six judged dimensions, and returns smell-tagged findings with evidence quotes and concrete fixes, 1–4 scores per dimension, and a ledger line. It never edits the reviewed files. Use when asked to review, critique, score, audit, or improve a skill, a SKILL.md, or a skill directory. Keywords, skill review, SKILL.md, skill smells, rubric, skill quality, trigger description, cold reader.
-status: testing
+status: proven
 allowed-tools: Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/*)
 ---
 
