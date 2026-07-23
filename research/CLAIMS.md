@@ -6,12 +6,12 @@ Notes in research/notes/, PDFs in research/sources/. The harness that runs the t
 
 ## From arXiv:2607.01456 (skill smells study)
 
-- C01 [testing] The 26-smell catalog works as a review rubric for SKILL.md files — most hits are worth fixing.
-  Test: run the smell checks on real fixtures; user spot-checks findings; survives if precision stays useful (~70%+). Evidence: E-01 (adj-20260721-aeea8221b2, -0beccec7a6, -b58423aa64): precision after user adjudication 1.0 / 0.969 / 1.0 per batch — 2 false positives across 15 runs. E-06 (adj-20260721-161797bfb1, -69d5d03b9a): precision 1.0 in all 10 runs of both families, including every absence-pass finding — the deliberate absence question added zero false positives. 25 runs cumulative, 2 fps total. Planted corpus only; the real-fixture spot-check (E-02) still has to run.
+- C01 [validated] The 26-smell catalog works as a review rubric for SKILL.md files — most hits are worth fixing.
+  Test: run the smell checks on real fixtures; user spot-checks findings; survives if precision stays useful (~70%+). Evidence: E-01 (adj-20260721-aeea8221b2, -0beccec7a6, -b58423aa64): precision after user adjudication 1.0 / 0.969 / 1.0 per batch — 2 false positives across 15 runs. E-06 (adj-20260721-161797bfb1, -69d5d03b9a): precision 1.0 in all 10 runs of both families, including every absence-pass finding. E-02 (adj-20260723-, eight lines: 0837aedeaf, 955ae5b2b6, 06cfed1144, c0e3044fff, 88a5e09ce2, 6173065b52, 45dcdb14c9, 4215f2c292): 40 runs over all 7 current real snapshots + a kimi anchor, 243 findings, 96 user-adjudicated clusters — strict precision (fix-worthy only) pooled 0.947–1.0 per batch, grounded precision 1.0 everywhere, zero wrong-evidence verdicts. All 4 not-fix-worthy clusters were 1-of-5-run singletons; every cluster found by 2+ runs was fix-worthy. 65 runs cumulative across planted and real corpora, both families, precision never below 0.94.
 - C02 [testing] Smells are pervasive: real skills average ~10 smells, so near-zero hits means a broken detector, not a clean corpus.
-  Test: median hits per file across 10+ real fixtures. Evidence: E-01 adjudication confirmed pre-existing smells in unmodified base text: 4 in the frontend-design base SKILL.md (TSW, ME, RL, BG), 1 in tdd's mocking.md (MDT). Direction agrees; the per-file median needs E-02.
-- C03 [untested] The 13-component taxonomy covers what real SKILL.md bodies contain; usable as the structural vocabulary of review output.
-  Test: classify fixtures' H2 sections against it; unclassifiable share stays low. Evidence: —
+  Test: median hits per file across 10+ real fixtures. Evidence: E-01 confirmed pre-existing smells in unmodified base text (4 in frontend-design, 1 in tdd's mocking.md). E-02 (the eight adj-20260723 lines): user-confirmed fix-worthy clusters per skill across the 7 current snapshots: 4, 7, 8, 8, 12, 19, 19 — median 8, mean 11, against the paper's average 10.5. Direction and magnitude agree; stays testing until the corpus reaches the 10+ fixtures the test names (E-03 adds the 6 old snapshots).
+- C03 [testing] The 13-component taxonomy covers what real SKILL.md bodies contain; usable as the structural vocabulary of review output.
+  Test: classify fixtures' H2 sections against it; unclassifiable share stays low. Evidence: E-02 close-out pass (no reviewer involved): 58 real H2 sections across the 7 current snapshots (code-fenced template headings excluded; grill-with-docs has none), classified by hand against the 13 components. 57/58 mapped — Task (incl. the platform-variant sections under environment variation), Introduction, Principles, Practice, Evaluation, References, Context, Usecase, Output Format all used; only writing-skills' closing "The Bottom Line" needed Other. Unclassifiable share ~2% (~3% counting the rationale-prose "Why Order Matters" as Other). One session's hand pass; a second classifier should replicate before validated.
 - C04 [untested] Descriptions shaped [what it does] + [when to use] + [keywords] trigger better than free-form ones.
   Test: A/B one skill with both description forms on trigger-worthy and distractor tasks, repeated runs; compare invocation precision/recall. Evidence: —
 - C05 [untested] Bodies over ~5,000 words hurt outcomes (context bloat).
@@ -23,8 +23,8 @@ Notes in research/notes/, PDFs in research/sources/. The harness that runs the t
 
 ## From arXiv:2509.20497 (prompt debt study)
 
-- C08 [untested] Instruction-style text is the biggest debt magnet; clarity and length are the usual failure.
-  Test: category counts of user-confirmed findings across fixture reviews — instruction-clarity leads. Evidence: —
+- C08 [testing] Instruction-style text is the biggest debt magnet; clarity and length are the usual failure.
+  Test: category counts of user-confirmed findings across fixture reviews — instruction-clarity leads. Evidence: E-02 (the eight adj-20260723 lines), fable batches, fix-worthy clusters by rubric category: verification 29, instruction 19, trigger 13, grounding 9, economy 6, static 1 — on raw counts verification & safeguards leads, not instruction. Normalized per smell in the category (verification has 8 smells, instruction 5): instruction 3.8 vs verification 3.6 per smell — a narrow instruction lead. Top smells: MDT 11, MC 9, NVS/RL/MUR 6 each. The claim as stated is not confirmed on raw counts; category size confounds the comparison. Needs a pre-registered normalization rule before it can move either way.
 - C09 [untested] Placeholder or dummy examples rot into debt; examples must be real and task-specific.
   Test: flag placeholder examples in fixtures; user confirms fix-worthiness; A/B later if cheap. Evidence: —
 

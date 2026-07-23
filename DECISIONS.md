@@ -167,3 +167,11 @@ Every entry above was rewritten in plain english and compressed. Numbers, dates,
 E-01 measured two reviewer defects: every pure deletion of real guidance was missed by every run (the rubric only interrogated present text), and cold-reader was the only dimension with score range 2 across identical runs (probe questions were improvised per run).
 
 The judgment pass now ends each dimension with the absence question — what does this skill's job imply should exist here that is absent? — and an absence finding cites the span where the missing guidance belongs. The cold-reader probe uses a fixed five-question prompt in the rubric, verbatim, never improvised. Two cues sharpened: an absent output spec files as MT, not ME; NTPD requires an explicit first- or second-person pronoun, so imperative descriptions ("Use when…") don't count. First validation: E-06.
+
+## D-020 · 2026-07-23 · Spot-check adjudication mode (amends D-017)
+
+Real fixtures have no manifest, so E-02 added a spot-check mode to `ledger/adjudicate.py` — still the only adjudication writer. `spot-match` clusters every finding of a batch deterministically (same smell + same file + overlapping spans, ±2 lines, canonical order) and emits a digest-bound worksheet; `spot-commit` re-derives everything from the ledger, consumes only the verdict and note columns, and writes one `mode: spot-check` adjudication line per batch.
+
+Verdict vocabulary: `fix-worthy | not-fix-worthy | wrong-evidence`. Strict precision counts fix-worthy alone as a true positive; grounded precision also counts not-fix-worthy; the two other verdicts stay separate in the record because they diagnose different failures (calibration vs grounding). Recall and manifest fields are absent from spot-check lines, never zero. One live spot-check line per batch; corrections are a new line naming the old one in `supersedes`, never an edit.
+
+Design validated per the user's instruction by a council of three independent models — a clean Fable 5 xhigh headless run, codex, and kimi-k3 — given the same neutral brief; all three chose extending adjudicate.py over a committed verdicts file, converging on the digest guard, the closed vocabulary, and fix-worthy-only strict precision. Gate: planted-mode `match` output byte-identical on all five prior batches before commit (fe16ac6).
