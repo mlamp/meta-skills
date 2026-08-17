@@ -10,3 +10,5 @@ Snapshot:
 - 2026-04-20-2c60614 · SKILL.md (2.5k). Guidelines-style skill distilled from Karpathy's public advice. The repo also carries CLAUDE.md and Cursor-rule files alongside the skill (not vendored, contents not compared).
 
 Re-fetch: `curl -fsSL https://raw.githubusercontent.com/multica-ai/andrej-karpathy-skills/2c606141936f1eeef17fa3043a72095b4765b9c2/skills/karpathy-guidelines/SKILL.md`
+
+- 2026-08-18: snapshot files removed before the repo went public (the pre-registered no-license resolution, D-007/D-027). The recorded SHAs above still pin what E-02 reviewed; use the re-fetch command to restore a local copy.
