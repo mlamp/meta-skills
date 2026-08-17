@@ -37,3 +37,7 @@ All inputs are unproven here until measured (house rule):
 - **Refutes it:** no measurable difference vs stock, or CLAUDE.md placement performing equally — then the output-style vehicle is redundant and the contract belongs in ordinary context files.
 
 The skill that packages this for reuse: skills/agent-voice (status: draft until E-07 gives it evidence).
+
+## First result (E-07, 2026-08-18)
+
+The contract works; the layer claim is in doubt. Banned phrases went to zero, em-dashes near zero, and output tokens dropped 36–68% at equal task success, in both families (C13 → testing). But the same text in CLAUDE.md matched or beat the system-prompt placement everywhere — in single-turn sessions, where CLAUDE.md is fully in context (C17 → testing, direction contradicted). The refutation branch above fired for that setting. What's still open: long sessions, where the system-prompt layer's persistence argument actually applies. Queued in docs/experiments.md.

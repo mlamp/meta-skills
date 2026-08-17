@@ -9,7 +9,7 @@ allowed-tools: Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/*)
 
 The problem: frontier coding models spend a large share of their output on prose nobody asked for — tic phrases, recap bloat, flattery, widened scope, mid-task check-ins. That costs output tokens and reader time; whether it comes from the model's training or the harness is not established, and doesn't need to be. The lever this skill tests: a hand-written communication contract at the most persistent layer available (theory: docs/communication-contracts.md in the meta-skills repo).
 
-The skill writes that contract for a target project and installs it as a Claude Code custom output style, routing to settings what settings control. Claude Code first; other CLIs get a derived append file on request. The contract is a hypothesis, not a proven fix — every effectiveness claim behind it is untested (C13–C18, E-07). Say so in the hand-off.
+The skill writes that contract for a target project and installs it as a Claude Code custom output style, routing to settings what settings control. Claude Code first; other CLIs get a derived append file on request. The contract is a hypothesis under test, not a proven fix — no claim behind it is validated (C13–C18; E-07's first single-turn measurements support tic and token suppression but not a system-prompt-placement advantage over CLAUDE.md). Say so in the hand-off.
 
 ## Inputs
 
@@ -40,7 +40,7 @@ Do all seven, in order.
 
 - The style takes effect on the next session or after `/clear`, not immediately.
 - Whether subagents inherit the output style is unverified — check before relying on it.
-- Effectiveness is unmeasured until E-07 runs. The contract can pass its probe and still not change behavior.
+- Effectiveness rests on first measurements only (E-07, single-turn). The contract can pass its probe and still not change behavior in settings not yet measured.
 
 ## Rules
 

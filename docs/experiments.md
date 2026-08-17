@@ -8,7 +8,7 @@ Ordered. Each experiment names the claims it moves. Results land in ledger/runs.
 - E-03 · Version-pair persistence. Compare findings across the six old/current snapshot pairs in fixtures/real/. Moves: C07.
 - E-04 · Description A/B. One skill, C04-form description vs free-form, trigger-worthy and distractor tasks, repeated runs; compare invocation precision/recall. Moves: C04, and C12 partially.
 - E-05 · Long-vs-distilled A/B. skill-creator 2026-04-20-b9e19e6 is the corpus's only LSB fail (5,151 words). Distill it; run both variants on the same tasks. Moves: C05.
-- E-07 · Contract A/B: banned-phrase suppression. Fixed task suite, baselined stock first; keep only phrases that appear in baseline. Then 5 runs per arm (stock vs agent-voice contract) per family; count regex hits in final responses only, and record output tokens and task success so terseness can't fake a win. Add a third arm with the same text in CLAUDE.md to move C17. Moves: C13, C17.
+- E-07 · DONE 2026-08-18 · Contract A/B: banned-phrase suppression. Design frozen in experiments/e07/design.md; 60 runs (opus full grid 3 tasks × 3 arms × 5 reps; kimi-k3 anchor T2 × 3 × 5), zero errors, 60/60 haiku judge pass. Results (ledger: r-20260817-4cccea322c opus, r-20260817-8fbcc01b2b kimi): banned-phrase hits 7→0 (opus) and 2→0 (kimi) in both contract arms; opus em-dash mean 6.5→1.2 (sysprompt) →0.07 (claudemd); opus output tokens per task 1135/909/1644 → 716/581/789 (sysprompt) → 670/294/635 (claudemd); kimi 486→292→224. C13 → testing (supported). C17 → testing with direction contradicted: the CLAUDE.md arm matched or beat the sysprompt arm everywhere, in single-turn sessions where CLAUDE.md is fully in context. Moves: C13, C17.
 
 ## Queued work from E-01 — all resolved in E-06 (commits a9f1f48, 8e20979)
 
@@ -19,6 +19,12 @@ Deletion blindness (absence pass), ME/MT boundary, cold-reader question standard
 - Coverage variance grows with fixture size: pairwise Jaccard over per-run cluster sets falls monotonically from 0.78 (grill-with-docs, 34 words) to 0.29 (writing-skills, 3.8k words; kimi anchor 0.18) — on large fixtures each run samples a different slice of the defect pool. Precision is unharmed (every multi-run cluster was fix-worthy), but a single 5-run batch understates a large skill's defect count. Options: more repeats scaled by size, or report union-of-runs as the coverage number. Relevant to C11.
 - Singletons are where the not-fix-worthy risk lives: all 4 not-fix-worthy verdicts were 1-of-5-run findings; clusters found by 2+ runs were fix-worthy 56/56. A consistency-weighted confidence marker on findings would be nearly free at report time.
 - E-06's queued items stay queued: E-02 precision never dropped below 0.94, so nothing there blocks precision.
+
+## Queued work from E-07
+
+- The placement result (claudemd ≥ sysprompt) fired the theory doc's refutation branch for single-turn sessions — but the output-style vehicle's real case is persistence: long sessions, context rot, surviving /clear. A long-session variant of E-07 (multi-turn, contract far back in context) is what decides whether agent-voice keeps the output-style delivery or simplifies to CLAUDE.md text. Until then D-021's delivery choice stands.
+- Tic phrases were sparse in baseline (7 hits over 15 opus responses, concentrated in "bottom line"); the suite elicits verbosity well but tics weakly. A tic-heavier suite (or real-session transcripts) would give C13's phrase half more power; the token and em-dash halves are already strong.
+- The judge gate was coarse (60/60 yes) — it discriminates nothing at this response quality. A stricter rubric (completeness, not just answering) would be needed before token drops can be read as pure win.
 
 ## Queued work from E-06 (found mid-eval, never patched mid-eval)
 

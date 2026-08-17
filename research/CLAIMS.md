@@ -23,16 +23,16 @@ Notes in research/notes/, PDFs in research/sources/. The harness that runs the t
 
 ## Communication contracts (theory: docs/communication-contracts.md; notes: disler-fixing-smartass-opus-5, collected-writing-for-humans)
 
-- C13 [untested] A banned-phrase / negative-pattern list in the system prompt suppresses the listed tics.
-  Test: E-07 — fixed task suite, baseline first, 5 runs per arm (stock vs contract), regex hits on phrases that appear in baseline, final responses only; second family. Evidence: —
+- C13 [testing] A banned-phrase / negative-pattern list in the system prompt suppresses the listed tics.
+  Test: E-07 — fixed task suite, baseline first, 5 runs per arm (stock vs contract), regex hits on phrases that appear in baseline, final responses only; second family. Evidence: E-07 (r-20260817-4cccea322c opus, r-20260817-8fbcc01b2b kimi): banned hits 7→0 (opus) and 2→0 (kimi) in both contract arms; em-dash mean 6.5→1.2 (sysprompt) →0.07 (claudemd) opus, 4.8→0.6→0 kimi; output tokens −36% to −52% (sysprompt arm) at 60/60 judge pass. One task suite, single-turn; stays testing until a second suite or real-session data.
 - C14 [untested] Reference-point codes (D1, R3, …) cut follow-up cost without losing referability.
   Test: scripted multi-turn follow-ups ("expand R2"), 5 runs per arm; token counts and correct code resolution. Evidence: —
 - C15 [untested] Inline aliases (`scr`, `foc`) expand reliably when sent alone and never inside longer text.
   Test: repeated runs of alias-alone and alias-in-sentence prompts; expansion and false-trigger rates. Evidence: —
 - C16 [untested] Do/don't example pairs move style compliance more than rule text alone.
   Test: A/B rules-only vs rules-plus-examples on the same suite; tic hits plus a blinded style judgment. Evidence: —
-- C17 [untested] The same contract text gets better compliance from the system prompt (output style) than from CLAUDE.md.
-  Test: identical text in each location, 5 runs per arm per family; tic hits and output tokens. Evidence: —
+- C17 [testing] The same contract text gets better compliance from the system prompt (output style) than from CLAUDE.md.
+  Test: identical text in each location, 5 runs per arm per family; tic hits and output tokens. Evidence: E-07 (same two lines): direction contradicted — the CLAUDE.md arm matched or beat the sysprompt arm in both families (opus tokens 670/294/635 vs 716/581/789 per task; kimi 224 vs 292; tic suppression equal at zero). Single-turn sessions only, where CLAUDE.md is fully in context; the placement question in long sessions (context rot, post-/clear persistence) is untested and is what would move this either way.
 - C18 [untested] Explicit drive rules (a framed multi-step task is one slice; the user is the interrupter) reduce mid-task checkpoint questions.
   Test: scripted multi-step tasks, 5 runs per arm; count checkpoint/offramp questions and unprompted completion. Evidence: —
 
