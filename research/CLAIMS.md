@@ -21,6 +21,21 @@ Notes in research/notes/, PDFs in research/sources/. The harness that runs the t
 - C07 [untested] Smells persist once introduced unless deliberately fixed.
   Test: version-pair fixtures in fixtures/real/ (review old vs current snapshots); later, our own skills' git history. Evidence: —
 
+## Communication contracts (theory: docs/communication-contracts.md; notes: disler-fixing-smartass-opus-5, collected-writing-for-humans)
+
+- C13 [untested] A banned-phrase / negative-pattern list in the system prompt suppresses the listed tics.
+  Test: E-07 — fixed task suite, baseline first, 5 runs per arm (stock vs contract), regex hits on phrases that appear in baseline, final responses only; second family. Evidence: —
+- C14 [untested] Reference-point codes (D1, R3, …) cut follow-up cost without losing referability.
+  Test: scripted multi-turn follow-ups ("expand R2"), 5 runs per arm; token counts and correct code resolution. Evidence: —
+- C15 [untested] Inline aliases (`scr`, `foc`) expand reliably when sent alone and never inside longer text.
+  Test: repeated runs of alias-alone and alias-in-sentence prompts; expansion and false-trigger rates. Evidence: —
+- C16 [untested] Do/don't example pairs move style compliance more than rule text alone.
+  Test: A/B rules-only vs rules-plus-examples on the same suite; tic hits plus a blinded style judgment. Evidence: —
+- C17 [untested] The same contract text gets better compliance from the system prompt (output style) than from CLAUDE.md.
+  Test: identical text in each location, 5 runs per arm per family; tic hits and output tokens. Evidence: —
+- C18 [untested] Explicit drive rules (a framed multi-step task is one slice; the user is the interrupter) reduce mid-task checkpoint questions.
+  Test: scripted multi-step tasks, 5 runs per arm; count checkpoint/offramp questions and unprompted completion. Evidence: —
+
 ## From arXiv:2509.20497 (prompt debt study)
 
 - C08 [testing] Instruction-style text is the biggest debt magnet; clarity and length are the usual failure.

@@ -175,3 +175,19 @@ Real fixtures have no manifest, so E-02 added a spot-check mode to `ledger/adjud
 Verdict vocabulary: `fix-worthy | not-fix-worthy | wrong-evidence`. Strict precision counts fix-worthy alone as a true positive; grounded precision also counts not-fix-worthy; the two other verdicts stay separate in the record because they diagnose different failures (calibration vs grounding). Recall and manifest fields are absent from spot-check lines, never zero. One live spot-check line per batch; corrections are a new line naming the old one in `supersedes`, never an edit.
 
 Design validated per the user's instruction by a council of three independent models — a clean Fable 5 xhigh headless run, codex, and kimi-k3 — given the same neutral brief; all three chose extending adjudicate.py over a committed verdicts file, converging on the digest guard, the closed vocabulary, and fix-worthy-only strict precision. Gate: planted-mode `match` output byte-identical on all five prior batches before commit (fe16ac6).
+
+## D-021 · 2026-08-18 · Skill #2: agent-voice, a communication-contract generator
+
+Source: disler/fixing-smartass-opus-5 (note: research/notes/disler-fixing-smartass-opus-5.md; claims C13–C17, all untested). The user's calls: deliver as a Claude Code custom output style with `keep-coding-instructions: true` (a custom style otherwise replaces the built-in engineering instructions), the portable append-system-prompt file derived on demand and never edited; land as draft and measure later (E-07, banned-phrase suppression first); interview-driven output with a minimal default.
+
+Design reviewed by codex and kimi-k3 on the same brief. Adopted from both: the mirror is a derived artifact, not a second source of truth; no hook tier in v1; a contradiction with the existing stack stops for a user decision, while a paraphrase elsewhere never thins the contract; and one or two do/don't example pairs join the minimal default — this amends the approved "examples opt-in" default because both reviewers and our own read rank examples as the source's strongest component. Rejected: dropping the interview opt-ins, a provenance data model, drift detection in v1.
+
+Routing rule the skill encodes: anything a setting controls deterministically goes to settings, never prose. First case: `"attribution": {"commit": "", "pr": ""}` replaces the source's "never add a co-author" prompt line.
+
+Ledger: agent-voice runs write a minimal `type: "generation"` line via the skill's own finalize script, documented in ledger/README.md; the schema stays minimal until real runs show what matters (pattern of D-006).
+
+## D-022 · 2026-08-18 · agent-voice reframed as a theory test; second source distilled
+
+The effort is generalized past its trigger material. The problem: frontier coding models spend output on prose nobody asked for — tic phrases, recap bloat, widened scope, mid-task check-ins — costing tokens and reader time; whether the cause is model training or harness is an open hypothesis we don't need in order to test the lever. The theory: behavior wanted on every turn belongs at the most persistent layer available (setting > system-prompt layer > context files). agent-voice packages that theory for reuse across projects; it is not a port of any one author's prompt. Theory doc: docs/communication-contracts.md.
+
+Second source added: the user's own collected production practice — writing-for-humans prose rules, evidence discipline, anti-pause drive rules — distilled into research/notes/collected-writing-for-humans.md with origin projects unnamed. It adds reader-priority patterns to the default template, an opt-in Drive section, and C18 (drive rules reduce mid-task checkpoints — untested). The CLAIMS.md section header now names the theory doc and both source notes instead of a single upstream repo.

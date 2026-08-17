@@ -8,6 +8,7 @@ Ordered. Each experiment names the claims it moves. Results land in ledger/runs.
 - E-03 · Version-pair persistence. Compare findings across the six old/current snapshot pairs in fixtures/real/. Moves: C07.
 - E-04 · Description A/B. One skill, C04-form description vs free-form, trigger-worthy and distractor tasks, repeated runs; compare invocation precision/recall. Moves: C04, and C12 partially.
 - E-05 · Long-vs-distilled A/B. skill-creator 2026-04-20-b9e19e6 is the corpus's only LSB fail (5,151 words). Distill it; run both variants on the same tasks. Moves: C05.
+- E-07 · Contract A/B: banned-phrase suppression. Fixed task suite, baselined stock first; keep only phrases that appear in baseline. Then 5 runs per arm (stock vs agent-voice contract) per family; count regex hits in final responses only, and record output tokens and task success so terseness can't fake a win. Add a third arm with the same text in CLAUDE.md to move C17. Moves: C13, C17.
 
 ## Queued work from E-01 — all resolved in E-06 (commits a9f1f48, 8e20979)
 
