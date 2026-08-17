@@ -199,3 +199,7 @@ Experiment harnesses and their raw outputs live in `experiments/<e-xx>/` — des
 ## D-024 · 2026-08-18 · AGENTS.md is a symlink to CLAUDE.md
 
 One instruction file for every harness: CLAUDE.md is the real, canonical file (Claude Code sessions edit it), and AGENTS.md is a committed symlink to it for harnesses that read AGENTS.md (codex, cursor). This direction is deliberate — the file that gets edited is real, so an editor can never break the link by saving. Reverse of the convention some projects use; here the editing traffic is on CLAUDE.md.
+
+## D-025 · 2026-08-18 · agent-voice delivery default: rules file (amends D-021)
+
+E-07 and E-08 refuted the system-prompt-placement advantage the output-style delivery rested on (C17: placements indistinguishable single-turn and at ~37k context tokens, both families; the contract itself works at both depths). The user chose the simpler layer: default delivery is now `.claude/rules/<name>.md` in the target project (user-level `~/.claude/rules/` for a personal scope), with the custom output style demoted to an interview option — its `keep-coding-instructions: true` rule unchanged — and the portable append file still derived on demand. Caveat recorded in the skill: the tested arm was CLAUDE.md itself; the rules directory is the same always-loaded layer but was not its own arm. Reopen with C17 if 100k+/post-compaction regimes ever show a placement gap.

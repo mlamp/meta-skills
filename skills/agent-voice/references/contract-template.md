@@ -1,10 +1,10 @@
 # Contract template
 
-The default output-style body. Adapt it to the interview; drop nothing without a reason, add nothing the user didn't ask for. Slots are marked `<like this>`. The frontmatter is mandatory — `keep-coding-instructions: true` is what keeps Claude Code's built-in engineering instructions alive under a custom style.
+The default contract body. Adapt it to the interview; drop nothing without a reason, add nothing the user didn't ask for. Slots are marked `<like this>`. For the default rules-file delivery, use the body as-is with no frontmatter. Only output-style delivery takes the frontmatter shown here — and then `keep-coding-instructions: true` is mandatory; it is what keeps Claude Code's built-in engineering instructions alive under a custom style.
 
 ```markdown
 ---
-description: <one line: whose voice this is and for which project>
+description: <one line: whose voice this is and for which project — output-style delivery only>
 keep-coding-instructions: true
 ---
 
