@@ -195,3 +195,7 @@ Second source added: the user's own collected production practice — writing-fo
 ## D-023 · 2026-08-18 · experiments/ directory and the experiment ledger line
 
 Experiment harnesses and their raw outputs live in `experiments/<e-xx>/` — design.md frozen before the measured runs, tasks and harness beside it, raw responses kept as evidence. Results land in ledger/runs.jsonl as `type: "experiment"` lines, one per family per experiment, written only by that experiment's harness script. The line carries per-arm per-task stats plus sha16 of the contract, harness, and task files, so the measured artifacts are pinned. First user: E-07.
+
+## D-024 · 2026-08-18 · AGENTS.md is a symlink to CLAUDE.md
+
+One instruction file for every harness: CLAUDE.md is the real, canonical file (Claude Code sessions edit it), and AGENTS.md is a committed symlink to it for harnesses that read AGENTS.md (codex, cursor). This direction is deliberate — the file that gets edited is real, so an editor can never break the link by saving. Reverse of the convention some projects use; here the editing traffic is on CLAUDE.md.
