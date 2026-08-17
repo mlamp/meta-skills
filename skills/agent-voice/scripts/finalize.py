@@ -16,11 +16,11 @@ Report format (all sections required unless marked optional):
     Effort: <effort>
 
     ## Files
-    - <path relative to target, one per bullet>
+    - <one per bullet: path relative to target, or absolute / ~-prefixed for user-level files>
 
     ## Choices
     - sections: <comma list, e.g. purpose, patterns, boundaries, examples>
-    - activation: local | shared | none
+    - activation: project | user | both | none
     - settings-routed: <comma list of settings keys, or none>
     - mirror: yes | no
 
@@ -101,17 +101,17 @@ def main():
         die("'## Files' lists no files")
     hashes = {}
     for rel in rels:
-        p = os.path.join(target, rel)
+        p = os.path.expanduser(rel) if rel.startswith(("~", "/")) else os.path.join(target, rel)
         if not os.path.isfile(p):
-            die(f"listed file not found under target: {rel}")
+            die(f"listed file not found: {rel}")
         hashes[rel] = sha16(p)
 
     choices = bullet_map(section(text, "Choices") or die("missing '## Choices'"), "Choices")
     for k in ("sections", "activation", "settings-routed", "mirror"):
         if k not in choices:
             die(f"missing '- {k}:' in Choices")
-    if choices["activation"] not in ("local", "shared", "none"):
-        die("activation must be local | shared | none")
+    if choices["activation"] not in ("project", "user", "both", "none"):
+        die("activation must be project | user | both | none")
     if choices["mirror"] not in ("yes", "no"):
         die("mirror must be yes | no")
 
