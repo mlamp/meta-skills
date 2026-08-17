@@ -20,6 +20,8 @@ Deletion blindness (absence pass), ME/MT boundary, cold-reader question standard
 - Singletons are where the not-fix-worthy risk lives: all 4 not-fix-worthy verdicts were 1-of-5-run findings; clusters found by 2+ runs were fix-worthy 56/56. A consistency-weighted confidence marker on findings would be nearly free at report time.
 - E-06's queued items stay queued: E-02 precision never dropped below 0.94, so nothing there blocks precision.
 
+- E-08 · Long-session placement A/B. E-07's queued follow-up: the E-07 T2 probe as turn 5 of a headless session whose turns 1–4 inject ~8.4k words of filler with one-word replies (context grows by input, identically across arms). Arms: stock (opus only), contract via --append-system-prompt-file on every call, contract as CLAUDE.md from turn 1. E-07's contract byte-identical. opus 15 sessions, kimi anchor 10. Design frozen in experiments/e08/design.md. Moves: C17, and long-session evidence for C13.
+
 ## Queued work from E-07
 
 - The placement result (claudemd ≥ sysprompt) fired the theory doc's refutation branch for single-turn sessions — but the output-style vehicle's real case is persistence: long sessions, context rot, surviving /clear. A long-session variant of E-07 (multi-turn, contract far back in context) is what decides whether agent-voice keeps the output-style delivery or simplifies to CLAUDE.md text. Until then D-021's delivery choice stands.
