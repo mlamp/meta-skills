@@ -19,7 +19,7 @@ Every number traces to a JSON line in [ledger/runs.jsonl](ledger/README.md) with
 
 Three ways, by increasing involvement:
 
-**Fast path — just take the contract.** Copy the template body from [skills/agent-voice/references/contract-template.md](skills/agent-voice/references/contract-template.md) into `~/.claude/rules/voice.md` and edit the banned-phrase list to your model's tics. Done.
+**Fast path — just take the core.** Copy the user-core block from [skills/agent-voice/references/contract-template.md](skills/agent-voice/references/contract-template.md) into `~/.claude/rules/voice.md` and edit the banned-phrase list. Add a project delta only for examples, terms, or rules that are wrong elsewhere.
 
 **Full flow — let your harness run the skill.** Paste this into Claude Code (or any harness that can fetch a URL):
 
