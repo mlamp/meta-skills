@@ -36,6 +36,21 @@ Notes in research/notes/, PDFs in research/sources/. The harness that runs the t
 - C18 [untested] Explicit drive rules (a framed multi-step task is one slice; the user is the interrupter) reduce mid-task checkpoint questions.
   Test: scripted multi-step tasks, 5 runs per arm; count checkpoint/offramp questions and unprompted completion. Evidence: —
 
+## From Cursor pstack `unslop` (note: cursor-pstack-unslop)
+
+- C19 [untested] Adding six recognition prompts to a fixed inventory in a one-round interview identifies at least one additional manifest-listed, user-relevant voice pattern on average in both model families.
+  Test: E-09 — inventory-only versus the same inventory plus U01–U06, five trials per arm and family. Fable and Kimi are separate interviewer/generator families. A simulated interviewee sees only a frozen manifest extracted by a no-context process from pre-2026-08-21 voice artifacts and corrections; input hashes are recorded. Both arms use the same frozen base tree. Remove this source note, D-029, and C19–C22 from both views before any trial. Give only the U01–U06 table and its boundary column to treatment as an interview attachment. Record the base commit, shared view diff, attachment hash, and complete instruction stack. Record the unaided-recall list, selected-pattern count and coverage, every run, mean, and variance. Evidence: —
+  Falsifier: in either family, the catalog-assisted mean gain over inventory-only is less than one manifest-listed pattern.
+- C20 [untested] The six prompts preserve or improve relevant coverage per contract token, keep the catalog-arm median at no more than one irrelevant selection per interview, and add no more than one mean task failure per trial.
+  Test: E-09 — record normalized contract tokens after fixed boilerplate, manifest-listed selections per 100 contract tokens, irrelevant selections, and fixed-suite task failures for every trial, with mean and variance by arm and family. Deterministic matchers own counts; one fixed, blinded third-family judge owns task success. Evidence: —
+  Falsifier: in either family, catalog-arm manifest-listed selections per 100 contract tokens are lower than inventory-only, catalog-arm median irrelevant selections exceed one per interview, or catalog-arm mean task failures per trial exceed inventory-only by more than one task.
+- C21 [untested] For the same user-selected tic set, adding suppression rules increases semantically adjacent substitute tics.
+  Test: E-09 nested comparison — suppression versus no suppression with the same selected tic set, generator, and tasks; five paired trials per condition and model family. Freeze the listed-tic matcher, substitute map, rubric, and worked examples before reading outputs. A blinded judge records substitute-tic counts; report raw counts, counts per listed tic suppressed, mean, and variance. Evidence: —
+  Falsifier: in either family, the suppression condition's mean adjacent substitute-tic count is no higher than its matched no-suppression condition.
+- C22 [untested] Contracts from catalog-assisted interviews reduce the manifest-wide listed-tic rate in task outputs more than contracts from inventory-only interviews.
+  Test: E-09 — run the fixed task set with each generated contract, five trials per arm and family. Apply the same frozen manifest-wide matcher to every output and report hits per 1,000 output tokens. Record every output, rate, mean, variance, and task success. Evidence: —
+  Falsifier: in either family, the catalog-assisted arm's mean manifest-wide listed-tic rate is no lower than inventory-only.
+
 ## From arXiv:2509.20497 (prompt debt study)
 
 - C08 [testing] Instruction-style text is the biggest debt magnet; clarity and length are the usual failure.
