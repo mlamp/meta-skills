@@ -63,6 +63,10 @@ TOOL_NAME = "submit_evaluation"
 CLAUDE_STRUCTURED_TOOL = "StructuredOutput"
 LEXICAL = re.compile(r"\b[\w'-]+\b", re.UNICODE)
 HOST_METADATA_KEYS = {"cwd", "memory_paths", "plugins", "request_id", "session_id", "thread_id", "uuid"}
+SECRET_METADATA_KEYS = {
+    "accesstoken", "apikey", "authorization", "clientsecret", "credential", "credentials",
+    "password", "privatekey", "refreshtoken", "secret", "token", "xapikey",
+}
 HOST_PATH = re.compile(
     r"(?<![A-Za-z0-9:])/(?:Users|home)/[^/\s\"']+(?:/[^\s\"']*)?"
     r"|(?<![A-Za-z0-9:])/(?:private/)?var/folders/[^\s\"']+"
@@ -72,6 +76,12 @@ HOST_PATH = re.compile(
 HOST_UUID = re.compile(
     r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\b"
 )
+SECRET_ASSIGNMENT = re.compile(
+    r"\b([A-Za-z_][A-Za-z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD))\s*=\s*"
+    r"(?:\"[^\"]*\"|'[^']*'|[^\s,;]+)",
+    re.IGNORECASE,
+)
+BEARER_SECRET = re.compile(r"\b(Bearer)\s+[A-Za-z0-9][A-Za-z0-9._~+/=-]*", re.IGNORECASE)
 
 
 class HarnessError(RuntimeError):
@@ -105,7 +115,8 @@ def sanitize_host_metadata(value):
     if isinstance(value, dict):
         cleaned = {}
         for key, item in value.items():
-            if key in HOST_METADATA_KEYS:
+            normalized_key = re.sub(r"[^a-z0-9]", "", key.lower())
+            if key in HOST_METADATA_KEYS or normalized_key in SECRET_METADATA_KEYS:
                 continue
             if key == "executable" and isinstance(item, str):
                 cleaned[key] = Path(item).name
@@ -115,6 +126,8 @@ def sanitize_host_metadata(value):
     if isinstance(value, list):
         return [sanitize_host_metadata(item) for item in value]
     if isinstance(value, str):
+        value = SECRET_ASSIGNMENT.sub(lambda match: f"{match.group(1)}=<SECRET>", value)
+        value = BEARER_SECRET.sub(lambda match: f"{match.group(1)} <SECRET>", value)
         return HOST_UUID.sub("<ID>", HOST_PATH.sub("<HOST_PATH>", value))
     return value
 
@@ -913,7 +926,7 @@ def passed_smoke_attempt(base: Path):
     return latest if summary.exists() and load_json(summary).get("passed") else None
 
 
-def record_cold_reader_summary(summary, namespace):
+def cold_reader_ledger_line(summary, namespace):
     payload = {
         "schema_version": 2,
         "type": "experiment",
@@ -929,11 +942,25 @@ def record_cold_reader_summary(summary, namespace):
         "raw_dir": str(namespace.relative_to(ROOT)),
         "completed_at": summary["completed_at"],
     }
-    run_id = "r-" + datetime.now(timezone.utc).strftime("%Y%m%d") + "-" + digest(payload, 10)
-    line = {"run_id": run_id, "date": summary["completed_at"], **payload}
-    if run_id not in jsonl_run_ids(LEDGER):
-        append_jsonl(LEDGER, line)
-    return run_id
+    completed_day = summary["completed_at"][:10]
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", completed_day):
+        raise HarnessError("cold-reader summary requires an ISO completed_at timestamp")
+    run_id = "r-" + completed_day.replace("-", "") + "-" + digest(payload, 10)
+    return {"run_id": run_id, "date": summary["completed_at"], **payload}
+
+
+def ensure_qualification_summary_ledger(summary_path, summary, namespace):
+    if summary.get("tier") != "qualification":
+        raise HarnessError("only qualification summaries are ledgered")
+    line = cold_reader_ledger_line(summary, namespace)
+    stored_run_id = summary.get("ledger_run_id")
+    if stored_run_id not in (None, line["run_id"]):
+        raise HarnessError("qualification summary ledger_run_id differs from its content")
+    if stored_run_id is None or not summary_path.exists():
+        summary = {**summary, "ledger_run_id": line["run_id"]}
+        write_json_atomic(summary_path, summary)
+    ensure_ledger_lines([line])
+    return summary
 
 
 def run_with_transport_retry(profile, prompt, schema):
@@ -1018,10 +1045,10 @@ def cmd_cold_reader(args):
                    "assertions": sum(len(record.get("assertions", [])) for record in records),
                    "failed_assertions": sum(1 for record in records for item in record.get("assertions", []) if not item["pass"]),
                    "errors": sum(record["status"] == "error" for record in records), "completed_at": utc_now()}
-        write_json_atomic(summary_path, summary)
         if args.tier == "qualification":
-            summary["ledger_run_id"] = record_cold_reader_summary(summary, namespace)
-        write_json_atomic(summary_path, summary)
+            summary = ensure_qualification_summary_ledger(summary_path, summary, namespace)
+        else:
+            write_json_atomic(summary_path, summary)
         print(canonical(summary))
         all_pass = all_pass and passed
     if not all_pass:
@@ -1199,8 +1226,9 @@ def ensure_qualification_start_gate():
         if namespace.exists():
             allowed_prefixes.append(str(namespace.relative_to(ROOT)) + "/")
             summary = namespace / "summary.json"
-            if summary.exists() and load_json(summary).get("ledger_run_id"):
-                allowed_run_ids.append(load_json(summary)["ledger_run_id"])
+            if summary.exists():
+                payload = ensure_qualification_summary_ledger(summary, load_json(summary), namespace)
+                allowed_run_ids.append(payload["ledger_run_id"])
     remaining = []
     ledger_path = str(LEDGER.relative_to(ROOT))
     for line in git("status", "--porcelain=v1", "--untracked-files=all").splitlines():
@@ -1227,11 +1255,11 @@ def ensure_measured_gate():
         summary_path = qualification_namespace / "summary.json"
         if not summary_path.exists() or not load_json(summary_path).get("passed"):
             raise HarnessError(f"current cold-reader qualification has not passed for {name}")
-        summary = load_json(summary_path)
+        summary = ensure_qualification_summary_ledger(
+            summary_path, load_json(summary_path), qualification_namespace
+        )
         qualification_prefixes.append(str(qualification_namespace.relative_to(ROOT)) + "/")
-        qualification_run_ids.append(summary.get("ledger_run_id"))
-    if any(not run_id for run_id in qualification_run_ids):
-        raise HarnessError("each qualification summary must name its harness-written ledger line")
+        qualification_run_ids.append(summary["ledger_run_id"])
     adapter_base, _ = adapter_smoke_namespace()
     adapter_namespace = passed_smoke_attempt(adapter_base)
     if adapter_namespace is None:

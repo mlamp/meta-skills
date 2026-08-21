@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -335,23 +336,50 @@ class RunnerSafetyTest(unittest.TestCase):
                 "thread_id": "thread-secret",
                 "stderr_tail": "failed under /home/alice/private/file.txt",
                 "stdout": 'session_id=79125914-c30f-4203-a6ab-f4b6ccb57f67',
+                "secret_text": "DEEPINFRA_API_KEY=local-secret Authorization: Bearer sk-test.value",
+                "apiKeySource": "none",
                 "keep": "reported-model",
             },
+            "api_key": "local-secret",
         }
         self.assertEqual(H.sanitize_host_metadata(raw), {
             "executable": "codex",
             "nested": {
                 "stderr_tail": "failed under <HOST_PATH>",
                 "stdout": "session_id=<ID>",
+                "secret_text": "DEEPINFRA_API_KEY=<SECRET> Authorization: Bearer <SECRET>",
+                "apiKeySource": "none",
                 "keep": "reported-model",
             },
         })
 
     def test_committed_smoke_artifacts_have_portable_metadata(self):
+        dotenv = H.read_dotenv(H.ROOT / ".env")
+        credential_names = {
+            profile.get("credential_env")
+            for profile in H.profile_map().values()
+            if profile.get("credential_env")
+        }
+        credential_names.update(
+            name for name in dotenv
+            if name.endswith(("_API_KEY", "_TOKEN", "_SECRET", "_PASSWORD"))
+        )
+        credential_names.update(
+            name for name in os.environ
+            if name.endswith(("_API_KEY", "_TOKEN", "_SECRET", "_PASSWORD"))
+        )
+        local_secrets = {
+            value
+            for name in credential_names
+            for value in (os.environ.get(name), dotenv.get(name))
+            if value and len(value) >= 8
+        }
         for path in (H.RAW / "smoke").rglob("*.json"):
             payload = H.load_json(path)
             self.assertEqual(payload, H.sanitize_host_metadata(payload), str(path))
-            self.assertNotIn("DEEPSEEK_API_KEY", H.canonical(payload), str(path))
+            text = H.canonical(payload)
+            self.assertNotIn("DEEPSEEK_API_KEY", text, str(path))
+            self.assertFalse(any(secret in text for secret in local_secrets), str(path))
 
     def test_exclusive_json_writer_refuses_overwrite(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -372,6 +400,51 @@ class RunnerSafetyTest(unittest.TestCase):
                 with self.assertRaises(H.HarnessError):
                     H.ensure_ledger_lines([{"run_id": "r-stable", "value": 2}])
             finally:
+                H.LEDGER = old_ledger
+
+    def test_qualification_summary_ledger_reconciles_both_crash_windows(self):
+        old_root = H.ROOT
+        old_ledger = H.LEDGER
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                H.ROOT = Path(tmp)
+                H.LEDGER = H.ROOT / "ledger" / "runs.jsonl"
+                summary = {
+                    "type": "cold_reader",
+                    "tier": "qualification",
+                    "profile": "haiku-reader",
+                    "key": {"freeze_sha256": "freeze"},
+                    "started_calls": 5,
+                    "passed": True,
+                    "assertions": 30,
+                    "failed_assertions": 0,
+                    "errors": 0,
+                    "completed_at": "2026-08-21T12:00:00+00:00",
+                }
+
+                ledger_first = H.ROOT / "raw" / "qualification" / "cr-ledger-first"
+                ledger_first_path = ledger_first / "summary.json"
+                line = H.cold_reader_ledger_line(summary, ledger_first)
+                H.ensure_ledger_lines([line])
+                H.write_json_atomic(ledger_first_path, summary)
+                repaired = H.ensure_qualification_summary_ledger(
+                    ledger_first_path, H.load_json(ledger_first_path), ledger_first
+                )
+                self.assertEqual(repaired["ledger_run_id"], line["run_id"])
+                self.assertEqual(H.load_json(ledger_first_path)["ledger_run_id"], line["run_id"])
+
+                summary_first = H.ROOT / "raw" / "qualification" / "cr-summary-first"
+                summary_first_path = summary_first / "summary.json"
+                line = H.cold_reader_ledger_line(summary, summary_first)
+                H.write_json_atomic(summary_first_path, {**summary, "ledger_run_id": line["run_id"]})
+                repaired = H.ensure_qualification_summary_ledger(
+                    summary_first_path, H.load_json(summary_first_path), summary_first
+                )
+                self.assertEqual(repaired["ledger_run_id"], line["run_id"])
+                self.assertIn(line["run_id"], H.jsonl_run_ids(H.LEDGER))
+                self.assertTrue(line["run_id"].startswith("r-20260821-"))
+            finally:
+                H.ROOT = old_root
                 H.LEDGER = old_ledger
 
     def test_measured_manifest_detects_delete_or_mutation(self):
