@@ -238,6 +238,6 @@ Haiku cold-read the final rule with no repository or session context. It correct
 
 ## D-031 · 2026-08-21 · Cold-reader gate records are not measured experiment results (amends D-023)
 
-`type: experiment` has two documented shapes. Measured results use `experiment: E-xx`, carry effect statistics and artifact hash pins, and may support claims under D-023. E-09 cold-reader gate records use `experiment: E-09-cold-reader` plus `tier: smoke | qualification`. They are gate context only. Consumers must exclude them from claim, score, and experiment-effect aggregates.
+`type: experiment` has two documented shapes. Measured results use `experiment: E-xx`, carry effect statistics and artifact hash pins, and may support claims under D-023. Every `experiment: E-09-cold-reader` row is gate context. Exactly four append-only legacy rows use `tier: smoke`; the current harness never writes another smoke row. The E-09 harness writes one `tier: qualification` row per completed reader-profile batch. A gate may read its `passed` field only to allow or block measured execution. Consumers must exclude every `E-09-cold-reader` row from claim, score, and experiment-effect aggregates.
 
-The composite discriminator preserves the four append-only pre-protocol smoke rows without rewriting history. Current repeatable smokes write no ledger rows. Qualification may write gate rows through the E-09 harness. Every writer remains code-owned; agents never assemble ledger lines by hand.
+The composite discriminator preserves history without confusing gate state with outcome evidence. Every writer remains code-owned; agents never assemble ledger lines by hand.
