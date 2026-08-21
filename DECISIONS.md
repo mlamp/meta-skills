@@ -235,3 +235,9 @@ The catalog composition and E-09 guardrails are durable. The guardrails are a no
 An explicit user instruction controls whether a PR is draft or ready. Without one, a PR stays draft only while work is incomplete. Mark it ready as soon as its planned implementation, validation, and pre-PR reviews are complete. A publishing tool's draft default does not delay that transition.
 
 Haiku cold-read the final rule with no repository or session context. It correctly handled incomplete work, completed work, explicit draft and ready instructions, later overrides, and a publishing tool's draft default. It found no contradiction.
+
+## D-031 · 2026-08-21 · Cold-reader gate records are not measured experiment results (amends D-023)
+
+`type: experiment` has two documented shapes. Measured results use `experiment: E-xx`, carry effect statistics and artifact hash pins, and may support claims under D-023. E-09 cold-reader gate records use `experiment: E-09-cold-reader` plus `tier: smoke | qualification`. They are gate context only. Consumers must exclude them from claim, score, and experiment-effect aggregates.
+
+The composite discriminator preserves the four append-only pre-protocol smoke rows without rewriting history. Current repeatable smokes write no ledger rows. Qualification may write gate rows through the E-09 harness. Every writer remains code-owned; agents never assemble ledger lines by hand.

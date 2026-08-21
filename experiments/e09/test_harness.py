@@ -190,10 +190,8 @@ class MatcherAndMetricTest(unittest.TestCase):
         self.assertEqual(H.count_lexical(" ".join(["rule"] * 61)), 61)
 
     def test_zero_density_rule_is_defined(self):
-        rendered_relevant = set()
-        tokens = 0
-        density = (100 * len(rendered_relevant) / tokens) if tokens else 0
-        self.assertEqual(density, 0)
+        self.assertEqual(H.coverage_per_100_contract_tokens(set(), 0), 0)
+        self.assertEqual(H.coverage_per_100_contract_tokens({"U01"}, 20), 5)
 
     def test_sample_variance_is_n_minus_one(self):
         stats = H.mean_variance([1, 2, 3, 4, 5])
@@ -425,6 +423,7 @@ class RunnerSafetyTest(unittest.TestCase):
                 ledger_first = H.ROOT / "raw" / "qualification" / "cr-ledger-first"
                 ledger_first_path = ledger_first / "summary.json"
                 line = H.cold_reader_ledger_line(summary, ledger_first)
+                self.assertEqual((line["experiment"], line["tier"]), ("E-09-cold-reader", "qualification"))
                 H.ensure_ledger_lines([line])
                 H.write_json_atomic(ledger_first_path, summary)
                 repaired = H.ensure_qualification_summary_ledger(

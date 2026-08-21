@@ -1302,6 +1302,10 @@ def count_lexical(text: str) -> int:
     return len(LEXICAL.findall(text))
 
 
+def coverage_per_100_contract_tokens(rendered_relevant, contract_tokens):
+    return (100 * len(rendered_relevant) / contract_tokens) if contract_tokens else 0
+
+
 def mean_variance(values):
     if not values:
         return None
@@ -1823,7 +1827,9 @@ def cmd_finalize(args):
                     "over_cap": interview.get("over_cap", False),
                     "contract_violations": interview.get("contract_violations", []),
                     "interview_status": interview.get("status"),
-                    "coverage_per_100_contract_tokens": (100 * len(rendered_relevant) / normalized_tokens) if normalized_tokens else 0,
+                    "coverage_per_100_contract_tokens": coverage_per_100_contract_tokens(
+                        rendered_relevant, normalized_tokens
+                    ),
                     "catalog_rules_removed_in_no_suppression": sum(
                         bool(rule.get("catalog_ids")) for rule in interview.get("result", {}).get("rules", [])
                     ) if arm == "treatment" else 0,
