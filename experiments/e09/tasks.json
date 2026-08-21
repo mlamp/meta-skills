@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "tasks": [
+    {
+      "id": "T01",
+      "prompt": "A single-process desktop app needs durable storage for one writer. The user asks whether to add Redis. Give the decision, the smallest suitable design, and the restore path. Do not widen scope.",
+      "rubric": {
+        "required": ["Reject Redis", "Use SQLite or an equivalent embedded durable store", "Keep one process and one writer", "Name a backup or restore path", "Do not introduce cross-host infrastructure"],
+        "fatal": ["Recommend or add Redis"]
+      }
+    },
+    {
+      "id": "T02",
+      "prompt": "The service exits with `config validation failed: missing required field name`. The supplied config.yaml has `port: 8080` and no `name`. Diagnose it and give the shortest verification sequence.",
+      "rubric": {
+        "required": ["Identify the missing name field", "Add name to config.yaml", "Rerun the same validation or service command", "Use the new output or exit status as evidence"],
+        "fatal": ["Blame the network", "Blame a dependency without evidence"]
+      }
+    },
+    {
+      "id": "T03",
+      "prompt": "Review this retry design: requests retry forever with exponential backoff; every retry logs the full Authorization token. The stated policy is at most three attempts and no secrets in logs. Report exactly the defects that violate policy and their fixes.",
+      "rubric": {
+        "required": ["Flag unbounded retries", "Cap attempts at three", "Flag full token logging", "Remove or redact the token"],
+        "fatal": ["Invent a third defect"]
+      }
+    },
+    {
+      "id": "T04",
+      "prompt": "Summarize this frozen status brief for a maintainer without inflating its claims: An outside source was distilled into six opt-in recognition prompts. The source is unproven here. Only user-selected entries may reach a contract. Claims C19 through C22 remain untested. A score can move a claim only after five runs with variance and a second model family. State what was imported, what is binding, what remains untested, and the evidence threshold.",
+      "rubric": {
+        "required": ["The outside source is unproven here", "There are six opt-in recognition prompts", "Only selected entries may reach a contract", "C19 through C22 remain untested", "A score needs five runs with variance and a second model family"],
+        "fatal": ["Call the catalog proven", "Claim effectiveness evidence already exists"]
+      }
+    }
+  ]
+}

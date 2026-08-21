@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "fable-author": {
+      "adapter": "claude_cli",
+      "model": "claude-fable-5",
+      "effort": "xhigh",
+      "sampling": "provider_default_unsettable",
+      "timeout_seconds": 600,
+      "role": "case_author",
+      "allowed_auxiliary_models": ["claude-haiku-4-5-20251001"]
+    },
+    "gpt-author": {
+      "adapter": "codex_cli",
+      "model": "gpt-5.6-sol",
+      "effort": "xhigh",
+      "sampling": "provider_default_unsettable",
+      "timeout_seconds": 900,
+      "role": "case_author",
+      "binary_env": "E09_CODEX_BIN",
+      "minimum_cli_version": "0.148.0"
+    },
+    "haiku-reader": {
+      "adapter": "claude_cli",
+      "model": "claude-haiku-4-5-20251001",
+      "effort": "low",
+      "sampling": "provider_default_unsettable",
+      "timeout_seconds": 180,
+      "role": "cold_reader",
+      "reported_identity_required": "claude-haiku-4-5-20251001",
+      "required": true
+    },
+    "deepseek-reader": {
+      "adapter": "deepinfra_api",
+      "provider": "DeepInfra",
+      "api_base": "https://api.deepinfra.com/v1/openai",
+      "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+      "temperature": 0.2,
+      "timeout_seconds": 180,
+      "credential_env": "DEEPINFRA_API_KEY",
+      "role": "cold_reader",
+      "reported_identity_required": "deepseek-ai/DeepSeek-V4-Flash-0731",
+      "required": true
+    },
+    "fable-subject": {
+      "adapter": "claude_cli",
+      "model": "claude-fable-5",
+      "effort": "high",
+      "sampling": "provider_default_unsettable",
+      "timeout_seconds": 600,
+      "role": "interviewer_generator",
+      "reported_identity_required": "claude-fable-5",
+      "allowed_auxiliary_models": ["claude-haiku-4-5-20251001"]
+    },
+    "kimi-subject": {
+      "adapter": "kimi_cli",
+      "model": "k3[1m]",
+      "effort": "high",
+      "sampling": "provider_default_unsettable",
+      "timeout_seconds": 600,
+      "role": "interviewer_generator",
+      "reported_identity_required": "k3[1m]",
+      "reported_provider_required": "firstParty"
+    },
+    "gpt-judge": {
+      "adapter": "codex_cli",
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "sampling": "provider_default_unsettable",
+      "timeout_seconds": 900,
+      "role": "blinded_judge",
+      "binary_env": "E09_CODEX_BIN",
+      "minimum_cli_version": "0.148.0",
+      "identity_evidence": "requested_model_plus_cli_version; codex JSONL does not echo the routed model"
+    }
+  },
+  "qualification_profiles": ["haiku-reader", "deepseek-reader"],
+  "subject_profiles": ["fable-subject", "kimi-subject"],
+  "judge_profile": "gpt-judge"
+}
