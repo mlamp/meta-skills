@@ -350,7 +350,10 @@ class RunnerSafetyTest(unittest.TestCase):
                 "plugins": [{"path": "/Users/alice/.claude/plugins/example"}],
                 "thread_id": "thread-secret",
                 "stderr_tail": "failed under /home/alice/private/file.txt",
-                "stdout": 'session_id=79125914-c30f-4203-a6ab-f4b6ccb57f67',
+                "stdout": (
+                    'session_id=79125914-c30f-4203-a6ab-f4b6ccb57f67 '
+                    '{\\"project\\":\\"e09-tool-nmxf38t6\\"}'
+                ),
                 "secret_text": "DEEPINFRA_API_KEY=local-secret Authorization: Bearer sk-test.value",
                 "apiKeySource": "none",
                 "keep": "reported-model",
@@ -361,7 +364,7 @@ class RunnerSafetyTest(unittest.TestCase):
             "executable": "codex",
             "nested": {
                 "stderr_tail": "failed under <HOST_PATH>",
-                "stdout": "session_id=<ID>",
+                "stdout": 'session_id=<ID> {\\"project\\":\\"<PROJECT_ID>\\"}',
                 "secret_text": "DEEPINFRA_API_KEY=<SECRET> Authorization: Bearer <SECRET>",
                 "apiKeySource": "none",
                 "keep": "reported-model",

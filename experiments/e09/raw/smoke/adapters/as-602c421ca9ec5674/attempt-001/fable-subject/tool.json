@@ -2,11 +2,11 @@
   "attempts": [
     {
       "attempt": 1,
-      "elapsed_seconds": 4.883,
+      "elapsed_seconds": 4.706,
       "status": "ok"
     }
   ],
-  "completed_at": "2026-08-21T11:22:02+00:00",
+  "completed_at": "2026-08-21T18:08:22+00:00",
   "kind": "adapter_smoke",
   "model": {
     "adapter": "claude_cli",
@@ -46,10 +46,11 @@
       {
         "rate_limit_info": {
           "isUsingOverage": false,
-          "rateLimitType": "seven_day",
-          "resetsAt": 1787716800,
-          "status": "allowed_warning",
-          "utilization": 0.51
+          "overageDisabledReason": "org_level_disabled",
+          "overageStatus": "rejected",
+          "rateLimitType": "five_hour",
+          "resetsAt": 1787350800,
+          "status": "allowed"
         },
         "type": "rate_limit_event"
       },
@@ -57,13 +58,13 @@
         "message": {
           "content": [
             {
-              "text": "I'll classify each item against the catalog literally and submit.",
+              "text": "Classifying the four items against the two-pattern catalog.",
               "type": "text"
             }
           ],
           "context_management": null,
           "diagnostics": null,
-          "id": "msg_011CeFoiwVe61XQoLSg7bKkj",
+          "id": "msg_011CeGLi6j6gop6LosuaPP4z",
           "model": "claude-fable-5",
           "role": "assistant",
           "stop_details": null,
@@ -72,19 +73,19 @@
           "type": "message",
           "usage": {
             "cache_creation": {
-              "ephemeral_1h_input_tokens": 2952,
+              "ephemeral_1h_input_tokens": 3902,
               "ephemeral_5m_input_tokens": 0
             },
-            "cache_creation_input_tokens": 2952,
-            "cache_read_input_tokens": 952,
+            "cache_creation_input_tokens": 3902,
+            "cache_read_input_tokens": 0,
             "inference_geo": "not_available",
             "input_tokens": 2,
-            "output_tokens": 1,
+            "output_tokens": 2,
             "service_tier": "standard"
           }
         },
         "parent_tool_use_id": null,
-        "timestamp": "2026-08-21T11:22:00.656Z",
+        "timestamp": "2026-08-21T18:08:20.861Z",
         "type": "assistant"
       },
       {
@@ -94,7 +95,7 @@
               "caller": {
                 "type": "direct"
               },
-              "id": "toolu_01Vc5gBG6o3CLPNywHqzdTZb",
+              "id": "toolu_019ohBRv22eJ1vBmxLQNiDVU",
               "input": {
                 "answers": [
                   {
@@ -126,7 +127,7 @@
           ],
           "context_management": null,
           "diagnostics": null,
-          "id": "msg_011CeFoiwVe61XQoLSg7bKkj",
+          "id": "msg_011CeGLi6j6gop6LosuaPP4z",
           "model": "claude-fable-5",
           "role": "assistant",
           "stop_details": null,
@@ -135,19 +136,19 @@
           "type": "message",
           "usage": {
             "cache_creation": {
-              "ephemeral_1h_input_tokens": 2952,
+              "ephemeral_1h_input_tokens": 3902,
               "ephemeral_5m_input_tokens": 0
             },
-            "cache_creation_input_tokens": 2952,
-            "cache_read_input_tokens": 952,
+            "cache_creation_input_tokens": 3902,
+            "cache_read_input_tokens": 0,
             "inference_geo": "not_available",
             "input_tokens": 2,
-            "output_tokens": 1,
+            "output_tokens": 2,
             "service_tier": "standard"
           }
         },
         "parent_tool_use_id": null,
-        "timestamp": "2026-08-21T11:22:01.591Z",
+        "timestamp": "2026-08-21T18:08:21.784Z",
         "type": "assistant"
       },
       {
@@ -155,31 +156,31 @@
           "content": [
             {
               "content": "Structured output provided successfully",
-              "tool_use_id": "toolu_01Vc5gBG6o3CLPNywHqzdTZb",
+              "tool_use_id": "toolu_019ohBRv22eJ1vBmxLQNiDVU",
               "type": "tool_result"
             }
           ],
           "role": "user"
         },
         "parent_tool_use_id": null,
-        "timestamp": "2026-08-21T11:22:01.612Z",
+        "timestamp": "2026-08-21T18:08:21.790Z",
         "tool_use_result": "Structured output provided successfully",
         "type": "user"
       },
       {
         "api_error_status": null,
-        "duration_api_ms": 4445,
-        "duration_ms": 3384,
+        "duration_api_ms": 4217,
+        "duration_ms": 3087,
         "fast_mode_disabled_reason": "sdk_opt_in_required",
         "fast_mode_state": "off",
         "is_error": false,
         "modelUsage": {
           "claude-fable-5": {
-            "cacheCreationInputTokens": 2952,
-            "cacheReadInputTokens": 952,
+            "cacheCreationInputTokens": 3902,
+            "cacheReadInputTokens": 0,
             "canonicalModel": "claude-fable-5",
             "contextWindow": 1000000,
-            "costUSD": 0.070312,
+            "costUSD": 0.08836,
             "inputTokens": 2,
             "maxOutputTokens": 64000,
             "outputTokens": 206,
@@ -191,10 +192,10 @@
             "cacheReadInputTokens": 0,
             "canonicalModel": "claude-haiku-4-5",
             "contextWindow": 200000,
-            "costUSD": 0.001148,
+            "costUSD": 0.001158,
             "inputTokens": 1088,
             "maxOutputTokens": 32000,
-            "outputTokens": 12,
+            "outputTokens": 14,
             "provider": "firstParty",
             "webSearchRequests": 0
           }
@@ -254,28 +255,28 @@
         },
         "subtype": "success",
         "terminal_reason": "completed",
-        "time_to_request_ms": 18,
-        "total_cost_usd": 0.07146,
-        "ttft_ms": 2421,
-        "ttft_stream_ms": 1672,
+        "time_to_request_ms": 16,
+        "total_cost_usd": 0.089518,
+        "ttft_ms": 2152,
+        "ttft_stream_ms": 1356,
         "type": "result",
         "usage": {
           "cache_creation": {
-            "ephemeral_1h_input_tokens": 2952,
+            "ephemeral_1h_input_tokens": 3902,
             "ephemeral_5m_input_tokens": 0
           },
-          "cache_creation_input_tokens": 2952,
-          "cache_read_input_tokens": 952,
+          "cache_creation_input_tokens": 3902,
+          "cache_read_input_tokens": 0,
           "inference_geo": "not_available",
           "input_tokens": 2,
           "iterations": [
             {
               "cache_creation": {
-                "ephemeral_1h_input_tokens": 2952,
+                "ephemeral_1h_input_tokens": 3902,
                 "ephemeral_5m_input_tokens": 0
               },
-              "cache_creation_input_tokens": 2952,
-              "cache_read_input_tokens": 952,
+              "cache_creation_input_tokens": 3902,
+              "cache_read_input_tokens": 0,
               "input_tokens": 2,
               "output_tokens": 206,
               "type": "message"
@@ -308,21 +309,21 @@
     "structured_interface": "claude_cli_StructuredOutput_tool",
     "usage": {
       "cache_creation": {
-        "ephemeral_1h_input_tokens": 2952,
+        "ephemeral_1h_input_tokens": 3902,
         "ephemeral_5m_input_tokens": 0
       },
-      "cache_creation_input_tokens": 2952,
-      "cache_read_input_tokens": 952,
+      "cache_creation_input_tokens": 3902,
+      "cache_read_input_tokens": 0,
       "inference_geo": "not_available",
       "input_tokens": 2,
       "iterations": [
         {
           "cache_creation": {
-            "ephemeral_1h_input_tokens": 2952,
+            "ephemeral_1h_input_tokens": 3902,
             "ephemeral_5m_input_tokens": 0
           },
-          "cache_creation_input_tokens": 2952,
-          "cache_read_input_tokens": 952,
+          "cache_creation_input_tokens": 3902,
+          "cache_read_input_tokens": 0,
           "input_tokens": 2,
           "output_tokens": 206,
           "type": "message"
@@ -417,6 +418,6 @@
       "case_id": "SMOKE1"
     }
   },
-  "started_at": "2026-08-21T11:21:57+00:00",
+  "started_at": "2026-08-21T18:08:17+00:00",
   "status": "ok"
 }

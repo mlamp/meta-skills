@@ -50,14 +50,14 @@
   "attempts": [
     {
       "attempt": 1,
-      "elapsed_seconds": 1.903,
+      "elapsed_seconds": 2.295,
       "status": "ok"
     }
   ],
   "case_id": "SMOKE1",
   "key": {
     "catalog_sha256": "ede57e6faa05702688f867073ef1972a805140a029cae83818e07932b229ec3a",
-    "harness_sha256": "a7a7655409116b4c6a048062599dec58c91ed6d4553060a7b1393b6883da6987",
+    "harness_sha256": "ba1f90856583c31af06b1bc585aeb51f4189a8dfb264f3ffcd86a10ac856ed84",
     "profile": "deepseek-reader",
     "profile_sha256": "62bddbd421c7d97d2031535493297c5169629383832233a228699e48e51ea86f",
     "suite_sha256": "0fe710b17eea0d9302cce550ecd37a84f5a7bb1f8ca678c99968e97ed6886b6a",
@@ -83,15 +83,15 @@
                   "arguments": "{\"answers\": [{\"item_id\": \"M1\", \"pattern_id\": null, \"sublabel\": null}, {\"item_id\": \"M2\", \"pattern_id\": \"M01\", \"sublabel\": null}, {\"item_id\": \"M3\", \"pattern_id\": \"M02\", \"sublabel\": null}, {\"item_id\": \"M4\", \"pattern_id\": null, \"sublabel\": null}], \"case_id\": \"SMOKE1\"}",
                   "name": "submit_evaluation"
                 },
-                "id": "chatcmpl-tool-9c94445e6dba375f",
+                "id": "chatcmpl-tool-92cf1d52aab8d5e6",
                 "type": "function"
               }
             ]
           }
         }
       ],
-      "created": 1787311311,
-      "id": "chatcmpl-R9m2I7hl3BxKkfBmo9G9B9oM",
+      "created": 1787335692,
+      "id": "chatcmpl-RAFsVJcqGWk1Xs9fpyVeCNke",
       "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
       "object": "chat.completion",
       "service_tier": "default",
@@ -149,7 +149,7 @@
   },
   "profile": "deepseek-reader",
   "rep": 1,
-  "started_at": "2026-08-21T11:21:50+00:00",
+  "started_at": "2026-08-21T18:08:11+00:00",
   "status": "pass",
   "tier": "smoke"
 }

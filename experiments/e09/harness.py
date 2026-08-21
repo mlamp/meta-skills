@@ -76,6 +76,7 @@ HOST_PATH = re.compile(
 HOST_UUID = re.compile(
     r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\b"
 )
+HOST_PROJECT_ID = re.compile(r"\be09-(?:tool|text|codex)-[A-Za-z0-9_-]+\b")
 SECRET_ASSIGNMENT = re.compile(
     r"\b([A-Za-z_][A-Za-z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD))\s*=\s*"
     r"(?:\"[^\"]*\"|'[^']*'|[^\s,;]+)",
@@ -128,6 +129,7 @@ def sanitize_host_metadata(value):
     if isinstance(value, str):
         value = SECRET_ASSIGNMENT.sub(lambda match: f"{match.group(1)}=<SECRET>", value)
         value = BEARER_SECRET.sub(lambda match: f"{match.group(1)} <SECRET>", value)
+        value = HOST_PROJECT_ID.sub("<PROJECT_ID>", value)
         return HOST_UUID.sub("<ID>", HOST_PATH.sub("<HOST_PATH>", value))
     return value
 
