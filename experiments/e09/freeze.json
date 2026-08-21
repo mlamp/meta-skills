@@ -5,13 +5,13 @@
     "experiments/e09/design.md": "68d33a02743c19ee312bcac0cb51594a83bca387848111ec4f7f259857dc72a0",
     "experiments/e09/harness.py": "09ec6ef5508072607916c8ecaa72c323e362e0ef3e2bde1b1f04c99c6c7b60fc",
     "experiments/e09/models.json": "2060f8ca6ceea1e0f70608fdaa9dcea5d7d1d0e9e5556cb2aaad5bd78f522519",
-    "experiments/e09/persona-stage1.json": "52ed54abaa68733797ab271d62f702f99eefc7edf84fb39e91409851da34b483",
+    "experiments/e09/persona-stage1.json": "7a66bfdd679ffe570df14008b11fc81a6f79c51c0f76ba38a0d79e783693409e",
     "experiments/e09/persona.json": "b59a171398d31053e933af37ad4dc6d3e5c95b78060b6474881adc330fe20930",
     "experiments/e09/prompts.json": "c66517e76e32d5451ce7213c5bd84ebc20bf43d0ea508e858a6d6c628223dfa2",
-    "experiments/e09/reviews.md": "08a468abc09ef76ffd654f7e6fded516d552ab46bb2a9f7831c6572dc406d894",
+    "experiments/e09/reviews.md": "b299fc7680175489fc6c7a85f12e746a1d446fdfa914a3162835bdca1913a7af",
     "experiments/e09/substitutes.json": "9290f5ee3c0d7a03099f99d7cd8fa44c13e90ad31eb8245e90805b1efd0d4890",
     "experiments/e09/tasks.json": "c54b7dcdf992f4d32f4e22defaa9b57729e2dda21420552a1180331f45f014ee",
-    "experiments/e09/test_harness.py": "b792f659c8dc55075ffcd318eb7944f3a03405fd6d95383a0ac7887bb75c2ff2"
+    "experiments/e09/test_harness.py": "a518bf652ba7257e4abdcc46f51a361ec30ae96bf6c779a9df722e7f8bbb8b5d"
   },
   "frozen_at": "2026-08-21",
   "schema_version": 1

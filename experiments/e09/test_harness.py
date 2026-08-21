@@ -23,6 +23,17 @@ class FrozenInputsTest(unittest.TestCase):
         for source in persona["source_artifacts"]:
             self.assertEqual(H.sha256(H.ROOT / source["path"]), source["sha256"])
 
+    def test_stage1_evidence_names_exact_frozen_sources(self):
+        persona = H.load_json(H.DATA_FILES["persona.json"])
+        stage1 = H.load_json(H.DATA_FILES["persona-stage1.json"])
+        source_paths = {source["path"] for source in persona["source_artifacts"]}
+        for preference in stage1["preferences"]:
+            for evidence in preference["source_evidence"]:
+                source_path, separator, detail = evidence.partition(": ")
+                self.assertEqual(separator, ": ", evidence)
+                self.assertIn(source_path, source_paths, evidence)
+                self.assertTrue(detail, evidence)
+
     def test_catalog_is_closed_and_ordered(self):
         catalog = H.load_json(H.DATA_FILES["catalog.json"])
         ids = [entry["id"] for entry in catalog["entries"]]

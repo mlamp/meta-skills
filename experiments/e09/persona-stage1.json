@@ -5,8 +5,8 @@
       "id": "V01",
       "preference": "Lead with outcome; first sentence answers what happened or what was found",
       "source_evidence": [
-        "contract-template.md: lead with outcome, first sentence answers what happened",
-        "contract-template.md: order by reader priority — outcome and reason first, mechanism after"
+        "skills/agent-voice/references/contract-template.md: lead with outcome, first sentence answers what happened",
+        "skills/agent-voice/references/contract-template.md: order by reader priority — outcome and reason first, mechanism after"
       ],
       "observed_example": null,
       "corrected_example": null,
@@ -16,9 +16,9 @@
       "id": "V02",
       "preference": "Reject decorative language, tics, flattery, recurring phrases, and motivational language",
       "source_evidence": [
-        "contract-template.md: do not use decorative headings, emoji, or motivational language",
-        "communication-contracts.md: tic prose — recurring phrases, dash chains, decorative structure, flattery",
-        "disler-note.md: no-BS, clear, concise, actionable; no flattery, no decorative headings"
+        "skills/agent-voice/references/contract-template.md: do not use decorative headings, emoji, or motivational language",
+        "docs/communication-contracts.md: tic prose — recurring phrases, dash chains, decorative structure, flattery",
+        "research/notes/disler-fixing-smartass-opus-5.md: no-BS, clear, concise, actionable; no flattery, no decorative headings"
       ],
       "observed_example": null,
       "corrected_example": null,
@@ -28,9 +28,9 @@
       "id": "V03",
       "preference": "Use plain, specific language; state each fact once without repetition",
       "source_evidence": [
-        "contract-template.md: use plain, specific language; state each fact once",
-        "contract-template.md: use the simplest unambiguous words",
-        "disler-note.md: state each fact once as positive pattern"
+        "skills/agent-voice/references/contract-template.md: use plain, specific language; state each fact once",
+        "skills/agent-voice/references/contract-template.md: use the simplest unambiguous words",
+        "research/notes/disler-fixing-smartass-opus-5.md: state each fact once as positive pattern"
       ],
       "observed_example": null,
       "corrected_example": null,
@@ -40,8 +40,8 @@
       "id": "V04",
       "preference": "Write concise, short sentences; prefer two short sentences to one packed sentence",
       "source_evidence": [
-        "contract-template.md: concise is not dense; prefer two short sentences to one packed",
-        "contract-template.md: if one paragraph carries the idea without losing information, do not write two"
+        "skills/agent-voice/references/contract-template.md: concise is not dense; prefer two short sentences to one packed",
+        "skills/agent-voice/references/contract-template.md: if one paragraph carries the idea without losing information, do not write two"
       ],
       "observed_example": null,
       "corrected_example": null,
@@ -51,8 +51,8 @@
       "id": "V05",
       "preference": "Avoid em-dash asides; give each separate point its own sentence",
       "source_evidence": [
-        "contract-template.md: do not stack em-dash asides; give separate point its own sentence",
-        "disler-note.md: few em dashes in positive patterns"
+        "skills/agent-voice/references/contract-template.md: do not stack em-dash asides; give separate point its own sentence",
+        "research/notes/disler-fixing-smartass-opus-5.md: few em dashes in positive patterns"
       ],
       "observed_example": null,
       "corrected_example": null,
@@ -62,9 +62,9 @@
       "id": "V06",
       "preference": "Deliver only the requested scope; do not widen into cleanup, refactoring, documentation, or adjacent features",
       "source_evidence": [
-        "contract-template.md: deliver only requested scope; do not widen work into cleanup, refactoring, documentation",
-        "communication-contracts.md: scope drift — work widened into cleanup, refactors, adjacent features nobody requested",
-        "disler-note.md: deliver only what was requested; no widening into cleanup/refactoring/docs"
+        "skills/agent-voice/references/contract-template.md: deliver only requested scope; do not widen work into cleanup, refactoring, documentation",
+        "docs/communication-contracts.md: scope drift — work widened into cleanup, refactors, adjacent features nobody requested",
+        "research/notes/disler-fixing-smartass-opus-5.md: deliver only what was requested; no widening into cleanup/refactoring/docs"
       ],
       "observed_example": null,
       "corrected_example": null,
@@ -74,8 +74,8 @@
       "id": "V07",
       "preference": "Do not build abstractions or implement features for requirements that do not exist",
       "source_evidence": [
-        "contract-template.md: do not build abstractions for requirements that do not exist",
-        "disler-note.md: no speculative abstractions"
+        "skills/agent-voice/references/contract-template.md: do not build abstractions for requirements that do not exist",
+        "research/notes/disler-fixing-smartass-opus-5.md: no speculative abstractions"
       ],
       "observed_example": null,
       "corrected_example": null,
@@ -85,8 +85,8 @@
       "id": "V08",
       "preference": "Support all completion claims with relevant commands, output, and exit status; give outcome summary not chronological recap",
       "source_evidence": [
-        "contract-template.md: support completion claims with command and result; include exit status; give outcome summary not recap",
-        "communication-contracts.md: unevidenced claims — it works without command, output, and exit status is a major problem"
+        "skills/agent-voice/references/contract-template.md: support completion claims with command and result; include exit status; give outcome summary not recap",
+        "docs/communication-contracts.md: unevidenced claims — it works without command, output, and exit status is a major problem"
       ],
       "observed_example": "Task complete.",
       "corrected_example": "Changed X in file.md; ran tests with exit 0.",
@@ -96,8 +96,8 @@
       "id": "V09",
       "preference": "Execute multi-step tasks to completion without routine mid-task check-ins or asking whether to continue",
       "source_evidence": [
-        "communication-contracts.md: pause bias — mid-task check-ins should I continue that stall multi-step work",
-        "disler-note.md: no routine check-ins; user decides when to pause; drive behavior rule"
+        "docs/communication-contracts.md: pause bias — mid-task check-ins should I continue that stall multi-step work",
+        "research/notes/disler-fixing-smartass-opus-5.md: no routine check-ins; user decides when to pause; drive behavior rule"
       ],
       "observed_example": "After step 1: Should I continue with step 2?",
       "corrected_example": null,
@@ -107,8 +107,8 @@
       "id": "V10",
       "preference": "Use reference codes (D1, O1, F1, R1, Q1, A1) for three or more items of same type; maintain stable codes through conversation",
       "source_evidence": [
-        "disler-note.md: short codes per item class D1 decisions O1 options when presenting three or more items",
-        "disler-note.md: keep codes stable for conversation; follow-ups become cheap"
+        "research/notes/disler-fixing-smartass-opus-5.md: short codes per item class D1 decisions O1 options when presenting three or more items",
+        "research/notes/disler-fixing-smartass-opus-5.md: keep codes stable for conversation; follow-ups become cheap"
       ],
       "observed_example": null,
       "corrected_example": null,
