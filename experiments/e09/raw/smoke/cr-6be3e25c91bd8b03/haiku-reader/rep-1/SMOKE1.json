@@ -66,14 +66,14 @@
     "events": [
       {
         "hook_event": "SessionStart",
-        "hook_id": "88d648b7-1f2b-4256-8841-010994580403",
+        "hook_id": "<ID>",
         "hook_name": "SessionStart:startup",
         "subtype": "hook_started",
         "type": "system"
       },
       {
         "hook_event": "SessionStart",
-        "hook_id": "ccf0c2cc-ec30-40ae-bd08-9428cf645da6",
+        "hook_id": "<ID>",
         "hook_name": "SessionStart:startup",
         "subtype": "hook_started",
         "type": "system"
@@ -81,7 +81,7 @@
       {
         "exit_code": 0,
         "hook_event": "SessionStart",
-        "hook_id": "88d648b7-1f2b-4256-8841-010994580403",
+        "hook_id": "<ID>",
         "hook_name": "SessionStart:startup",
         "outcome": "success",
         "output": "",
@@ -93,12 +93,12 @@
       {
         "exit_code": 0,
         "hook_event": "SessionStart",
-        "hook_id": "ccf0c2cc-ec30-40ae-bd08-9428cf645da6",
+        "hook_id": "<ID>",
         "hook_name": "SessionStart:startup",
         "outcome": "success",
-        "output": "{\"terminalSequence\":\"\\u001b]777;notify;warp://cli-agent;{\\\"v\\\":1,\\\"agent\\\":\\\"claude\\\",\\\"event\\\":\\\"session_start\\\",\\\"session_id\\\":\\\"79125914-c30f-4203-a6ab-f4b6ccb57f67\\\",\\\"cwd\\\":\\\"<HOST_PATH>\",\\\"project\\\":\\\"e09-tool-ir9crh37\\\",\\\"plugin_version\\\":\\\"2.1.0\\\"}\\u0007\"}\n",
+        "output": "{\"terminalSequence\":\"\\u001b]777;notify;warp://cli-agent;{\\\"v\\\":1,\\\"agent\\\":\\\"claude\\\",\\\"event\\\":\\\"session_start\\\",\\\"session_id\\\":\\\"<ID>\\\",\\\"cwd\\\":\\\"<HOST_PATH>\",\\\"project\\\":\\\"e09-tool-ir9crh37\\\",\\\"plugin_version\\\":\\\"2.1.0\\\"}\\u0007\"}\n",
         "stderr": "",
-        "stdout": "{\"terminalSequence\":\"\\u001b]777;notify;warp://cli-agent;{\\\"v\\\":1,\\\"agent\\\":\\\"claude\\\",\\\"event\\\":\\\"session_start\\\",\\\"session_id\\\":\\\"79125914-c30f-4203-a6ab-f4b6ccb57f67\\\",\\\"cwd\\\":\\\"<HOST_PATH>\",\\\"project\\\":\\\"e09-tool-ir9crh37\\\",\\\"plugin_version\\\":\\\"2.1.0\\\"}\\u0007\"}\n",
+        "stdout": "{\"terminalSequence\":\"\\u001b]777;notify;warp://cli-agent;{\\\"v\\\":1,\\\"agent\\\":\\\"claude\\\",\\\"event\\\":\\\"session_start\\\",\\\"session_id\\\":\\\"<ID>\\\",\\\"cwd\\\":\\\"<HOST_PATH>\",\\\"project\\\":\\\"e09-tool-ir9crh37\\\",\\\"plugin_version\\\":\\\"2.1.0\\\"}\\u0007\"}\n",
         "subtype": "hook_response",
         "type": "system"
       },

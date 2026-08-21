@@ -323,12 +323,17 @@ class RunnerSafetyTest(unittest.TestCase):
                 "plugins": [{"path": "/Users/alice/.claude/plugins/example"}],
                 "thread_id": "thread-secret",
                 "stderr_tail": "failed under /home/alice/private/file.txt",
+                "stdout": 'session_id=79125914-c30f-4203-a6ab-f4b6ccb57f67',
                 "keep": "reported-model",
             },
         }
         self.assertEqual(H.sanitize_host_metadata(raw), {
             "executable": "codex",
-            "nested": {"stderr_tail": "failed under <HOST_PATH>", "keep": "reported-model"},
+            "nested": {
+                "stderr_tail": "failed under <HOST_PATH>",
+                "stdout": "session_id=<ID>",
+                "keep": "reported-model",
+            },
         })
 
     def test_committed_smoke_artifacts_have_portable_metadata(self):

@@ -69,6 +69,9 @@ HOST_PATH = re.compile(
     r"|(?<![A-Za-z0-9:])/tmp/[^\s\"']+"
     r"|\b[A-Za-z]:\\Users\\[^\\\s\"']+(?:\\[^\s\"']*)?"
 )
+HOST_UUID = re.compile(
+    r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\b"
+)
 
 
 class HarnessError(RuntimeError):
@@ -112,7 +115,7 @@ def sanitize_host_metadata(value):
     if isinstance(value, list):
         return [sanitize_host_metadata(item) for item in value]
     if isinstance(value, str):
-        return HOST_PATH.sub("<HOST_PATH>", value)
+        return HOST_UUID.sub("<ID>", HOST_PATH.sub("<HOST_PATH>", value))
     return value
 
 

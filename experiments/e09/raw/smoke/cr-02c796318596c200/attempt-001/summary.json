@@ -1,18 +1,18 @@
 {
   "assertions": 6,
-  "completed_at": "2026-08-21T09:49:59+00:00",
+  "completed_at": "2026-08-21T09:59:09+00:00",
   "errors": 0,
   "failed_assertions": 0,
   "key": {
     "catalog_sha256": "0751e6455395c20d155c409d67419615b10f8386f4b206e7d824fd7ca1a0d3d8",
-    "harness_sha256": "7946005d362148ddc558888f0a144928b52b83a7023b04e4319e02cc2a96b961",
-    "profile": "haiku-reader",
-    "profile_sha256": "d5d5ed21efdf38146acf3ebc9b2b56a9d21ba91b87b205489de40318a159cc85",
+    "harness_sha256": "09ec6ef5508072607916c8ecaa72c323e362e0ef3e2bde1b1f04c99c6c7b60fc",
+    "profile": "deepseek-reader",
+    "profile_sha256": "62bddbd421c7d97d2031535493297c5169629383832233a228699e48e51ea86f",
     "suite_sha256": "0fe710b17eea0d9302cce550ecd37a84f5a7bb1f8ca678c99968e97ed6886b6a",
     "tier": "smoke"
   },
   "passed": true,
-  "profile": "haiku-reader",
+  "profile": "deepseek-reader",
   "started_calls": 1,
   "tier": "smoke",
   "type": "cold_reader"
