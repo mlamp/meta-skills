@@ -145,6 +145,10 @@ def sha256_value(value) -> str:
     return hashlib.sha256(canonical(value).encode()).hexdigest()
 
 
+def sha256_text(value: str) -> str:
+    return hashlib.sha256(value.encode()).hexdigest()
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -261,6 +265,14 @@ def catalog_markdown(catalog=None) -> str:
         ]
     lines += ["", "Overlap precedence: " + " > ".join(catalog["overlap_precedence"]) + "."]
     return "\n".join(lines) + "\n"
+
+
+def smoke_catalog_markdown(suite=None) -> str:
+    suite = suite or load_json(DATA_FILES["cold_reader_cases.json"])
+    return "\n".join(
+        f"- {entry['id']} · {entry['label']}: {entry['meaning']} Boundary: {entry['boundary']}"
+        for entry in suite["smoke"]["catalog"]
+    ) + "\n"
 
 
 def render_interview(arm: str) -> str:
@@ -719,12 +731,7 @@ def call_text(profile, prompt: str, system_text: str):
 
 
 def case_prompt(case, smoke=False):
-    suite = load_json(DATA_FILES["cold_reader_cases.json"])
-    catalog = suite["smoke"]["catalog"] if smoke else None
-    catalog_text = "\n".join(
-        f"- {entry['id']} · {entry['label']}: {entry['meaning']} Boundary: {entry['boundary']}"
-        for entry in catalog
-    ) + "\n" if smoke else catalog_markdown()
+    catalog_text = smoke_catalog_markdown() if smoke else catalog_markdown()
     parts = [
         "Read the catalog and apply it literally. Do not infer a broader style policy.",
         catalog_text.rstrip(),
@@ -885,12 +892,17 @@ def cmd_preflight(args):
 def cold_reader_namespace(tier, profile_name):
     suite = load_json(DATA_FILES["cold_reader_cases.json"])
     profile = profile_map()[profile_name]
+    catalog_sha256 = (
+        sha256_text(smoke_catalog_markdown(suite))
+        if tier == "smoke"
+        else sha256(DATA_FILES["catalog.json"])
+    )
     key = {
         "tier": tier,
         "profile": profile_name,
         "profile_sha256": sha256_value(profile),
         "harness_sha256": sha256(E09 / "harness.py"),
-        "catalog_sha256": sha256(DATA_FILES["catalog.json"]),
+        "catalog_sha256": catalog_sha256,
         "suite_sha256": sha256(DATA_FILES["cold_reader_cases.json"]),
     }
     if tier == "qualification" and (E09 / "freeze.json").exists():

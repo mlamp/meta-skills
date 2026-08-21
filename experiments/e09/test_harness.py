@@ -282,6 +282,10 @@ class RunnerSafetyTest(unittest.TestCase):
         profile = H.load_json(H.DATA_FILES["models.json"])["profiles"]["deepseek-reader"]
         self.assertEqual(key["profile_sha256"], H.sha256_value(profile))
         self.assertEqual(key["harness_sha256"], H.sha256(H.E09 / "harness.py"))
+        self.assertEqual(key["catalog_sha256"], H.sha256_text(H.smoke_catalog_markdown()))
+        self.assertNotEqual(key["catalog_sha256"], H.sha256(H.DATA_FILES["catalog.json"]))
+        _, qualification_key = H.cold_reader_namespace("qualification", "deepseek-reader")
+        self.assertEqual(qualification_key["catalog_sha256"], H.sha256(H.DATA_FILES["catalog.json"]))
         self.assertTrue(namespace.name.startswith("cr-"))
 
     def test_smoke_attempts_are_repeatable_and_pass_lookup_is_explicit(self):

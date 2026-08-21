@@ -102,3 +102,7 @@ The helper change produced final harness hash `8ca20ec1b8a7`. Fresh Haiku and De
 Copilot then found that non-OK task outputs were skipped without increasing `task_judge_errors`, so C20 could appear complete. Production now counts missing outputs, task errors, missing judgments, and judge errors through one tested helper. A missing task output also makes C21 substitute judgment incomplete and C22's listed-tic rate undefined. The ledger introduction now says "every run recorded in the ledger," preserving the explicit unledgered-smoke rule. All 52 tests pass.
 
 Fresh Haiku and DeepSeek reader smokes passed 6/6 on repaired harness hash `7578ed0ec1b1`. All six Fable, Kimi, and GPT adapter paths passed on the same hash.
+
+Copilot's next pass found that smoke namespaces claimed the U01–U06 catalog hash even though their prompts use the disjoint M01–M02 catalog. One renderer now owns both the smoke prompt and its hash. The regression requires smoke to hash that rendered catalog, requires qualification to keep hashing `catalog.json`, and proves the two differ. All 52 tests pass.
+
+Fresh Haiku and DeepSeek reader smokes passed 6/6 with M-catalog hash `ede57e6faa05` on repaired harness hash `a7a765540911`. All six Fable, Kimi, and GPT adapter paths passed on that harness hash.

@@ -3,15 +3,15 @@
     "experiments/e09/catalog.json": "0751e6455395c20d155c409d67419615b10f8386f4b206e7d824fd7ca1a0d3d8",
     "experiments/e09/cold_reader_cases.json": "0fe710b17eea0d9302cce550ecd37a84f5a7bb1f8ca678c99968e97ed6886b6a",
     "experiments/e09/design.md": "c14ad1c1c29c49c528501604ae05032269f194bde31ebb0e3c4d9816bccf2e15",
-    "experiments/e09/harness.py": "7578ed0ec1b19fe5abed8aeada2eac3dc9729415e17396670acbdaa1a88a9e8b",
+    "experiments/e09/harness.py": "a7a7655409116b4c6a048062599dec58c91ed6d4553060a7b1393b6883da6987",
     "experiments/e09/models.json": "2060f8ca6ceea1e0f70608fdaa9dcea5d7d1d0e9e5556cb2aaad5bd78f522519",
     "experiments/e09/persona-stage1.json": "7a66bfdd679ffe570df14008b11fc81a6f79c51c0f76ba38a0d79e783693409e",
     "experiments/e09/persona.json": "b59a171398d31053e933af37ad4dc6d3e5c95b78060b6474881adc330fe20930",
     "experiments/e09/prompts.json": "c66517e76e32d5451ce7213c5bd84ebc20bf43d0ea508e858a6d6c628223dfa2",
-    "experiments/e09/reviews.md": "691de266ac6ac207e6d2d84053ac977f84750f71c6770eb7bdefe54f206bfeab",
+    "experiments/e09/reviews.md": "ea3a602d01174e37363c03b0ae7dcd9a65c457e71656d7a977b10b4949937fbf",
     "experiments/e09/substitutes.json": "9290f5ee3c0d7a03099f99d7cd8fa44c13e90ad31eb8245e90805b1efd0d4890",
     "experiments/e09/tasks.json": "c54b7dcdf992f4d32f4e22defaa9b57729e2dda21420552a1180331f45f014ee",
-    "experiments/e09/test_harness.py": "a54478adfefaf554892e751b1222a3a6e4a9ba5e57c69533610e6ca3f44eaecf"
+    "experiments/e09/test_harness.py": "d458a073c3ab9f1467bee0a6e51c668cea20484742455d4ffd1c50681f2ba9d1"
   },
   "frozen_at": "2026-08-21",
   "schema_version": 1
