@@ -62,6 +62,13 @@ JUDGE_SEED = 20260822
 TOOL_NAME = "submit_evaluation"
 CLAUDE_STRUCTURED_TOOL = "StructuredOutput"
 LEXICAL = re.compile(r"\b[\w'-]+\b", re.UNICODE)
+HOST_METADATA_KEYS = {"cwd", "memory_paths", "plugins", "request_id", "session_id", "thread_id", "uuid"}
+HOST_PATH = re.compile(
+    r"(?<![A-Za-z0-9:])/(?:Users|home)/[^/\s\"']+(?:/[^\s\"']*)?"
+    r"|(?<![A-Za-z0-9:])/(?:private/)?var/folders/[^\s\"']+"
+    r"|(?<![A-Za-z0-9:])/tmp/[^\s\"']+"
+    r"|\b[A-Za-z]:\\Users\\[^\\\s\"']+(?:\\[^\s\"']*)?"
+)
 
 
 class HarnessError(RuntimeError):
@@ -89,6 +96,24 @@ def load_json(path: Path):
 
 def canonical(value) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def sanitize_host_metadata(value):
+    if isinstance(value, dict):
+        cleaned = {}
+        for key, item in value.items():
+            if key in HOST_METADATA_KEYS:
+                continue
+            if key == "executable" and isinstance(item, str):
+                cleaned[key] = Path(item).name
+            else:
+                cleaned[key] = sanitize_host_metadata(item)
+        return cleaned
+    if isinstance(value, list):
+        return [sanitize_host_metadata(item) for item in value]
+    if isinstance(value, str):
+        return HOST_PATH.sub("<HOST_PATH>", value)
+    return value
 
 
 def sha256(path: Path) -> str:
@@ -800,7 +825,7 @@ def preflight_one(name, profile):
             raise HarnessError(f"{executable} is not installed")
         proc = subprocess.run([path, "--version"], text=True, capture_output=True, timeout=30)
         return {"profile": name, "ok": proc.returncode == 0, "adapter": adapter,
-                "executable": path, "version": proc.stdout.strip() or proc.stderr.strip()}
+                "executable": Path(path).name, "version": proc.stdout.strip() or proc.stderr.strip()}
     if adapter == "codex_cli":
         path = os.environ.get(profile.get("binary_env", "E09_CODEX_BIN")) or shutil.which("codex")
         if not path:
@@ -811,7 +836,8 @@ def preflight_one(name, profile):
         actual = tuple(map(int, match.groups())) if match else (0, 0, 0)
         required = tuple(map(int, profile.get("minimum_cli_version", "0.0.0").split(".")))
         return {"profile": name, "ok": proc.returncode == 0 and actual >= required, "adapter": adapter,
-                "executable": path, "version": version_text, "minimum_version": profile.get("minimum_cli_version")}
+                "executable": Path(path).name, "version": version_text,
+                "minimum_version": profile.get("minimum_cli_version")}
     if adapter == "deepinfra_api":
         raw = deepinfra_request(profile, None, method="GET", path="/models")
         available = sorted(item.get("id") for item in raw.get("data", []))
@@ -970,10 +996,13 @@ def cmd_cold_reader(args):
                     )
                     assertions = grade_case(case, payload)
                     record.update({"status": "pass" if all(a["pass"] for a in assertions) else "fail",
-                                   "payload": payload, "assertions": assertions, "model": meta, "attempts": attempts})
+                                   "payload": payload, "assertions": assertions,
+                                   "model": sanitize_host_metadata(meta),
+                                   "attempts": sanitize_host_metadata(attempts)})
                 except Exception as exc:
-                    record.update({"status": "error", "error_type": type(exc).__name__, "error": str(exc)[:1000],
-                                   "error_evidence": getattr(exc, "evidence", None)})
+                    record.update({"status": "error", "error_type": type(exc).__name__,
+                                   "error": sanitize_host_metadata(str(exc)[:1000]),
+                                   "error_evidence": sanitize_host_metadata(getattr(exc, "evidence", None))})
                 record_path = namespace / name / f"rep-{rep}" / f"{case['id']}.json"
                 if record_path.exists():
                     raise HarnessError(f"refusing to overwrite immutable case record: {record_path}")
@@ -1332,28 +1361,33 @@ def call_record(path, thunk, identity, finalize_record=None):
         try:
             result, meta = thunk()
             attempts.append({"attempt": attempt, "status": "ok", "elapsed_seconds": round(time.monotonic() - started, 3)})
-            record.update({"status": "ok", "result": result, "model": meta, "attempts": attempts, "completed_at": utc_now()})
+            record.update({"status": "ok", "result": result, "model": sanitize_host_metadata(meta),
+                           "attempts": sanitize_host_metadata(attempts), "completed_at": utc_now()})
             break
         except FormatError as exc:
             attempts.append({"attempt": attempt, "status": "format_error", "error": str(exc),
                              "elapsed_seconds": round(time.monotonic() - started, 3)})
-            record.update({"status": "format_error", "error": str(exc), "error_evidence": exc.evidence,
-                           "attempts": attempts, "completed_at": utc_now()})
+            record.update({"status": "format_error", "error": sanitize_host_metadata(str(exc)),
+                           "error_evidence": sanitize_host_metadata(exc.evidence),
+                           "attempts": sanitize_host_metadata(attempts), "completed_at": utc_now()})
             break
         except RequestError as exc:
             attempts.append({"attempt": attempt, "status": "request_error", "error": str(exc),
                              "elapsed_seconds": round(time.monotonic() - started, 3)})
-            record.update({"status": "request_error", "error": str(exc), "error_evidence": exc.evidence,
-                           "attempts": attempts, "completed_at": utc_now()})
+            record.update({"status": "request_error", "error": sanitize_host_metadata(str(exc)),
+                           "error_evidence": sanitize_host_metadata(exc.evidence),
+                           "attempts": sanitize_host_metadata(attempts), "completed_at": utc_now()})
             break
         except TransportError as exc:
             attempts.append({"attempt": attempt, "status": "transport_error", "error": str(exc),
                              "elapsed_seconds": round(time.monotonic() - started, 3)})
             if attempt == 2:
-                record.update({"status": "transport_error", "error": str(exc), "attempts": attempts, "completed_at": utc_now()})
+                record.update({"status": "transport_error", "error": sanitize_host_metadata(str(exc)),
+                               "attempts": sanitize_host_metadata(attempts), "completed_at": utc_now()})
         except Exception as exc:
-            record.update({"status": "harness_error", "error": str(exc), "error_type": type(exc).__name__,
-                           "attempts": attempts, "completed_at": utc_now()})
+            record.update({"status": "harness_error", "error": sanitize_host_metadata(str(exc)),
+                           "error_type": type(exc).__name__, "attempts": sanitize_host_metadata(attempts),
+                           "completed_at": utc_now()})
             if finalize_record:
                 finalize_record(record)
             write_json_atomic(path, record)
@@ -1517,7 +1551,7 @@ def call_codex_schema(profile, prompt, schema):
         version = subprocess.run([binary, "--version"], text=True, capture_output=True, timeout=30)
         return payload, {"requested_model": profile["model"], "reported_models": [],
                          "identity_evidence": "requested_model_plus_cli_version; CLI did not echo routed model",
-                         "adapter": "codex_cli", "executable": binary,
+                         "adapter": "codex_cli", "executable": Path(binary).name,
                          "cli_version": version.stdout.strip() or version.stderr.strip(),
                          "usage": completed[-1].get("usage") if completed else None,
                          "events": events, "stderr_tail": proc.stderr[-1000:]}

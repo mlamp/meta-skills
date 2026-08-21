@@ -1,0 +1,453 @@
+{
+  "assertions": [
+    {
+      "actual": "SMOKE1",
+      "assertion": "case_id",
+      "expected": "SMOKE1",
+      "pass": true
+    },
+    {
+      "actual": [
+        "M1",
+        "M2",
+        "M3",
+        "M4"
+      ],
+      "assertion": "item_ids",
+      "expected": [
+        "M1",
+        "M2",
+        "M3",
+        "M4"
+      ],
+      "pass": true
+    },
+    {
+      "actual": null,
+      "assertion": "M1.pattern_id",
+      "expected": null,
+      "pass": true
+    },
+    {
+      "actual": "M01",
+      "assertion": "M2.pattern_id",
+      "expected": "M01",
+      "pass": true
+    },
+    {
+      "actual": "M02",
+      "assertion": "M3.pattern_id",
+      "expected": "M02",
+      "pass": true
+    },
+    {
+      "actual": null,
+      "assertion": "M4.pattern_id",
+      "expected": null,
+      "pass": true
+    }
+  ],
+  "attempts": [
+    {
+      "attempt": 1,
+      "elapsed_seconds": 8.242,
+      "status": "ok"
+    }
+  ],
+  "case_id": "SMOKE1",
+  "key": {
+    "catalog_sha256": "0751e6455395c20d155c409d67419615b10f8386f4b206e7d824fd7ca1a0d3d8",
+    "harness_sha256": "7946005d362148ddc558888f0a144928b52b83a7023b04e4319e02cc2a96b961",
+    "profile": "haiku-reader",
+    "profile_sha256": "d5d5ed21efdf38146acf3ebc9b2b56a9d21ba91b87b205489de40318a159cc85",
+    "suite_sha256": "0fe710b17eea0d9302cce550ecd37a84f5a7bb1f8ca678c99968e97ed6886b6a",
+    "tier": "smoke"
+  },
+  "model": {
+    "adapter": "claude_cli",
+    "configuration_isolation": "safe_mode_ephemeral_cwd_explicit_effort",
+    "events": [
+      {
+        "agents": [
+          "claude",
+          "Explore",
+          "general-purpose",
+          "Plan"
+        ],
+        "analytics_disabled": false,
+        "apiKeySource": "none",
+        "capabilities": [
+          "interrupt_receipt_v1",
+          "interrupt_cancel_queued_v1",
+          "msg_lifecycle_v1"
+        ],
+        "claude_code_version": "2.1.237",
+        "fast_mode_disabled_reason": "sdk_opt_in_required",
+        "fast_mode_state": "off",
+        "mcp_servers": [],
+        "messaging_socket_path": "<HOST_PATH>",
+        "model": "claude-haiku-4-5-20251001",
+        "output_style": "default",
+        "permissionMode": "dontAsk",
+        "product_feedback_disabled": false,
+        "skills": [],
+        "slash_commands": [],
+        "subtype": "init",
+        "tools": [
+          "StructuredOutput"
+        ],
+        "type": "system"
+      },
+      {
+        "rate_limit_info": {
+          "isUsingOverage": false,
+          "overageDisabledReason": "org_level_disabled",
+          "overageStatus": "rejected",
+          "rateLimitType": "five_hour",
+          "resetsAt": 1787315400,
+          "status": "allowed"
+        },
+        "type": "rate_limit_event"
+      },
+      {
+        "estimated_tokens": 9,
+        "estimated_tokens_delta": 9,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 64,
+        "estimated_tokens_delta": 55,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 124,
+        "estimated_tokens_delta": 60,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 162,
+        "estimated_tokens_delta": 38,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 189,
+        "estimated_tokens_delta": 27,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 216,
+        "estimated_tokens_delta": 27,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 278,
+        "estimated_tokens_delta": 62,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 335,
+        "estimated_tokens_delta": 57,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 363,
+        "estimated_tokens_delta": 28,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 432,
+        "estimated_tokens_delta": 69,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "signature": "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",
+              "thinking": "The user is asking me to classify items against a smoke catalog. Let me understand the patterns:\n\n- M01: Orphan label - A heading or label has no content beneath it. Boundary: A short heading with concrete content is not a hit.\n- M02: Duplicated action - The same next action is stated twice without a new condition. Boundary: A recap that adds status is not a hit.\n\nNow let me classify each item:\n\n1. M1: \"Next steps:\\n\\nShip the patch.\"\n   - \"Next steps:\" is a label/heading\n   - \"Ship the patch.\" is concrete content beneath it\n   - This is a short heading with concrete content, so according to the boundary rule, this is NOT a hit for M01\n   - There's only one action, so not M02\n   - Pattern ID: null\n\n2. M2: \"Next steps:\"\n   - \"Next steps:\" is a heading/label\n   - There is NO content beneath it\n   - This matches M01 - Orphan label\n   - Pattern ID: M01\n\n3. M3: \"Deploy now. Deploy now.\"\n   - Two statements of the same action\n   - \"Deploy now.\" appears twice without a new condition\n   - This matches M02 - Duplicated action\n   - Pattern ID: M02\n\n4. M4: \"Deploy now. Status: tests passed.\"\n   - Two statements: \"Deploy now.\" and \"Status: tests passed.\"\n   - The second statement is a recap that adds status\n   - According to the boundary rule for M02: \"A recap that adds status is not a hit\"\n   - So this is NOT M02\n   - There's no orphan label here\n   - Pattern ID: null\n\nNow I need to call the StructuredOutput tool with these answers.",
+              "type": "thinking"
+            }
+          ],
+          "context_management": null,
+          "diagnostics": null,
+          "id": "msg_011CeFgheLg7Bs38o7WbbRy6",
+          "model": "claude-haiku-4-5-20251001",
+          "role": "assistant",
+          "stop_details": null,
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 4586,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 4586,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "not_available",
+            "input_tokens": 9,
+            "output_tokens": 7,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "timestamp": "2026-08-21T09:49:58.256Z",
+        "type": "assistant"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "caller": {
+                "type": "direct"
+              },
+              "id": "toolu_01CPbwgDpUYo7dQLKi6wRbnb",
+              "input": {
+                "answers": [
+                  {
+                    "item_id": "M1",
+                    "pattern_id": null,
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M2",
+                    "pattern_id": "M01",
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M3",
+                    "pattern_id": "M02",
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M4",
+                    "pattern_id": null,
+                    "sublabel": null
+                  }
+                ],
+                "case_id": "SMOKE1"
+              },
+              "name": "StructuredOutput",
+              "type": "tool_use"
+            }
+          ],
+          "context_management": null,
+          "diagnostics": null,
+          "id": "msg_011CeFgheLg7Bs38o7WbbRy6",
+          "model": "claude-haiku-4-5-20251001",
+          "role": "assistant",
+          "stop_details": null,
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 4586,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 4586,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "not_available",
+            "input_tokens": 9,
+            "output_tokens": 7,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "timestamp": "2026-08-21T09:49:58.694Z",
+        "type": "assistant"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "content": "Structured output provided successfully",
+              "tool_use_id": "toolu_01CPbwgDpUYo7dQLKi6wRbnb",
+              "type": "tool_result"
+            }
+          ],
+          "role": "user"
+        },
+        "parent_tool_use_id": null,
+        "timestamp": "2026-08-21T09:49:58.701Z",
+        "tool_use_result": "Structured output provided successfully",
+        "type": "user"
+      },
+      {
+        "api_error_status": null,
+        "duration_api_ms": 7591,
+        "duration_ms": 5955,
+        "fast_mode_disabled_reason": "sdk_opt_in_required",
+        "fast_mode_state": "off",
+        "is_error": false,
+        "modelUsage": {
+          "claude-haiku-4-5-20251001": {
+            "cacheCreationInputTokens": 4586,
+            "cacheReadInputTokens": 0,
+            "canonicalModel": "claude-haiku-4-5",
+            "contextWindow": 200000,
+            "costUSD": 0.013269,
+            "inputTokens": 1097,
+            "maxOutputTokens": 32000,
+            "outputTokens": 600,
+            "provider": "firstParty",
+            "webSearchRequests": 0
+          }
+        },
+        "num_turns": 2,
+        "permission_denials": [],
+        "result": "{\"case_id\":\"SMOKE1\",\"answers\":[{\"item_id\":\"M1\",\"pattern_id\":null,\"sublabel\":null},{\"item_id\":\"M2\",\"pattern_id\":\"M01\",\"sublabel\":null},{\"item_id\":\"M3\",\"pattern_id\":\"M02\",\"sublabel\":null},{\"item_id\":\"M4\",\"pattern_id\":null,\"sublabel\":null}]}",
+        "stop_reason": "tool_use",
+        "structured_output": {
+          "answers": [
+            {
+              "item_id": "M1",
+              "pattern_id": null,
+              "sublabel": null
+            },
+            {
+              "item_id": "M2",
+              "pattern_id": "M01",
+              "sublabel": null
+            },
+            {
+              "item_id": "M3",
+              "pattern_id": "M02",
+              "sublabel": null
+            },
+            {
+              "item_id": "M4",
+              "pattern_id": null,
+              "sublabel": null
+            }
+          ],
+          "case_id": "SMOKE1"
+        },
+        "subtype": "success",
+        "terminal_reason": "completed",
+        "time_to_request_ms": 96,
+        "total_cost_usd": 0.013269,
+        "ttft_ms": 5504,
+        "ttft_stream_ms": 2577,
+        "type": "result",
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 4586,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_creation_input_tokens": 4586,
+          "cache_read_input_tokens": 0,
+          "inference_geo": "not_available",
+          "input_tokens": 9,
+          "iterations": [
+            {
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 4586,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "cache_creation_input_tokens": 4586,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 9,
+              "output_tokens": 588,
+              "type": "message"
+            }
+          ],
+          "output_tokens": 588,
+          "output_tokens_details": {
+            "thinking_tokens": 408
+          },
+          "server_tool_use": {
+            "web_fetch_requests": 0,
+            "web_search_requests": 0
+          },
+          "service_tier": "standard",
+          "speed": "standard"
+        }
+      }
+    ],
+    "kimi_slot": null,
+    "reported_models": [
+      "claude-haiku-4-5-20251001"
+    ],
+    "reported_providers": [
+      "firstParty"
+    ],
+    "requested_model": "claude-haiku-4-5-20251001",
+    "stderr_tail": "",
+    "stop_reason": "tool_use",
+    "structured_interface": "claude_cli_StructuredOutput_tool",
+    "usage": {
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 4586,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 4586,
+      "cache_read_input_tokens": 0,
+      "inference_geo": "not_available",
+      "input_tokens": 9,
+      "iterations": [
+        {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 4586,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_creation_input_tokens": 4586,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 9,
+          "output_tokens": 588,
+          "type": "message"
+        }
+      ],
+      "output_tokens": 588,
+      "output_tokens_details": {
+        "thinking_tokens": 408
+      },
+      "server_tool_use": {
+        "web_fetch_requests": 0,
+        "web_search_requests": 0
+      },
+      "service_tier": "standard",
+      "speed": "standard"
+    }
+  },
+  "payload": {
+    "answers": [
+      {
+        "item_id": "M1",
+        "pattern_id": null,
+        "sublabel": null
+      },
+      {
+        "item_id": "M2",
+        "pattern_id": "M01",
+        "sublabel": null
+      },
+      {
+        "item_id": "M3",
+        "pattern_id": "M02",
+        "sublabel": null
+      },
+      {
+        "item_id": "M4",
+        "pattern_id": null,
+        "sublabel": null
+      }
+    ],
+    "case_id": "SMOKE1"
+  },
+  "profile": "haiku-reader",
+  "rep": 1,
+  "started_at": "2026-08-21T09:49:50+00:00",
+  "status": "pass",
+  "tier": "smoke"
+}

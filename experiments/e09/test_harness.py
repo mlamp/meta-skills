@@ -314,6 +314,28 @@ class RunnerSafetyTest(unittest.TestCase):
             with self.assertRaisesRegex(H.HarnessError, "non-empty string run_id"):
                 H.append_jsonl(path, {"run_id": "r-1"})
 
+    def test_host_metadata_sanitizer_removes_paths_and_session_identifiers(self):
+        raw = {
+            "executable": "/Users/alice/bin/codex",
+            "session_id": "session-secret",
+            "nested": {
+                "cwd": "/tmp/e09-tool-secret",
+                "plugins": [{"path": "/Users/alice/.claude/plugins/example"}],
+                "thread_id": "thread-secret",
+                "stderr_tail": "failed under /home/alice/private/file.txt",
+                "keep": "reported-model",
+            },
+        }
+        self.assertEqual(H.sanitize_host_metadata(raw), {
+            "executable": "codex",
+            "nested": {"stderr_tail": "failed under <HOST_PATH>", "keep": "reported-model"},
+        })
+
+    def test_committed_smoke_artifacts_have_portable_metadata(self):
+        for path in (H.RAW / "smoke").rglob("*.json"):
+            payload = H.load_json(path)
+            self.assertEqual(payload, H.sanitize_host_metadata(payload), str(path))
+
     def test_exclusive_json_writer_refuses_overwrite(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "attempt.json"

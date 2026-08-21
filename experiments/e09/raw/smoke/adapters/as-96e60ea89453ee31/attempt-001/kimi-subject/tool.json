@@ -1,0 +1,636 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "elapsed_seconds": 9.17,
+      "status": "ok"
+    }
+  ],
+  "completed_at": "2026-08-21T09:50:20+00:00",
+  "kind": "adapter_smoke",
+  "model": {
+    "adapter": "kimi_cli",
+    "configuration_isolation": "safe_mode_ephemeral_cwd_explicit_effort",
+    "events": [
+      {
+        "agents": [
+          "claude",
+          "Explore",
+          "general-purpose",
+          "Plan"
+        ],
+        "analytics_disabled": false,
+        "apiKeySource": "none",
+        "capabilities": [
+          "interrupt_receipt_v1",
+          "interrupt_cancel_queued_v1",
+          "msg_lifecycle_v1"
+        ],
+        "claude_code_version": "2.1.237",
+        "fast_mode_disabled_reason": "sdk_opt_in_required",
+        "fast_mode_state": "off",
+        "mcp_servers": [],
+        "model": "k3[1m]",
+        "output_style": "default",
+        "permissionMode": "dontAsk",
+        "product_feedback_disabled": false,
+        "skills": [],
+        "slash_commands": [],
+        "subtype": "init",
+        "tools": [
+          "StructuredOutput"
+        ],
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 1,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 2,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 3,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 5,
+        "estimated_tokens_delta": 2,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 7,
+        "estimated_tokens_delta": 2,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 9,
+        "estimated_tokens_delta": 2,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 10,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 11,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 12,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 14,
+        "estimated_tokens_delta": 2,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 15,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 16,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 19,
+        "estimated_tokens_delta": 3,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 20,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 21,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 22,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 23,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 24,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 25,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 26,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 27,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 29,
+        "estimated_tokens_delta": 2,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 31,
+        "estimated_tokens_delta": 2,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 32,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 33,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 34,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 35,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 36,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 37,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 38,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 41,
+        "estimated_tokens_delta": 3,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 43,
+        "estimated_tokens_delta": 2,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 44,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 45,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 46,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 47,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 48,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 49,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 50,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 52,
+        "estimated_tokens_delta": 2,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 54,
+        "estimated_tokens_delta": 2,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 56,
+        "estimated_tokens_delta": 2,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 57,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 58,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 59,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 60,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 61,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 62,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 63,
+        "estimated_tokens_delta": 1,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "estimated_tokens": 814,
+        "estimated_tokens_delta": 751,
+        "subtype": "thinking_tokens",
+        "type": "system"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "signature": "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",
+              "thinking": "M1: heading with content \"Ship the patch\" — boundary, not a hit. M2: orphan label — M01. M3: duplicated action — M02. M4: recap adds status — not a hit (null).",
+              "type": "thinking"
+            }
+          ],
+          "context_management": null,
+          "id": "msg_eEEdORgdQtcYR0YWekmDg1Pt",
+          "model": "k3",
+          "role": "assistant",
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 768,
+            "inference_geo": "not_available",
+            "input_tokens": 682,
+            "output_tokens": 0,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "timestamp": "2026-08-21T09:50:18.136Z",
+        "type": "assistant"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "id": "tool_gFTh7ZRfPRJ7A83GRfOnRvUS",
+              "input": {
+                "answers": [
+                  {
+                    "item_id": "M1",
+                    "pattern_id": null,
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M2",
+                    "pattern_id": "M01",
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M3",
+                    "pattern_id": "M02",
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M4",
+                    "pattern_id": null,
+                    "sublabel": null
+                  }
+                ],
+                "case_id": "SMOKE1"
+              },
+              "name": "StructuredOutput",
+              "type": "tool_use"
+            }
+          ],
+          "context_management": null,
+          "id": "msg_eEEdORgdQtcYR0YWekmDg1Pt",
+          "model": "k3",
+          "role": "assistant",
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 768,
+            "inference_geo": "not_available",
+            "input_tokens": 682,
+            "output_tokens": 0,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "timestamp": "2026-08-21T09:50:20.585Z",
+        "type": "assistant"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "content": "Structured output provided successfully",
+              "tool_use_id": "tool_gFTh7ZRfPRJ7A83GRfOnRvUS",
+              "type": "tool_result"
+            }
+          ],
+          "role": "user"
+        },
+        "parent_tool_use_id": null,
+        "timestamp": "2026-08-21T09:50:20.589Z",
+        "tool_use_result": "Structured output provided successfully",
+        "type": "user"
+      },
+      {
+        "api_error_status": null,
+        "duration_api_ms": 11971,
+        "duration_ms": 8345,
+        "fast_mode_disabled_reason": "sdk_opt_in_required",
+        "fast_mode_state": "off",
+        "is_error": false,
+        "modelUsage": {
+          "k3[1m]": {
+            "cacheCreationInputTokens": 0,
+            "cacheReadInputTokens": 1280,
+            "canonicalModel": "k3[1m]",
+            "contextWindow": 1000000,
+            "costUSD": 0.012820000000000002,
+            "inputTokens": 1236,
+            "maxOutputTokens": 32000,
+            "outputTokens": 240,
+            "provider": "firstParty",
+            "webSearchRequests": 0
+          }
+        },
+        "num_turns": 2,
+        "permission_denials": [],
+        "result": "{\"case_id\":\"SMOKE1\",\"answers\":[{\"item_id\":\"M1\",\"pattern_id\":null,\"sublabel\":null},{\"item_id\":\"M2\",\"pattern_id\":\"M01\",\"sublabel\":null},{\"item_id\":\"M3\",\"pattern_id\":\"M02\",\"sublabel\":null},{\"item_id\":\"M4\",\"pattern_id\":null,\"sublabel\":null}]}",
+        "stop_reason": "tool_use",
+        "structured_output": {
+          "answers": [
+            {
+              "item_id": "M1",
+              "pattern_id": null,
+              "sublabel": null
+            },
+            {
+              "item_id": "M2",
+              "pattern_id": "M01",
+              "sublabel": null
+            },
+            {
+              "item_id": "M3",
+              "pattern_id": "M02",
+              "sublabel": null
+            },
+            {
+              "item_id": "M4",
+              "pattern_id": null,
+              "sublabel": null
+            }
+          ],
+          "case_id": "SMOKE1"
+        },
+        "subtype": "success",
+        "terminal_reason": "completed",
+        "time_to_request_ms": 15,
+        "total_cost_usd": 0.012820000000000002,
+        "ttft_ms": 5888,
+        "ttft_stream_ms": 4476,
+        "type": "result",
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 768,
+          "inference_geo": "not_available",
+          "input_tokens": 682,
+          "iterations": [],
+          "output_tokens": 190,
+          "output_tokens_details": {
+            "thinking_tokens": 50
+          },
+          "server_tool_use": {
+            "web_fetch_requests": 0,
+            "web_search_requests": 0
+          },
+          "service_tier": "standard",
+          "speed": "standard"
+        }
+      }
+    ],
+    "kimi_slot": "2",
+    "reported_models": [
+      "k3[1m]"
+    ],
+    "reported_providers": [
+      "firstParty"
+    ],
+    "requested_model": "k3[1m]",
+    "stderr_tail": "claude-kimi: slot 2\n[claude-code:unrecognized_model] {\"model\":\"k3[1m]\",\"query_source\":\"generate_session_title\"}\n",
+    "stop_reason": "tool_use",
+    "structured_interface": "claude_cli_StructuredOutput_tool",
+    "usage": {
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 768,
+      "inference_geo": "not_available",
+      "input_tokens": 682,
+      "iterations": [],
+      "output_tokens": 190,
+      "output_tokens_details": {
+        "thinking_tokens": 50
+      },
+      "server_tool_use": {
+        "web_fetch_requests": 0,
+        "web_search_requests": 0
+      },
+      "service_tier": "standard",
+      "speed": "standard"
+    }
+  },
+  "path": "tool",
+  "profile": "kimi-subject",
+  "result": {
+    "assertions": [
+      {
+        "actual": "SMOKE1",
+        "assertion": "case_id",
+        "expected": "SMOKE1",
+        "pass": true
+      },
+      {
+        "actual": [
+          "M1",
+          "M2",
+          "M3",
+          "M4"
+        ],
+        "assertion": "item_ids",
+        "expected": [
+          "M1",
+          "M2",
+          "M3",
+          "M4"
+        ],
+        "pass": true
+      },
+      {
+        "actual": null,
+        "assertion": "M1.pattern_id",
+        "expected": null,
+        "pass": true
+      },
+      {
+        "actual": "M01",
+        "assertion": "M2.pattern_id",
+        "expected": "M01",
+        "pass": true
+      },
+      {
+        "actual": "M02",
+        "assertion": "M3.pattern_id",
+        "expected": "M02",
+        "pass": true
+      },
+      {
+        "actual": null,
+        "assertion": "M4.pattern_id",
+        "expected": null,
+        "pass": true
+      }
+    ],
+    "payload": {
+      "answers": [
+        {
+          "item_id": "M1",
+          "pattern_id": null,
+          "sublabel": null
+        },
+        {
+          "item_id": "M2",
+          "pattern_id": "M01",
+          "sublabel": null
+        },
+        {
+          "item_id": "M3",
+          "pattern_id": "M02",
+          "sublabel": null
+        },
+        {
+          "item_id": "M4",
+          "pattern_id": null,
+          "sublabel": null
+        }
+      ],
+      "case_id": "SMOKE1"
+    }
+  },
+  "started_at": "2026-08-21T09:50:11+00:00",
+  "status": "ok"
+}
