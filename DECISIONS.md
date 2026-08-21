@@ -229,3 +229,9 @@ Cursor pstack's `unslop` enters as one pinned source note and four untested clai
 The catalog is opt-in twice: it appears only in the catalog-assisted interview arm, and only entries the user selects may reach a generated contract. “Must always apply,” adding soul or persona, blanket punctuation and prose-editing bans, false ranges, and the rest of the general editorial list stay out. A later experiment may reverse a rejection only with recorded local evidence.
 
 The catalog composition and E-09 guardrails are durable. The guardrails are a no-context manifest derived from pre-source artifacts, two isolated views of the same frozen base with only treatment receiving the six-row catalog, five trials per arm and family as a screening batch, Fable and Kimi as separate model families, and the C19–C22 falsifiers. E-09's exact artifact selection, base commit, model versions, seed schedule, matcher implementation, judge model, and adjudication cutoffs remain run-scoped and belong in its frozen design, not this file. Fable 5 High and Kimi K3 challenged the plan as context; their useful findings shaped the user-approved scope but are not effectiveness evidence.
+
+## D-030 · 2026-08-21 · PR state follows readiness unless the user directs it
+
+An explicit user instruction controls whether a PR is draft or ready. Without one, a PR stays draft only while work is incomplete. Mark it ready as soon as its planned implementation, validation, and pre-PR reviews are complete. A publishing tool's draft default does not delay that transition.
+
+Haiku cold-read the final rule with no repository or session context. It correctly handled incomplete work, completed work, explicit draft and ready instructions, later overrides, and a publishing tool's draft default. It found no contradiction.

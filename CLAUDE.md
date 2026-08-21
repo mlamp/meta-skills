@@ -11,6 +11,7 @@ Skills that review and improve other skills and agentic tools.
 - New skill or rule text lands only after a cold reader — a cheap model with no session context — restates its obligations correctly.
 - Measure when we can. A score cited as evidence comes from a 5-run batch with variance (prior: C10, C11 — untested) and gets a second opinion from a different model family. Single runs are context, never evidence.
 - Every skill run leaves one line in ledger/runs.jsonl (schema: ledger/README.md, D-012).
+- An explicit user instruction controls whether a PR is draft or ready. Without one, keep it draft while work is incomplete, then mark it ready as soon as the planned implementation, validation, and pre-PR reviews are complete. Do not wait for a separate prompt or preserve a publishing tool's draft default.
 
 ## Map
 
