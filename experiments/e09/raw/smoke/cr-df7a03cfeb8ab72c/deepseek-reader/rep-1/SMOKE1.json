@@ -1,0 +1,155 @@
+{
+  "assertions": [
+    {
+      "actual": "SMOKE1",
+      "assertion": "case_id",
+      "expected": "SMOKE1",
+      "pass": true
+    },
+    {
+      "actual": [
+        "M1",
+        "M2",
+        "M3",
+        "M4"
+      ],
+      "assertion": "item_ids",
+      "expected": [
+        "M1",
+        "M2",
+        "M3",
+        "M4"
+      ],
+      "pass": true
+    },
+    {
+      "actual": null,
+      "assertion": "M1.pattern_id",
+      "expected": null,
+      "pass": true
+    },
+    {
+      "actual": "M01",
+      "assertion": "M2.pattern_id",
+      "expected": "M01",
+      "pass": true
+    },
+    {
+      "actual": "M02",
+      "assertion": "M3.pattern_id",
+      "expected": "M02",
+      "pass": true
+    },
+    {
+      "actual": null,
+      "assertion": "M4.pattern_id",
+      "expected": null,
+      "pass": true
+    }
+  ],
+  "attempts": [
+    {
+      "attempt": 1,
+      "elapsed_seconds": 2.458,
+      "status": "ok"
+    }
+  ],
+  "case_id": "SMOKE1",
+  "key": {
+    "catalog_sha256": "f66aadcd355dadf4da53a573065883095d3498274839b76f3cff08337bf76214",
+    "harness_sha256": "afce5988524242e8d6a9bb3274292cc164eb6213ea06666ac5b62b73702d5b9d",
+    "profile": "deepseek-reader",
+    "profile_sha256": "62bddbd421c7d97d2031535493297c5169629383832233a228699e48e51ea86f",
+    "suite_sha256": "b32c0797b41c73e1a87cd86c24d5d7a53046968bf8bb82eaea472771b68b0081",
+    "tier": "smoke"
+  },
+  "model": {
+    "adapter": "deepinfra_api",
+    "provider": "DeepInfra",
+    "raw": {
+      "choices": [
+        {
+          "finish_reason": "tool_calls",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": "",
+            "name": null,
+            "reasoning_content": null,
+            "role": "assistant",
+            "tool_calls": [
+              {
+                "function": {
+                  "arguments": "{\"answers\": [{\"item_id\": \"M1\", \"pattern_id\": null, \"sublabel\": null}, {\"item_id\": \"M2\", \"pattern_id\": \"M01\", \"sublabel\": null}, {\"item_id\": \"M3\", \"pattern_id\": \"M02\", \"sublabel\": null}, {\"item_id\": \"M4\", \"pattern_id\": null, \"sublabel\": null}], \"case_id\": \"SMOKE1\"}",
+                  "name": "submit_evaluation"
+                },
+                "id": "chatcmpl-tool-882c7d0b08c8c3b9",
+                "type": "function"
+              }
+            ]
+          }
+        }
+      ],
+      "created": 1787300722,
+      "id": "chatcmpl-RV0O95eT3mcoK0jTzmhycWY6",
+      "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+      "object": "chat.completion",
+      "service_tier": "default",
+      "usage": {
+        "completion_tokens": 153,
+        "estimated_cost": 7.506e-05,
+        "prompt_tokens": 594,
+        "prompt_tokens_details": {
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "total_tokens": 747
+      }
+    },
+    "reported_models": [
+      "deepseek-ai/DeepSeek-V4-Flash-0731"
+    ],
+    "requested_model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "system_fingerprint": null,
+    "usage": {
+      "completion_tokens": 153,
+      "estimated_cost": 7.506e-05,
+      "prompt_tokens": 594,
+      "prompt_tokens_details": {
+        "cache_write_tokens": null,
+        "cached_tokens": 0
+      },
+      "total_tokens": 747
+    }
+  },
+  "payload": {
+    "answers": [
+      {
+        "item_id": "M1",
+        "pattern_id": null,
+        "sublabel": null
+      },
+      {
+        "item_id": "M2",
+        "pattern_id": "M01",
+        "sublabel": null
+      },
+      {
+        "item_id": "M3",
+        "pattern_id": "M02",
+        "sublabel": null
+      },
+      {
+        "item_id": "M4",
+        "pattern_id": null,
+        "sublabel": null
+      }
+    ],
+    "case_id": "SMOKE1"
+  },
+  "profile": "deepseek-reader",
+  "rep": 1,
+  "started_at": "2026-08-21T08:25:21+00:00",
+  "status": "pass",
+  "tier": "smoke"
+}

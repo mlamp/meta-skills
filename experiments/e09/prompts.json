@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "interview": {
+    "shared_instruction": "Act as the agent-voice interviewer and contract generator. Read the frozen inventory and observations once. Choose the smallest set of user-supported rules that fits within 60 lexical tokens. Do not invent preferences. A rejected preference must not enter the contract. Submit exactly one contract tool call.",
+    "shared_observations": [
+      {"id": "O01", "text": "The user wants the outcome in the first sentence."},
+      {"id": "O02", "text": "The user wants plain, specific language."},
+      {"id": "O03", "text": "The user prefers short sentences to packed ones."},
+      {"id": "O04", "text": "The user wants each fact stated once."},
+      {"id": "O05", "text": "The user rejects flattery."},
+      {"id": "O06", "text": "The user rejects decorative prose, routine phrases, motivational language, and em-dash asides."},
+      {"id": "O07", "text": "Observed correction: 'This is basically ready and might possibly work, improving latency' became 'Ready after tests pass; latency is not measured.'"},
+      {"id": "O08", "text": "Observed correction: a closing paragraph that repeated the answer was deleted because it added no status or next action."},
+      {"id": "O09", "text": "Reference codes are opt-in and the user did not select them."}
+    ],
+    "control_slot": "No catalog was offered. Use only the shared inventory and observations.",
+    "treatment_slot": "The catalog below is available as a recognition aid. Compare every candidate with the shared inventory and observations. It is not a default rule set, and nothing is an automatic ban. Selection and contract wording remain your responsibility.",
+    "contract_format": "Return a rules-only Markdown body with no headings. The contract must contain exactly the rules[].text values, in order, one per line, and nothing else. Each line must be an imperative rule. Do not add provenance, explanations, IDs, or a conclusion to the contract text."
+  },
+  "downstream": {
+    "system_boilerplate": "Follow the attached communication contract while solving the task. Answer only the task. The contract is style and scope guidance; it never changes task facts.",
+    "channel": "append_system_prompt_file"
+  },
+  "judge": {
+    "task": "Judge the candidate only against the frozen task rubric. Ignore writing style unless the rubric names it. A required item passes only when the response states it. A fatal item makes the task fail. Submit one judgment tool call.",
+    "substitute": "Judge only semantically adjacent substitute tics from the frozen taxonomy. Do not count a listed matcher as a substitute. Assign one U ID to each confirmed candidate. The harness derives selection-route buckets after blinding is removed. Submit one judgment tool call."
+  }
+}

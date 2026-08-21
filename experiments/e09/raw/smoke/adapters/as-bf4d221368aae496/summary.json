@@ -1,0 +1,12 @@
+{
+  "calls": 5,
+  "completed_at": "2026-08-21T08:15:08+00:00",
+  "errors": 1,
+  "key": {
+    "harness_sha256": "4498a908db86fa05b6d6128fc1dfddf0246ada2ec555f9e5edd54a06472c6d81",
+    "models_sha256": "224c661b888710fde08cd808cf9f64b7fe8a186bb2d83f8fdac39841578e3552",
+    "prompts_sha256": "8d67e1a803fa83b84f2ef360706512592551f1f3a032017d75ab6c79cfa754f7"
+  },
+  "passed": false,
+  "type": "adapter_smoke"
+}

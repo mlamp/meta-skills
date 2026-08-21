@@ -1,0 +1,1012 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "elapsed_seconds": 6.801,
+      "status": "ok"
+    }
+  ],
+  "completed_at": "2026-08-21T08:46:56+00:00",
+  "kind": "adapter_smoke",
+  "model": {
+    "adapter": "kimi_cli",
+    "configuration_isolation": "safe_mode_ephemeral_cwd_explicit_effort",
+    "events": [
+      {
+        "agents": [
+          "claude",
+          "Explore",
+          "general-purpose",
+          "Plan"
+        ],
+        "analytics_disabled": false,
+        "apiKeySource": "none",
+        "capabilities": [
+          "interrupt_receipt_v1",
+          "interrupt_cancel_queued_v1",
+          "msg_lifecycle_v1"
+        ],
+        "claude_code_version": "2.1.237",
+        "cwd": "/private/var/folders/4n/_9x49yyj2nbgwmg1qqljxqk00000gn/T/e09-tool-_qqasde4",
+        "fast_mode_disabled_reason": "sdk_opt_in_required",
+        "fast_mode_state": "off",
+        "mcp_servers": [],
+        "model": "k3[1m]",
+        "output_style": "default",
+        "permissionMode": "dontAsk",
+        "plugins": [],
+        "product_feedback_disabled": false,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "skills": [],
+        "slash_commands": [],
+        "subtype": "init",
+        "tools": [
+          "StructuredOutput"
+        ],
+        "type": "system",
+        "uuid": "4fe7c254-99bc-4dae-a25d-ca5775010fb0"
+      },
+      {
+        "estimated_tokens": 1,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "9d5a8d1a-4948-4442-a5cd-d1b33bc3be09"
+      },
+      {
+        "estimated_tokens": 2,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "37062387-88ae-44ce-833a-d0cd60347bb7"
+      },
+      {
+        "estimated_tokens": 3,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "6189028b-0d03-4cc3-935f-8bf93d89b446"
+      },
+      {
+        "estimated_tokens": 4,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "96e912f3-fe24-48af-9852-9cc76e1f9cd7"
+      },
+      {
+        "estimated_tokens": 5,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "6a1c06a3-ac14-4b66-a1ac-908242984f4e"
+      },
+      {
+        "estimated_tokens": 7,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "9ace24cd-7791-46dd-8fc9-cabf52f86de7"
+      },
+      {
+        "estimated_tokens": 8,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "9394205c-7ddf-4fa5-8793-e4fe4d6011f0"
+      },
+      {
+        "estimated_tokens": 9,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "751553a0-4c68-4e45-9b64-9c850d531141"
+      },
+      {
+        "estimated_tokens": 10,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "ef4e5c6d-ca88-48f6-8f88-58a8ab88994b"
+      },
+      {
+        "estimated_tokens": 11,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "98f36cd6-ca21-466b-908b-d5ccc8abe8e9"
+      },
+      {
+        "estimated_tokens": 12,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "ca7faddb-4c2a-41a3-b0ed-78f51b0fec06"
+      },
+      {
+        "estimated_tokens": 14,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "03280902-ca31-47f3-b060-16ccf36b07d2"
+      },
+      {
+        "estimated_tokens": 15,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "b940f63b-2730-42b3-95ae-c35b5b2e762a"
+      },
+      {
+        "estimated_tokens": 16,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "ac9296b5-3272-4ebc-8df4-adca047bebd5"
+      },
+      {
+        "estimated_tokens": 18,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "214c6d5e-8ee2-4d51-b437-593d7feb01cb"
+      },
+      {
+        "estimated_tokens": 20,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "daf607ac-9309-4ec1-94d7-af2496652057"
+      },
+      {
+        "estimated_tokens": 22,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "977c841a-0f8f-4725-9abb-960f1b8215a9"
+      },
+      {
+        "estimated_tokens": 24,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "d2987760-222c-46ba-b7e0-10df2842a205"
+      },
+      {
+        "estimated_tokens": 25,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "058e23cf-06a0-4fcc-bc4e-1db7da248b99"
+      },
+      {
+        "estimated_tokens": 26,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "e65b548e-2bc9-40da-82dd-f00f4e7c5e7b"
+      },
+      {
+        "estimated_tokens": 28,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "b44777d0-21dd-43c6-9244-d1717642b8d7"
+      },
+      {
+        "estimated_tokens": 29,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "405cc804-9fa1-4437-a1d6-1c1bcd4386ee"
+      },
+      {
+        "estimated_tokens": 31,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "cc29302d-8b37-42e9-b4a8-5e90e50c6e61"
+      },
+      {
+        "estimated_tokens": 32,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "f578bc51-96b7-4dfc-a5d4-bd414b32ee55"
+      },
+      {
+        "estimated_tokens": 33,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "7c313a8b-0fc9-4b88-a86a-28209792340a"
+      },
+      {
+        "estimated_tokens": 34,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "4c990ce8-5df5-43f5-aa74-e9a3c5daf79f"
+      },
+      {
+        "estimated_tokens": 35,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "e477fc82-d9f4-412e-b2f4-7eadb2d091d4"
+      },
+      {
+        "estimated_tokens": 36,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "4f9ce271-0efc-40b0-bc72-1cc278804f01"
+      },
+      {
+        "estimated_tokens": 37,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "8d7a17d0-cc34-4a77-aa7a-d9984a0d17b6"
+      },
+      {
+        "estimated_tokens": 39,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "2ef42e83-2286-413d-a307-d0f2f2794dc5"
+      },
+      {
+        "estimated_tokens": 40,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "504f107d-357c-479c-aa66-a57e16a3a771"
+      },
+      {
+        "estimated_tokens": 42,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "bde8ce73-18a3-40bf-8e87-13e83856cb01"
+      },
+      {
+        "estimated_tokens": 43,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "f5e5727f-aeb9-4cc1-9fcf-f414526674c2"
+      },
+      {
+        "estimated_tokens": 45,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "8bafa276-60b8-4873-8af8-d648ce59bb1d"
+      },
+      {
+        "estimated_tokens": 47,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "0fb3603c-0f11-4d4e-9c7a-bc8475714ab7"
+      },
+      {
+        "estimated_tokens": 48,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "d3a95058-e8b9-41b1-90df-af10ede50b33"
+      },
+      {
+        "estimated_tokens": 49,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "30f543b7-b179-48b8-b610-e78a9c3e96da"
+      },
+      {
+        "estimated_tokens": 50,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "51259f76-f6ab-4f6f-aa10-72e3320538ca"
+      },
+      {
+        "estimated_tokens": 51,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "d9feda26-4530-4624-bc7b-88888f64f506"
+      },
+      {
+        "estimated_tokens": 52,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "b3df6189-63d5-40cf-a525-429359d7a875"
+      },
+      {
+        "estimated_tokens": 53,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "ce5016bd-41de-46eb-8895-3585703c526f"
+      },
+      {
+        "estimated_tokens": 54,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "abb370ea-99b1-448a-a34a-ec98558e4a80"
+      },
+      {
+        "estimated_tokens": 56,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "2b8f9a6e-6041-471e-bd19-1ccf4fb0e2a5"
+      },
+      {
+        "estimated_tokens": 57,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "df498ddf-4b4e-4be4-92a1-6917ce351efb"
+      },
+      {
+        "estimated_tokens": 58,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "e37dcb0a-c98f-41db-8a5a-d08c8b8b1251"
+      },
+      {
+        "estimated_tokens": 60,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "88b11557-5361-4f71-9fbc-795158e692c1"
+      },
+      {
+        "estimated_tokens": 61,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "9a5da47b-799a-46da-b7bd-a30054cc354e"
+      },
+      {
+        "estimated_tokens": 62,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "6c71001c-9927-4b8b-a6f6-767d7cff626e"
+      },
+      {
+        "estimated_tokens": 63,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "b324f4e3-616e-4660-925c-7f403b745e99"
+      },
+      {
+        "estimated_tokens": 65,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "6ee81039-c0ef-4dc9-8d42-bd88f33158dd"
+      },
+      {
+        "estimated_tokens": 67,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "83173eb8-31a7-449e-8fe5-8212b8db05f0"
+      },
+      {
+        "estimated_tokens": 69,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "c2ee015a-eb3f-437e-b4ed-55288b3a1799"
+      },
+      {
+        "estimated_tokens": 70,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "928aeb97-b0a7-4ec3-b69e-be2422339e4b"
+      },
+      {
+        "estimated_tokens": 71,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "44c40018-7cf7-4ffb-ac39-efc5fb2ee9be"
+      },
+      {
+        "estimated_tokens": 72,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "b648151a-50cd-4851-b6fb-25fe64456a1c"
+      },
+      {
+        "estimated_tokens": 75,
+        "estimated_tokens_delta": 3,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "381c2b72-5a40-45fc-947a-68da1e0e6453"
+      },
+      {
+        "estimated_tokens": 76,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "dc674722-5362-4b6c-a834-142d9db11b67"
+      },
+      {
+        "estimated_tokens": 77,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "d5b7b5e4-db29-4829-971b-f348f89bbe17"
+      },
+      {
+        "estimated_tokens": 78,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "9fbcc5ef-fe9b-4313-945b-7207c2bea138"
+      },
+      {
+        "estimated_tokens": 79,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "ce979367-e2c5-49e6-b8e9-05e534bcbd6b"
+      },
+      {
+        "estimated_tokens": 80,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "88c26a75-2942-4c46-b9ce-c24a87e25af0"
+      },
+      {
+        "estimated_tokens": 81,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "568f5452-4018-4d5d-944d-1e7e157afd8e"
+      },
+      {
+        "estimated_tokens": 82,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "0bb1e184-e4c0-4615-aae0-761b9516577f"
+      },
+      {
+        "estimated_tokens": 83,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "f2dc4ff5-b903-45b8-8836-4c5fe3fc856a"
+      },
+      {
+        "estimated_tokens": 85,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "9e9f3b27-d0a3-4562-8d4a-0d31d847b553"
+      },
+      {
+        "estimated_tokens": 86,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "f9f399c2-1a73-4ee8-bf6f-5f489612bf97"
+      },
+      {
+        "estimated_tokens": 87,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "fb2efef3-a7cc-49c1-9339-5602e2f6c22a"
+      },
+      {
+        "estimated_tokens": 89,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "f086ec82-d2c4-44e8-adc3-f98a0edcf165"
+      },
+      {
+        "estimated_tokens": 90,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "85ca792e-1643-4dd6-b108-a191ae458731"
+      },
+      {
+        "estimated_tokens": 92,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "bc7a15b9-6907-4293-9c8c-cfc265c6c4ed"
+      },
+      {
+        "estimated_tokens": 94,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "1b8d6a50-ee84-4c14-bf50-0e8541febf95"
+      },
+      {
+        "estimated_tokens": 95,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "f350d27e-55a2-481f-8402-d8034a804802"
+      },
+      {
+        "estimated_tokens": 96,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "42fa9b52-ad13-44b3-96d9-bc288df8c6d3"
+      },
+      {
+        "estimated_tokens": 98,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "626019e0-58a9-42aa-ab1d-2dc7755f2329"
+      },
+      {
+        "estimated_tokens": 100,
+        "estimated_tokens_delta": 2,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "7ec30ab3-9b75-4f8e-ab8b-58d765944c79"
+      },
+      {
+        "estimated_tokens": 101,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "3dbd1053-4f98-4bce-bb4f-090d28efdffc"
+      },
+      {
+        "estimated_tokens": 104,
+        "estimated_tokens_delta": 3,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "ea138951-7ad8-4373-8157-f557cdeb1a83"
+      },
+      {
+        "estimated_tokens": 105,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "cf6897d9-d40e-450e-9cfa-dd3c5e004dba"
+      },
+      {
+        "estimated_tokens": 106,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "1a18cd66-b41e-4f77-98b0-bfd968fed022"
+      },
+      {
+        "estimated_tokens": 107,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "e0b49460-d3bd-4534-9686-a2fb95c16346"
+      },
+      {
+        "estimated_tokens": 108,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "2b406267-76e0-4299-b61c-ee5609262917"
+      },
+      {
+        "estimated_tokens": 109,
+        "estimated_tokens_delta": 1,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "c7aac475-6b55-43aa-8167-36d0bcc6b212"
+      },
+      {
+        "estimated_tokens": 814,
+        "estimated_tokens_delta": 705,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "5398bd0b-fbb4-4261-b0c8-3e4613d0f551"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "signature": "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",
+              "thinking": "M1: \"Next steps:\\n\\nShip the patch.\" — heading with content beneath → not orphan. Null.\nM2: \"Next steps:\" alone → orphan label M01.\nM3: \"Deploy now. Deploy now.\" — same action twice, no new condition → M02.\nM4: \"Deploy now. Status: tests passed.\" — adds status → boundary, not a hit.",
+              "type": "thinking"
+            }
+          ],
+          "context_management": null,
+          "id": "msg_8TadtIX1ZnWEJMKWeGcCEOKz",
+          "model": "k3",
+          "role": "assistant",
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "not_available",
+            "input_tokens": 1439,
+            "output_tokens": 0,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "timestamp": "2026-08-21T08:46:54.331Z",
+        "type": "assistant",
+        "uuid": "d4dacc9c-6cbb-461c-8edb-baa547b22b0d"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "id": "tool_FKqmvtWScFBZLz7BHX0vlo8U",
+              "input": {
+                "answers": [
+                  {
+                    "item_id": "M1",
+                    "pattern_id": null,
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M2",
+                    "pattern_id": "M01",
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M3",
+                    "pattern_id": "M02",
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M4",
+                    "pattern_id": null,
+                    "sublabel": null
+                  }
+                ],
+                "case_id": "SMOKE1"
+              },
+              "name": "StructuredOutput",
+              "type": "tool_use"
+            }
+          ],
+          "context_management": null,
+          "id": "msg_8TadtIX1ZnWEJMKWeGcCEOKz",
+          "model": "k3",
+          "role": "assistant",
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "not_available",
+            "input_tokens": 1439,
+            "output_tokens": 0,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "timestamp": "2026-08-21T08:46:56.311Z",
+        "type": "assistant",
+        "uuid": "581fcab0-b288-4837-91c5-4cae65a3a6a9"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "content": "Structured output provided successfully",
+              "tool_use_id": "tool_FKqmvtWScFBZLz7BHX0vlo8U",
+              "type": "tool_result"
+            }
+          ],
+          "role": "user"
+        },
+        "parent_tool_use_id": null,
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "timestamp": "2026-08-21T08:46:56.315Z",
+        "tool_use_result": "Structured output provided successfully",
+        "type": "user",
+        "uuid": "7588daad-9e86-463c-b620-efd2193eb94b"
+      },
+      {
+        "api_error_status": null,
+        "duration_api_ms": 9816,
+        "duration_ms": 5938,
+        "fast_mode_disabled_reason": "sdk_opt_in_required",
+        "fast_mode_state": "off",
+        "is_error": false,
+        "modelUsage": {
+          "k3[1m]": {
+            "cacheCreationInputTokens": 0,
+            "cacheReadInputTokens": 512,
+            "canonicalModel": "k3[1m]",
+            "contextWindow": 1000000,
+            "costUSD": 0.017121,
+            "inputTokens": 1993,
+            "maxOutputTokens": 32000,
+            "outputTokens": 276,
+            "provider": "firstParty",
+            "webSearchRequests": 0
+          }
+        },
+        "num_turns": 2,
+        "permission_denials": [],
+        "result": "{\"case_id\":\"SMOKE1\",\"answers\":[{\"item_id\":\"M1\",\"pattern_id\":null,\"sublabel\":null},{\"item_id\":\"M2\",\"pattern_id\":\"M01\",\"sublabel\":null},{\"item_id\":\"M3\",\"pattern_id\":\"M02\",\"sublabel\":null},{\"item_id\":\"M4\",\"pattern_id\":null,\"sublabel\":null}]}",
+        "session_id": "d5875ac3-1767-42a0-8801-a5c3149c56e3",
+        "stop_reason": "tool_use",
+        "structured_output": {
+          "answers": [
+            {
+              "item_id": "M1",
+              "pattern_id": null,
+              "sublabel": null
+            },
+            {
+              "item_id": "M2",
+              "pattern_id": "M01",
+              "sublabel": null
+            },
+            {
+              "item_id": "M3",
+              "pattern_id": "M02",
+              "sublabel": null
+            },
+            {
+              "item_id": "M4",
+              "pattern_id": null,
+              "sublabel": null
+            }
+          ],
+          "case_id": "SMOKE1"
+        },
+        "subtype": "success",
+        "terminal_reason": "completed",
+        "time_to_request_ms": 18,
+        "total_cost_usd": 0.017121,
+        "ttft_ms": 3925,
+        "ttft_stream_ms": 1839,
+        "type": "result",
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "inference_geo": "not_available",
+          "input_tokens": 1439,
+          "iterations": [],
+          "output_tokens": 223,
+          "output_tokens_details": {
+            "thinking_tokens": 83
+          },
+          "server_tool_use": {
+            "web_fetch_requests": 0,
+            "web_search_requests": 0
+          },
+          "service_tier": "standard",
+          "speed": "standard"
+        },
+        "uuid": "e0027c62-289a-4b0d-9fc5-c7150d64202f"
+      }
+    ],
+    "kimi_slot": "2",
+    "reported_models": [
+      "k3[1m]"
+    ],
+    "reported_providers": [
+      "firstParty"
+    ],
+    "requested_model": "k3[1m]",
+    "stderr_tail": "claude-kimi: slot 2\n[claude-code:unrecognized_model] {\"model\":\"k3[1m]\",\"query_source\":\"generate_session_title\"}\n",
+    "stop_reason": "tool_use",
+    "structured_interface": "claude_cli_StructuredOutput_tool",
+    "usage": {
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "inference_geo": "not_available",
+      "input_tokens": 1439,
+      "iterations": [],
+      "output_tokens": 223,
+      "output_tokens_details": {
+        "thinking_tokens": 83
+      },
+      "server_tool_use": {
+        "web_fetch_requests": 0,
+        "web_search_requests": 0
+      },
+      "service_tier": "standard",
+      "speed": "standard"
+    }
+  },
+  "path": "tool",
+  "profile": "kimi-subject",
+  "result": {
+    "assertions": [
+      {
+        "actual": "SMOKE1",
+        "assertion": "case_id",
+        "expected": "SMOKE1",
+        "pass": true
+      },
+      {
+        "actual": [
+          "M1",
+          "M2",
+          "M3",
+          "M4"
+        ],
+        "assertion": "item_ids",
+        "expected": [
+          "M1",
+          "M2",
+          "M3",
+          "M4"
+        ],
+        "pass": true
+      },
+      {
+        "actual": null,
+        "assertion": "M1.pattern_id",
+        "expected": null,
+        "pass": true
+      },
+      {
+        "actual": "M01",
+        "assertion": "M2.pattern_id",
+        "expected": "M01",
+        "pass": true
+      },
+      {
+        "actual": "M02",
+        "assertion": "M3.pattern_id",
+        "expected": "M02",
+        "pass": true
+      },
+      {
+        "actual": null,
+        "assertion": "M4.pattern_id",
+        "expected": null,
+        "pass": true
+      }
+    ],
+    "payload": {
+      "answers": [
+        {
+          "item_id": "M1",
+          "pattern_id": null,
+          "sublabel": null
+        },
+        {
+          "item_id": "M2",
+          "pattern_id": "M01",
+          "sublabel": null
+        },
+        {
+          "item_id": "M3",
+          "pattern_id": "M02",
+          "sublabel": null
+        },
+        {
+          "item_id": "M4",
+          "pattern_id": null,
+          "sublabel": null
+        }
+      ],
+      "case_id": "SMOKE1"
+    }
+  },
+  "started_at": "2026-08-21T08:46:49+00:00",
+  "status": "ok"
+}

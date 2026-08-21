@@ -1,0 +1,76 @@
+# E-09 design reviews
+
+Reviewer advice is context, not evidence. Findings are adopted only when they identify a real validity or execution problem.
+
+## Plan reviews
+
+Fable 5 xhigh and Kimi K3 reviewed the neutral plan twice before implementation. The design records the accepted changes: relevance fixed before mapping, separate preference rejection and catalog mapping, a 60-token cap, zero-density rules, exact system-prompt channel parity, seeded interleaving, raw and normalized rates, duplicate substitute judgments, and frozen human adjudication.
+
+## Complete-artifact review 1
+
+Models: `claude-fable-5` xhigh and `k3[1m]` high. Both read the complete candidate independently on 2026-08-21.
+
+Resolved material findings:
+
+- Treatment named the relevant U IDs. Removed. Treatment now receives only the catalog and the same evidence as control.
+- C0 asked which experiment arm could see the catalog, but the reader prompt did not state that. Removed the arm assertion. Catalog purpose is now explicit and arm-neutral.
+- Selected IDs, not rendered rule sources, fed contract density. Corrected to rendered rule sources.
+- Failed outputs could enter tic-rate means as zero. Zero-output rates are now undefined; claim screens require all five rates and report pooled totals.
+- No-suppression used different, condition-revealing boilerplate and formatting. Both conditions now use one boilerplate and one rules renderer.
+- Contract-violation exclusions were under-specified and used brittle substring matching. The design now lists them; the harness uses lexical token sequences and rejects automatic bans.
+- Qualification could restart after interruption. An exclusive start marker now consumes the exact hash/profile attempt before the first call.
+- T04 lacked the facts needed in an isolated task call. Its frozen prompt now contains the status brief to summarize.
+- Judge order was not using its registered seed. It is now seeded and recorded.
+- The measured clean-worktree gate blocked its own raw outputs. It now permits only current qualification artifacts, their exact ledger appends, and the content-addressed measured namespace.
+- The freeze file had no owner command. The harness now writes it once and measured mode requires it.
+- The U04 substitute regex could swallow later candidates. Its gaps are bounded.
+
+Follow-up implementation checks:
+
+- The disjoint measured-adapter smoke passed all five paths: Fable tool and text, Kimi tool and text, and GPT structured output.
+- Judge transport errors remain judge errors. They cannot enter human disagreement resolution or become zero substitute rates.
+- Kimi records its selected slot. Codex records its executable, CLI version, JSONL events, and usage; the CLI does not echo the routed model, and the design states that limit.
+- Claude-family calls now reject provider error envelopes even when the process exits zero.
+
+## Complete-artifact review 2
+
+Models: `claude-fable-5` xhigh and `k3[1m]` high. Both independently read the complete candidate and the review-1 repair list on 2026-08-21.
+
+Resolved material findings:
+
+- Broad evidence mappings can put control near the four-pattern ceiling. The symmetric mapping stays frozen, but C19 now reports `not_testable` when control leaves less than one pattern of possible gain. It cannot record a ceiling-caused falsifier.
+- Redundant judge booleans could disagree with their own row verdicts and block finalization. Task success is now derived only from rubric rows. Substitute status is now represented only by a nullable pattern ID. Candidate coverage and order are validated separately.
+- The human disagreement sheet contained only blind IDs. It now includes the closed taxonomy, candidate text, response context, and both judge passes without arm, family, repetition, condition, or raw paths.
+- The GPT smoke used a trivial schema. It now runs the real task-judge and substitute-judge schema shapes. The current smoke passed both.
+- Failed and not-testable screens were conflated. Every claim now reports `pass`, `fail`, `incomplete`, or `not_testable`; missing rates and invalid interview submissions cannot become falsifiers.
+- `judge` could freeze an incomplete schedule. It now requires all 120 task records before storing judge order.
+- Smoke attempts were one-shot and ledgered like evidence. Reader and adapter smokes now use numbered attempts, write no ledger lines, and may be repeated. Qualification requires a current passing smoke for that reader.
+- C21 did not verify that suppression removed anything. Each pair now reports removed rules and tokens; five nonempty contrasts are required for a complete C21 screen.
+- Returned contract prose could differ from executed structured rules. Exact ordered lexical identity is now required.
+- User Claude configuration could enter structured calls. Claude-family structured submissions now use the provider-enforced `StructuredOutput` tool under safe mode. Text calls also use safe mode. Fable, Kimi, and Haiku passed this path.
+- Sublabel names lacked definitions. The rendered catalog now defines every sublabel before the exact cold-reader gate.
+- Finalization could append new run IDs on a second invocation. It now writes immutable results first and idempotently ensures stable ledger lines.
+- Uncommitted measured records could be deleted and silently regenerated. A start/completion manifest now records each provider-call path and hash. Missing, changed, or incomplete records block the freeze.
+
+Two recommendations were resolved differently from their suggested implementation:
+
+- Unexpected harness faults remain fail-closed. They are recorded and make resume require a corrected freeze; the harness does not retry because the failed code path may already have consumed a provider call.
+- The broad evidence mapping was not replaced by another model judge. A blinded semantic scorer would add a second treatment-sensitive measurement layer. The explicit ceiling status preserves the symmetric frozen answer key and states when C19 cannot answer its question.
+- Four smoke lines written before the repeatable-smoke protocol remain in the append-only ledger. They are explicitly `tier: smoke`, are not evidence, and their legacy raw paths are ignored by current gates.
+
+Provider correction found during smoke:
+
+- The DeepSeek credential belongs to DeepInfra, not DeepSeek's first-party endpoint. The profile now uses `https://api.deepinfra.com/v1/openai` and exact model `deepseek-ai/DeepSeek-V4-Flash-0731`. Preflight found the model and the typed-tool smoke passed 6/6.
+
+## Final repair verification
+
+Fable 5 xhigh and Kimi K3 independently reread the repaired artifact set. Kimi reported no material validity or execution blocker. Fable found four remaining gaps; all were resolved before freeze:
+
+- Required smoke history was not allowed by the qualification and measured worktree gates. Both gates now allow the non-evidence `raw/smoke/` prefix while still requiring the latest current attempts to pass.
+- Exact contract/rule identity was enforced but not stated to the interviewer. The shared format now forbids headings and requires exactly the ordered `rules[].text` values, one per line.
+- A task-judge error could make C20 fail. C20 is now incomplete unless every task judgment exists and is valid; the failure metric remains visible.
+- Legacy smoke records appeared to contradict the new no-ledger rule. They remain because the repository ledger is append-only. The design now labels the four lines and non-numbered directories as pre-protocol context ignored by current gates.
+
+Fable also noted that the smoke schema had not exercised `uniqueItems` or `minLength`; the current disjoint smoke now covers both. Kimi noted that the ledger allowlist checked only unstaged changes. It now compares the ledger against `HEAD`, covering staged and unstaged changes, and both worktree gates print the offending status lines.
+
+Both reviews were advice, not evidence. All accepted findings were fixed in the design, harness, tests, or frozen records rather than copied verbatim.

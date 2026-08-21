@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "precedence": ["U01", "U02", "U03", "U04", "U05", "U06"],
+  "listed": {
+    "U01": ["\\b(?:great question|absolutely right|good instinct)\\b"],
+    "U02": ["\\b(?:let(?:'|’)s dive|hope (?:this )?helps|let me know|in summary|to summarize)\\b"],
+    "U03": ["\\b(?:basically|essentially|fundamentally|worth noting)\\b", "\\b(?:might|may|could|possibly|perhaps)(?:\\W+\\w+){0,4}\\W+(?:might|may|could|possibly|perhaps)\\b"],
+    "U04": ["\\bthree (?:things|points|reasons|considerations)\\b"],
+    "U05": ["\\b(?:in conclusion|to recap|all in all|key takeaway)\\b"],
+    "U06": ["\\b(?:best-in-class|world-class|production-grade|robust|seamless)\\b", ",\\s*(?:improving|ensuring|enhancing|boosting)\\b"]
+  },
+  "substitute": {
+    "U01": ["\\b(?:fair point|well spotted|good catch)\\b"],
+    "U02": ["\\b(?:bottom line|in short|here(?:'|’)s the short version)\\b"],
+    "U03": ["\\b(?:arguably|generally speaking|in many cases)\\b"],
+    "U04": ["\\bfirst\\b(?:\\W+\\w+){0,30}\\W+second\\b(?:\\W+\\w+){0,30}\\W+third\\b"],
+    "U05": ["\\b(?:that(?:'|’)s the core|those are the key points|that covers it)\\b"],
+    "U06": ["\\b(?:enterprise-ready|battle-tested|future-proof)\\b", ",\\s*(?:streamlining|strengthening)\\b"]
+  },
+  "judge_buckets": ["unaided_only", "catalog_mapped_only", "both"],
+  "rules": [
+    "Match case-insensitively over final task responses only.",
+    "Assign an overlapping span once, to the first matching U ID.",
+    "Listed and substitute regex sets must be disjoint.",
+    "A substitute judgment names one frozen U ID. The harness derives its selection-route bucket after blinding is removed."
+  ]
+}

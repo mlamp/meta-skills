@@ -1,0 +1,12 @@
+{
+  "key": {
+    "catalog_sha256": "f66aadcd355dadf4da53a573065883095d3498274839b76f3cff08337bf76214",
+    "harness_sha256": "afce5988524242e8d6a9bb3274292cc164eb6213ea06666ac5b62b73702d5b9d",
+    "profile": "deepseek-reader",
+    "profile_sha256": "62bddbd421c7d97d2031535493297c5169629383832233a228699e48e51ea86f",
+    "suite_sha256": "b32c0797b41c73e1a87cd86c24d5d7a53046968bf8bb82eaea472771b68b0081",
+    "tier": "smoke"
+  },
+  "started_at": "2026-08-21T08:25:21+00:00",
+  "status": "started"
+}

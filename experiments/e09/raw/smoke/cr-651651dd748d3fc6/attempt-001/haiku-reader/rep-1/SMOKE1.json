@@ -1,0 +1,568 @@
+{
+  "assertions": [
+    {
+      "actual": "SMOKE1",
+      "assertion": "case_id",
+      "expected": "SMOKE1",
+      "pass": true
+    },
+    {
+      "actual": [
+        "M1",
+        "M2",
+        "M3",
+        "M4"
+      ],
+      "assertion": "item_ids",
+      "expected": [
+        "M1",
+        "M2",
+        "M3",
+        "M4"
+      ],
+      "pass": true
+    },
+    {
+      "actual": null,
+      "assertion": "M1.pattern_id",
+      "expected": null,
+      "pass": true
+    },
+    {
+      "actual": "M01",
+      "assertion": "M2.pattern_id",
+      "expected": "M01",
+      "pass": true
+    },
+    {
+      "actual": "M02",
+      "assertion": "M3.pattern_id",
+      "expected": "M02",
+      "pass": true
+    },
+    {
+      "actual": null,
+      "assertion": "M4.pattern_id",
+      "expected": null,
+      "pass": true
+    }
+  ],
+  "attempts": [
+    {
+      "attempt": 1,
+      "elapsed_seconds": 8.499,
+      "status": "ok"
+    }
+  ],
+  "case_id": "SMOKE1",
+  "key": {
+    "catalog_sha256": "0751e6455395c20d155c409d67419615b10f8386f4b206e7d824fd7ca1a0d3d8",
+    "harness_sha256": "0219c32549bc4272191a66bd89173e8acee86a2ef5f7d41b0bf8356d31e07757",
+    "profile": "haiku-reader",
+    "profile_sha256": "d5d5ed21efdf38146acf3ebc9b2b56a9d21ba91b87b205489de40318a159cc85",
+    "suite_sha256": "0fe710b17eea0d9302cce550ecd37a84f5a7bb1f8ca678c99968e97ed6886b6a",
+    "tier": "smoke"
+  },
+  "model": {
+    "adapter": "claude_cli",
+    "configuration_isolation": "safe_mode_ephemeral_cwd_explicit_effort",
+    "events": [
+      {
+        "agents": [
+          "claude",
+          "Explore",
+          "general-purpose",
+          "Plan"
+        ],
+        "analytics_disabled": false,
+        "apiKeySource": "none",
+        "capabilities": [
+          "interrupt_receipt_v1",
+          "interrupt_cancel_queued_v1",
+          "msg_lifecycle_v1"
+        ],
+        "claude_code_version": "2.1.237",
+        "cwd": "/private/var/folders/4n/_9x49yyj2nbgwmg1qqljxqk00000gn/T/e09-tool-vc_vxlzh",
+        "fast_mode_disabled_reason": "sdk_opt_in_required",
+        "fast_mode_state": "off",
+        "mcp_servers": [],
+        "messaging_socket_path": "/tmp/cc-socks/34751.sock",
+        "model": "claude-haiku-4-5-20251001",
+        "output_style": "default",
+        "permissionMode": "dontAsk",
+        "plugins": [
+          {
+            "name": "warp",
+            "path": "/Users/margus/.claude/plugins/cache/claude-code-warp/warp/2.1.0",
+            "source": "warp@claude-code-warp",
+            "version": "2.1.0"
+          }
+        ],
+        "product_feedback_disabled": false,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "skills": [],
+        "slash_commands": [],
+        "subtype": "init",
+        "tools": [
+          "StructuredOutput"
+        ],
+        "type": "system",
+        "uuid": "8fd5b0ea-06d9-4555-9c34-50b245de344a"
+      },
+      {
+        "rate_limit_info": {
+          "isUsingOverage": false,
+          "overageDisabledReason": "org_level_disabled",
+          "overageStatus": "rejected",
+          "rateLimitType": "five_hour",
+          "resetsAt": 1787315400,
+          "status": "allowed"
+        },
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "type": "rate_limit_event",
+        "uuid": "1fa044a5-9336-4362-acb3-7b1ee9865e48"
+      },
+      {
+        "estimated_tokens": 5,
+        "estimated_tokens_delta": 5,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "ed449f7e-d413-436f-977c-44f5e6df73f6"
+      },
+      {
+        "estimated_tokens": 11,
+        "estimated_tokens_delta": 6,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "5cb96919-53ba-402a-87bb-1b3af700ae26"
+      },
+      {
+        "estimated_tokens": 14,
+        "estimated_tokens_delta": 3,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "3cd632b7-4141-4ad9-a1e9-827cfe57763f"
+      },
+      {
+        "estimated_tokens": 15,
+        "estimated_tokens_delta": 1,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "b33a2fe7-8560-46df-a5af-ff18d5c1cc27"
+      },
+      {
+        "estimated_tokens": 18,
+        "estimated_tokens_delta": 3,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "adf92df8-1186-455f-b2ab-703089c0c640"
+      },
+      {
+        "estimated_tokens": 20,
+        "estimated_tokens_delta": 2,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "0d1f9101-7524-43a7-b0cf-fb67cfd142d4"
+      },
+      {
+        "estimated_tokens": 50,
+        "estimated_tokens_delta": 30,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "11f4709d-a093-4b5e-b788-fec38c53b12a"
+      },
+      {
+        "estimated_tokens": 93,
+        "estimated_tokens_delta": 43,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "7d0dcf90-84a9-4642-bf60-8dd4d4f84156"
+      },
+      {
+        "estimated_tokens": 124,
+        "estimated_tokens_delta": 31,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "fc6be421-a6a3-4e73-a765-f0953b248bf8"
+      },
+      {
+        "estimated_tokens": 149,
+        "estimated_tokens_delta": 25,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "fbc5eb0b-c7f1-4f36-8427-2c2d84a8d155"
+      },
+      {
+        "estimated_tokens": 177,
+        "estimated_tokens_delta": 28,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "adc7b3e0-1b40-4863-a3e6-7a7da0cbdb5e"
+      },
+      {
+        "estimated_tokens": 206,
+        "estimated_tokens_delta": 29,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "82eb43ee-2b40-4e1f-bb08-a4c71cb8f5cb"
+      },
+      {
+        "estimated_tokens": 238,
+        "estimated_tokens_delta": 32,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "d67b1932-9894-47fd-a335-e8825c26c886"
+      },
+      {
+        "estimated_tokens": 274,
+        "estimated_tokens_delta": 36,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "307f3ed2-ce83-43ed-a5bf-603768efa784"
+      },
+      {
+        "estimated_tokens": 299,
+        "estimated_tokens_delta": 25,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "e9797b0d-ffa8-454e-bd9b-878705c60813"
+      },
+      {
+        "estimated_tokens": 332,
+        "estimated_tokens_delta": 33,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "996abeb9-4b26-4785-8a53-c0249f6f46a3"
+      },
+      {
+        "estimated_tokens": 357,
+        "estimated_tokens_delta": 25,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "657c8b00-7129-454b-9231-7dd902191524"
+      },
+      {
+        "estimated_tokens": 386,
+        "estimated_tokens_delta": 29,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "bf232df5-04e4-4820-8c58-1ea43b8c3817"
+      },
+      {
+        "estimated_tokens": 450,
+        "estimated_tokens_delta": 64,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "a4ec24d7-2806-44a0-ae3f-7c1873d9cab9"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "signature": "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",
+              "thinking": "Let me analyze each item against the two patterns in the catalog:\n\n**M01 · Orphan label**: A heading or label has no content beneath it. (Short heading with concrete content is not a hit)\n\n**M02 · Duplicated action**: The same next action is stated twice without a new condition. (A recap that adds status is not a hit)\n\nNow let me classify each item:\n\n**M1**: \"Next steps:\\n\\nShip the patch.\"\n- \"Next steps:\" is a label/heading\n- \"Ship the patch.\" is concrete content beneath it\n- This is NOT M01 because there is content beneath the heading\n- This is NOT M02 because there's only one action stated\n- Pattern ID: null\n\n**M2**: \"Next steps:\"\n- \"Next steps:\" is a label/heading\n- There is NO content beneath it (just a label with nothing following)\n- This IS M01 (Orphan label)\n- Pattern ID: M01\n\n**M3**: \"Deploy now. Deploy now.\"\n- \"Deploy now.\" is stated twice\n- There is no new condition between the two statements\n- This IS M02 (Duplicated action)\n- Pattern ID: M02\n\n**M4**: \"Deploy now. Status: tests passed.\"\n- \"Deploy now.\" is stated once\n- \"Status: tests passed.\" adds status information\n- This is NOT M02 because the second part adds status (per the boundary: \"A recap that adds status is not a hit\")\n- This is NOT M01 because it's a complete statement\n- Pattern ID: null\n\nLet me double-check:\n- M1: null (has concrete content under the heading)\n- M2: M01 (heading with no content)\n- M3: M02 (same action stated twice without new condition)\n- M4: null (adds status, which is not a duplicate per the boundary)",
+              "type": "thinking"
+            }
+          ],
+          "context_management": null,
+          "diagnostics": null,
+          "id": "msg_011CeFdMua4EFvAoM9UYFNPn",
+          "model": "claude-haiku-4-5-20251001",
+          "role": "assistant",
+          "stop_details": null,
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 4587,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 4587,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "not_available",
+            "input_tokens": 9,
+            "output_tokens": 4,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "request_id": "req_011CeFdMsBSH4cSxjZ3sz9zj",
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "timestamp": "2026-08-21T09:06:11.089Z",
+        "type": "assistant",
+        "uuid": "4a1810be-ec34-4805-b8ca-7109dbf1b523"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "caller": {
+                "type": "direct"
+              },
+              "id": "toolu_018b9ifagjwp8mokc68YnrvZ",
+              "input": {
+                "answers": [
+                  {
+                    "item_id": "M1",
+                    "pattern_id": null,
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M2",
+                    "pattern_id": "M01",
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M3",
+                    "pattern_id": "M02",
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M4",
+                    "pattern_id": null,
+                    "sublabel": null
+                  }
+                ],
+                "case_id": "SMOKE1"
+              },
+              "name": "StructuredOutput",
+              "type": "tool_use"
+            }
+          ],
+          "context_management": null,
+          "diagnostics": null,
+          "id": "msg_011CeFdMua4EFvAoM9UYFNPn",
+          "model": "claude-haiku-4-5-20251001",
+          "role": "assistant",
+          "stop_details": null,
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 4587,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 4587,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "not_available",
+            "input_tokens": 9,
+            "output_tokens": 4,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "request_id": "req_011CeFdMsBSH4cSxjZ3sz9zj",
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "timestamp": "2026-08-21T09:06:12.172Z",
+        "type": "assistant",
+        "uuid": "38e60ec2-dccc-4938-ae2c-8596a971742b"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "content": "Structured output provided successfully",
+              "tool_use_id": "toolu_018b9ifagjwp8mokc68YnrvZ",
+              "type": "tool_result"
+            }
+          ],
+          "role": "user"
+        },
+        "parent_tool_use_id": null,
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "timestamp": "2026-08-21T09:06:12.176Z",
+        "tool_use_result": "Structured output provided successfully",
+        "type": "user",
+        "uuid": "699d9042-41e1-408e-a544-a920a70dd5cc"
+      },
+      {
+        "api_error_status": null,
+        "duration_api_ms": 8115,
+        "duration_ms": 7054,
+        "fast_mode_disabled_reason": "sdk_opt_in_required",
+        "fast_mode_state": "off",
+        "is_error": false,
+        "modelUsage": {
+          "claude-haiku-4-5-20251001": {
+            "cacheCreationInputTokens": 4587,
+            "cacheReadInputTokens": 0,
+            "canonicalModel": "claude-haiku-4-5",
+            "contextWindow": 200000,
+            "costUSD": 0.013385999999999999,
+            "inputTokens": 1097,
+            "maxOutputTokens": 32000,
+            "outputTokens": 623,
+            "provider": "firstParty",
+            "webSearchRequests": 0
+          }
+        },
+        "num_turns": 2,
+        "permission_denials": [],
+        "result": "{\"case_id\":\"SMOKE1\",\"answers\":[{\"item_id\":\"M1\",\"pattern_id\":null,\"sublabel\":null},{\"item_id\":\"M2\",\"pattern_id\":\"M01\",\"sublabel\":null},{\"item_id\":\"M3\",\"pattern_id\":\"M02\",\"sublabel\":null},{\"item_id\":\"M4\",\"pattern_id\":null,\"sublabel\":null}]}",
+        "session_id": "366ecd15-4af4-4d9a-af54-1750f954fc9a",
+        "stop_reason": "tool_use",
+        "structured_output": {
+          "answers": [
+            {
+              "item_id": "M1",
+              "pattern_id": null,
+              "sublabel": null
+            },
+            {
+              "item_id": "M2",
+              "pattern_id": "M01",
+              "sublabel": null
+            },
+            {
+              "item_id": "M3",
+              "pattern_id": "M02",
+              "sublabel": null
+            },
+            {
+              "item_id": "M4",
+              "pattern_id": null,
+              "sublabel": null
+            }
+          ],
+          "case_id": "SMOKE1"
+        },
+        "subtype": "success",
+        "terminal_reason": "completed",
+        "time_to_request_ms": 16,
+        "total_cost_usd": 0.013385999999999999,
+        "ttft_ms": 5952,
+        "ttft_stream_ms": 1739,
+        "type": "result",
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 4587,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_creation_input_tokens": 4587,
+          "cache_read_input_tokens": 0,
+          "inference_geo": "not_available",
+          "input_tokens": 9,
+          "iterations": [
+            {
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 4587,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "cache_creation_input_tokens": 4587,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 9,
+              "output_tokens": 611,
+              "type": "message"
+            }
+          ],
+          "output_tokens": 611,
+          "output_tokens_details": {
+            "thinking_tokens": 431
+          },
+          "server_tool_use": {
+            "web_fetch_requests": 0,
+            "web_search_requests": 0
+          },
+          "service_tier": "standard",
+          "speed": "standard"
+        },
+        "uuid": "23923a64-51bf-457f-8e32-11f505f2b8a1"
+      }
+    ],
+    "kimi_slot": null,
+    "reported_models": [
+      "claude-haiku-4-5-20251001"
+    ],
+    "reported_providers": [
+      "firstParty"
+    ],
+    "requested_model": "claude-haiku-4-5-20251001",
+    "stderr_tail": "",
+    "stop_reason": "tool_use",
+    "structured_interface": "claude_cli_StructuredOutput_tool",
+    "usage": {
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 4587,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 4587,
+      "cache_read_input_tokens": 0,
+      "inference_geo": "not_available",
+      "input_tokens": 9,
+      "iterations": [
+        {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 4587,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_creation_input_tokens": 4587,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 9,
+          "output_tokens": 611,
+          "type": "message"
+        }
+      ],
+      "output_tokens": 611,
+      "output_tokens_details": {
+        "thinking_tokens": 431
+      },
+      "server_tool_use": {
+        "web_fetch_requests": 0,
+        "web_search_requests": 0
+      },
+      "service_tier": "standard",
+      "speed": "standard"
+    }
+  },
+  "payload": {
+    "answers": [
+      {
+        "item_id": "M1",
+        "pattern_id": null,
+        "sublabel": null
+      },
+      {
+        "item_id": "M2",
+        "pattern_id": "M01",
+        "sublabel": null
+      },
+      {
+        "item_id": "M3",
+        "pattern_id": "M02",
+        "sublabel": null
+      },
+      {
+        "item_id": "M4",
+        "pattern_id": null,
+        "sublabel": null
+      }
+    ],
+    "case_id": "SMOKE1"
+  },
+  "profile": "haiku-reader",
+  "rep": 1,
+  "started_at": "2026-08-21T09:06:04+00:00",
+  "status": "pass",
+  "tier": "smoke"
+}

@@ -1,0 +1,19 @@
+{
+  "assertions": 6,
+  "completed_at": "2026-08-21T08:40:57+00:00",
+  "errors": 0,
+  "failed_assertions": 0,
+  "key": {
+    "catalog_sha256": "0751e6455395c20d155c409d67419615b10f8386f4b206e7d824fd7ca1a0d3d8",
+    "harness_sha256": "28acda2612fcc3dc59c82be5b7b0abc6c5d262fb0ca23df67fb2dca43bc3c0e5",
+    "profile": "deepseek-reader",
+    "profile_sha256": "62bddbd421c7d97d2031535493297c5169629383832233a228699e48e51ea86f",
+    "suite_sha256": "e8b382398fd90640703ae06f2da030702d18266031ab66ec8558575a9b7efad4",
+    "tier": "smoke"
+  },
+  "passed": true,
+  "profile": "deepseek-reader",
+  "started_calls": 1,
+  "tier": "smoke",
+  "type": "cold_reader"
+}

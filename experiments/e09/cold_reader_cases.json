@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "suite_id": "e09-cold-reader-v1",
+  "interface": "One required typed submission tool call per case. Claude-family profiles use the CLI StructuredOutput tool; DeepInfra uses submit_evaluation. Tool arguments are schema-validated before grading.",
+  "qualification": {
+    "repetitions_per_profile": 5,
+    "pass_rule": "Every assertion must pass in all five repetitions for both required reader profiles.",
+    "attempt_rule": "One qualification batch attempt is allowed for an exact freeze, catalog, suite, reader-profile, and harness hash set. A failed batch is recorded and may be rerun only after a real byte change to an input bound by that attempt key.",
+    "cases": [
+      {
+        "id": "C0",
+        "kind": "semantics",
+        "question": "Restate the operational status and routing rules of this catalog.",
+        "expected": {
+          "purpose": "recognition_aid",
+          "automatic_bans": false,
+          "contract_eligibility": "selected_only",
+          "unselected_reaches_contract": false,
+          "precedence": ["U01", "U02", "U03", "U04", "U05", "U06"],
+          "sublabels": {
+            "U01": [],
+            "U02": ["opener", "closer"],
+            "U03": ["filler", "hedge_stack"],
+            "U04": [],
+            "U05": [],
+            "U06": ["abstraction", "promotion", "unsupported_result"]
+          }
+        }
+      },
+      {
+        "id": "C1",
+        "kind": "classifications",
+        "question": "Classify each marked target span. Use null for both pattern_id and sublabel when the target is not a catalog hit.",
+        "items": [
+          {"item_id": "P1", "text": "[[You're absolutely right.]] The migration failed; roll it back."},
+          {"item_id": "P2", "text": "[[Let's dive in.]] The failing check is test_config."},
+          {"item_id": "P3", "text": "The patch is in src/cache.py. [[Hope this helps.]]"},
+          {"item_id": "P4", "text": "The result is [[basically]] unchanged."},
+          {"item_id": "P5", "text": "The deploy [[might possibly]] improve latency."},
+          {"item_id": "P6", "context": "The schedule has two decisions: deploy timing and rollback timing.", "text": "[[There are three decisions: when to deploy, when to roll back, and the timing of those two actions.]]"},
+          {"item_id": "P7", "context": "The response already said the only failure is a missing name field.", "text": "[[So the only failure is a missing name field.]]"},
+          {"item_id": "P8", "text": "[[This design is better.]]"},
+          {"item_id": "P9", "text": "The patch provides a [[world-class]] developer experience."},
+          {"item_id": "P10", "text": "The cache was enabled, [[improving latency]].", "context": "No measurement or mechanism is supplied."}
+        ],
+        "expected": [
+          {"item_id": "P1", "pattern_id": "U01", "sublabel": null},
+          {"item_id": "P2", "pattern_id": "U02", "sublabel": "opener"},
+          {"item_id": "P3", "pattern_id": "U02", "sublabel": "closer"},
+          {"item_id": "P4", "pattern_id": "U03", "sublabel": "filler"},
+          {"item_id": "P5", "pattern_id": "U03", "sublabel": "hedge_stack"},
+          {"item_id": "P6", "pattern_id": "U04", "sublabel": null},
+          {"item_id": "P7", "pattern_id": "U05", "sublabel": null},
+          {"item_id": "P8", "pattern_id": "U06", "sublabel": "abstraction"},
+          {"item_id": "P9", "pattern_id": "U06", "sublabel": "promotion"},
+          {"item_id": "P10", "pattern_id": "U06", "sublabel": "unsupported_result"}
+        ]
+      },
+      {
+        "id": "C2",
+        "kind": "classifications",
+        "question": "Apply the boundary rules to each marked target span. Use null for both pattern_id and sublabel when it is not a hit.",
+        "items": [
+          {"item_id": "N1", "text": "[[Yes. The test output shows 12 of 12 passed.]]"},
+          {"item_id": "N2", "text": "[[The migration failed because the name column is missing.]]"},
+          {"item_id": "N3", "text": "The name field is missing. [[Next: add it, then rerun validate-config.]]"},
+          {"item_id": "N4", "text": "[[Hypothesis: the timeout comes from the proxy.]]", "context": "The cause is not yet known and the statement is explicitly labeled as one hypothesis."},
+          {"item_id": "N5", "text": "[[Three independent defects remain: an expired certificate, a missing index, and a leaked token.]]"},
+          {"item_id": "N6", "text": "[[Recap: the patch is merged and deployment is waiting for approval.]]", "context": "The current status was not stated earlier."},
+          {"item_id": "N7", "text": "[[Use the golden path handler.]]", "context": "In this project, GoldenPathHandler is the exact class that owns successful requests."},
+          {"item_id": "N8", "text": "[[Reading config from /etc/app.yaml.]]"}
+        ],
+        "expected": [
+          {"item_id": "N1", "pattern_id": null, "sublabel": null},
+          {"item_id": "N2", "pattern_id": null, "sublabel": null},
+          {"item_id": "N3", "pattern_id": null, "sublabel": null},
+          {"item_id": "N4", "pattern_id": null, "sublabel": null},
+          {"item_id": "N5", "pattern_id": null, "sublabel": null},
+          {"item_id": "N6", "pattern_id": null, "sublabel": null},
+          {"item_id": "N7", "pattern_id": null, "sublabel": null},
+          {"item_id": "N8", "pattern_id": null, "sublabel": null}
+        ]
+      },
+      {
+        "id": "C3",
+        "kind": "classifications",
+        "question": "Each marked span matches more than one entry. Return only the winner under the frozen first-match precedence rule.",
+        "items": [
+          {"item_id": "O1", "text": "[[You're right. Let's dive in.]] The failure is in config loading."},
+          {"item_id": "O2", "text": "The patch [[might possibly improve latency]].", "context": "No mechanism or measurement is supplied."},
+          {"item_id": "O3", "context": "The response already stated that the migration is blocked.", "text": "[[In summary, the migration is blocked. In summary, the migration is blocked.]]"}
+        ],
+        "expected": [
+          {"item_id": "O1", "pattern_id": "U01", "sublabel": null},
+          {"item_id": "O2", "pattern_id": "U03", "sublabel": "hedge_stack"},
+          {"item_id": "O3", "pattern_id": "U02", "sublabel": "closer"}
+        ]
+      },
+      {
+        "id": "C4",
+        "kind": "selections",
+        "question": "Translate each user's explicit choices. A disliked pattern may be selected; a tolerated or rejected one must not be. Never invent automatic bans.",
+        "items": [
+          {"item_id": "S1", "text": "I dislike removable filler and vague benefit claims. Do not add praise such as 'Great question'. I do not want any automatic bans."},
+          {"item_id": "S2", "text": "None of these six patterns bothers me enough to add a contract rule. Select none."}
+        ],
+        "expected": [
+          {"item_id": "S1", "selected_ids": ["U03", "U06"], "rejected_ids": ["U01"], "automatic_bans": []},
+          {"item_id": "S2", "selected_ids": [], "rejected_ids": [], "automatic_bans": []}
+        ]
+      }
+    ]
+  },
+  "smoke": {
+    "catalog": [
+      {"id": "M01", "label": "Orphan label", "meaning": "A heading or label has no content beneath it.", "boundary": "A short heading with concrete content is not a hit."},
+      {"id": "M02", "label": "Duplicated action", "meaning": "The same next action is stated twice without a new condition.", "boundary": "A recap that adds status is not a hit."}
+    ],
+    "case": {
+      "id": "SMOKE1",
+      "kind": "smoke_classifications",
+      "items": [
+        {"item_id": "M1", "text": "Next steps:\n\nShip the patch."},
+        {"item_id": "M2", "text": "Next steps:"},
+        {"item_id": "M3", "text": "Deploy now. Deploy now."},
+        {"item_id": "M4", "text": "Deploy now. Status: tests passed."}
+      ],
+      "expected": [
+        {"item_id": "M1", "pattern_id": null},
+        {"item_id": "M2", "pattern_id": "M01"},
+        {"item_id": "M3", "pattern_id": "M02"},
+        {"item_id": "M4", "pattern_id": null}
+      ]
+    }
+  }
+}

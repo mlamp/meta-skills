@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "source_artifacts": [
+    {
+      "path": "skills/agent-voice/references/contract-template.md",
+      "sha256": "144e81213488416a620f1f00ddbc3d3d73c31e5429615e5e85ab5f556c031f93"
+    },
+    {
+      "path": "docs/communication-contracts.md",
+      "sha256": "a7a67441ce31266edc95680f7ea23c64a9afbc2fab5206284069119af7008654"
+    },
+    {
+      "path": "research/notes/disler-fixing-smartass-opus-5.md",
+      "sha256": "2003ebaf43674e682d3e8da931d0cd7019e88378d46deab1e63681ca58bd6df4"
+    }
+  ],
+  "stage1": {
+    "artifact": "experiments/e09/persona-stage1.json",
+    "method": "No-context extraction from the three source artifacts. The catalog, source note, D-029, and C19-C22 were absent.",
+    "model": "claude-haiku-4-5-20251001",
+    "canonicalization": "The model output was transcribed into the fixed schema without changing preference text or choices."
+  },
+  "relevance_curator": [
+    {"preference_id": "V01", "relevant": true, "preference_rejected": false, "reason": "Directly stated default voice rule."},
+    {"preference_id": "V02", "relevant": true, "preference_rejected": false, "reason": "Directly stated negative voice rule."},
+    {"preference_id": "V03", "relevant": true, "preference_rejected": false, "reason": "Directly stated default voice rule."},
+    {"preference_id": "V04", "relevant": true, "preference_rejected": false, "reason": "Directly stated default voice rule."},
+    {"preference_id": "V05", "relevant": true, "preference_rejected": false, "reason": "Directly stated default voice rule."},
+    {"preference_id": "V06", "relevant": true, "preference_rejected": false, "reason": "Directly stated scope boundary."},
+    {"preference_id": "V07", "relevant": true, "preference_rejected": false, "reason": "Directly stated scope boundary."},
+    {"preference_id": "V08", "relevant": true, "preference_rejected": false, "reason": "Directly stated evidence and recap rule."},
+    {"preference_id": "V09", "relevant": true, "preference_rejected": false, "reason": "Directly stated drive rule in two sources."},
+    {"preference_id": "V10", "relevant": false, "preference_rejected": true, "reason": "Reference codes are opt-in and the frozen inventory selects no opt-ins."}
+  ],
+  "mapping_reviewers": [
+    {"name": "fable", "model": "claude-fable-5", "effort": "xhigh", "interface": "schema-validated submit_evaluation tool"},
+    {"name": "gpt", "model": "gpt-5.6-sol", "effort": "xhigh", "interface": "structured proposal"}
+  ],
+  "catalog_mapping": [
+    {
+      "preference_id": "V01",
+      "fable_catalog_ids": ["U02"],
+      "gpt_catalog_ids": [],
+      "resolved_catalog_ids": [],
+      "curator_confirmed": true,
+      "reason": "Leading with an informative outcome is U02's boundary, not the negative pattern itself."
+    },
+    {
+      "preference_id": "V02",
+      "fable_catalog_ids": ["U01", "U02"],
+      "gpt_catalog_ids": ["U01"],
+      "resolved_catalog_ids": ["U01"],
+      "curator_confirmed": true,
+      "reason": "Flattery maps directly to U01. Generic recurring or decorative language is not necessarily an empty opener or closer."
+    },
+    {
+      "preference_id": "V03",
+      "fable_catalog_ids": ["U03", "U06"],
+      "gpt_catalog_ids": ["U05", "U06"],
+      "resolved_catalog_ids": ["U05", "U06"],
+      "curator_confirmed": true,
+      "reason": "Plain, specific language opposes U06. Stating each fact once covers U05's repeated empty ending; V04 is the cleaner support for U03."
+    },
+    {
+      "preference_id": "V04",
+      "fable_catalog_ids": ["U03"],
+      "gpt_catalog_ids": ["U03"],
+      "resolved_catalog_ids": ["U03"],
+      "curator_confirmed": true,
+      "reason": "The preference rejects removable length and packed filler, which supports U03."
+    },
+    {
+      "preference_id": "V05",
+      "fable_catalog_ids": [],
+      "gpt_catalog_ids": [],
+      "resolved_catalog_ids": [],
+      "curator_confirmed": true,
+      "reason": "Dash asides and one-point-per-sentence are outside the six entries."
+    },
+    {
+      "preference_id": "V06",
+      "fable_catalog_ids": [],
+      "gpt_catalog_ids": [],
+      "resolved_catalog_ids": [],
+      "curator_confirmed": true,
+      "reason": "Scope drift is a work boundary, not one of the six reply patterns."
+    },
+    {
+      "preference_id": "V07",
+      "fable_catalog_ids": [],
+      "gpt_catalog_ids": [],
+      "resolved_catalog_ids": [],
+      "curator_confirmed": true,
+      "reason": "Speculative code abstractions are not U06's vague prose abstraction."
+    },
+    {
+      "preference_id": "V08",
+      "fable_catalog_ids": ["U05", "U06"],
+      "gpt_catalog_ids": ["U06"],
+      "resolved_catalog_ids": ["U05", "U06"],
+      "curator_confirmed": true,
+      "reason": "Evidence-backed completion maps to U06. Replacing chronological or repeated recap with a status-bearing outcome supports U05."
+    },
+    {
+      "preference_id": "V09",
+      "fable_catalog_ids": [],
+      "gpt_catalog_ids": [],
+      "resolved_catalog_ids": [],
+      "curator_confirmed": true,
+      "reason": "Mid-task permission checks are drive behavior outside the six entries."
+    },
+    {
+      "preference_id": "V10",
+      "fable_catalog_ids": [],
+      "gpt_catalog_ids": [],
+      "resolved_catalog_ids": [],
+      "curator_confirmed": true,
+      "reason": "Reference codes have no catalog counterpart and the preference was independently rejected."
+    }
+  ],
+  "relevant_preference_ids": ["V01", "V02", "V03", "V04", "V05", "V06", "V07", "V08", "V09"],
+  "relevant_catalog_ids": ["U01", "U03", "U05", "U06"],
+  "evidence_mapping": [
+    {"evidence_id": "I01", "preference_ids": ["V03", "V04"]},
+    {"evidence_id": "I02", "preference_ids": ["V02", "V06", "V08"]},
+    {"evidence_id": "I03", "preference_ids": ["V06", "V07", "V08", "V09"]},
+    {"evidence_id": "I04", "preference_ids": ["V10"]},
+    {"evidence_id": "O01", "preference_ids": ["V01"]},
+    {"evidence_id": "O02", "preference_ids": ["V03"]},
+    {"evidence_id": "O03", "preference_ids": ["V04"]},
+    {"evidence_id": "O04", "preference_ids": ["V03"]},
+    {"evidence_id": "O05", "preference_ids": ["V02"]},
+    {"evidence_id": "O06", "preference_ids": ["V02", "V05"]},
+    {"evidence_id": "O07", "preference_ids": ["V03", "V04", "V08"]},
+    {"evidence_id": "O08", "preference_ids": ["V03", "V08"]},
+    {"evidence_id": "O09", "preference_ids": ["V10"]}
+  ]
+}

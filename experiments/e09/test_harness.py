@@ -1,0 +1,404 @@
+#!/usr/bin/env python3
+
+import importlib.util
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+
+HERE = Path(__file__).resolve().parent
+SPEC = importlib.util.spec_from_file_location("e09_harness", HERE / "harness.py")
+H = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(H)
+
+
+class FrozenInputsTest(unittest.TestCase):
+    def test_all_json_files_parse(self):
+        for path in H.DATA_FILES.values():
+            self.assertIsInstance(H.load_json(path), dict, path.name)
+
+    def test_source_hashes_match(self):
+        persona = H.load_json(H.DATA_FILES["persona.json"])
+        for source in persona["source_artifacts"]:
+            self.assertEqual(H.sha256(H.ROOT / source["path"]), source["sha256"])
+
+    def test_catalog_is_closed_and_ordered(self):
+        catalog = H.load_json(H.DATA_FILES["catalog.json"])
+        ids = [entry["id"] for entry in catalog["entries"]]
+        self.assertEqual(ids, [f"U{i:02d}" for i in range(1, 7)])
+        self.assertEqual(catalog["overlap_precedence"], ids)
+        used = {name for entry in catalog["entries"] for name in entry["sublabels"]}
+        self.assertEqual(set(catalog["sublabel_definitions"]), used)
+        rendered = H.catalog_markdown(catalog)
+        self.assertIn("abstraction = an abstract or evaluative label", rendered)
+
+    def test_every_mapping_was_curator_confirmed(self):
+        persona = H.load_json(H.DATA_FILES["persona.json"])
+        self.assertEqual(len(persona["catalog_mapping"]), 10)
+        self.assertTrue(all(row["curator_confirmed"] for row in persona["catalog_mapping"]))
+        resolved = sorted({uid for row in persona["catalog_mapping"] for uid in row["resolved_catalog_ids"]})
+        self.assertEqual(resolved, persona["relevant_catalog_ids"])
+        self.assertEqual([row["evidence_id"] for row in persona["evidence_mapping"]],
+                         ["I01", "I02", "I03", "I04", "O01", "O02", "O03", "O04", "O05", "O06", "O07", "O08", "O09"])
+
+    def test_preference_rejection_is_not_mapping_confirmation(self):
+        persona = H.load_json(H.DATA_FILES["persona.json"])
+        v10 = next(row for row in persona["relevance_curator"] if row["preference_id"] == "V10")
+        mapped = next(row for row in persona["catalog_mapping"] if row["preference_id"] == "V10")
+        self.assertTrue(v10["preference_rejected"])
+        self.assertEqual(mapped["resolved_catalog_ids"], [])
+
+    def test_freeze_payload_covers_every_registered_input(self):
+        payload = H.freeze_payload()
+        expected = {str(path.relative_to(H.ROOT)) for path in H.FREEZE_INPUTS}
+        self.assertEqual(set(payload["files"]), expected)
+
+
+class ArmIsolationTest(unittest.TestCase):
+    def test_treatment_is_one_insertion_replacement(self):
+        prompts = H.load_json(H.DATA_FILES["prompts.json"])["interview"]
+        control = H.render_interview("control")
+        treatment = H.render_interview("treatment")
+        insertion = prompts["treatment_slot"] + "\n\n" + H.catalog_markdown().rstrip()
+        self.assertEqual(treatment, control.replace(prompts["control_slot"], insertion))
+
+    def test_control_has_no_catalog_identifiers_labels_or_confirmations(self):
+        control = H.render_interview("control")
+        catalog = H.load_json(H.DATA_FILES["catalog.json"])
+        for entry in catalog["entries"]:
+            self.assertNotIn(entry["id"], control)
+            self.assertNotIn(entry["label"], control)
+        # Natural inventory language may contain words such as "filler". The
+        # catalog-only machine labels must still be absent.
+        self.assertNotIn("hedge_stack", control)
+        self.assertNotIn("unsupported_result", control)
+        self.assertNotIn("Sublabels:", control)
+        self.assertNotIn("confirms U", control)
+
+    def test_treatment_uses_exact_qualification_catalog_renderer(self):
+        treatment = H.render_interview("treatment")
+        block = H.catalog_markdown().rstrip()
+        self.assertEqual(treatment.count(block), 1)
+        case = H.load_json(H.DATA_FILES["cold_reader_cases.json"])["qualification"]["cases"][0]
+        self.assertIn(block, H.case_prompt(case))
+
+    def test_treatment_slot_does_not_name_scored_or_rejected_ids(self):
+        slot = H.load_json(H.DATA_FILES["prompts.json"])["interview"]["treatment_slot"].lower()
+        self.assertNotIn("confirm", slot)
+        self.assertNotIn("rejects u", slot)
+        self.assertNotIn("u01", slot)
+
+    def test_contract_format_states_the_exact_validator_invariant(self):
+        contract_format = H.load_json(H.DATA_FILES["prompts.json"])["interview"]["contract_format"]
+        self.assertIn("no headings", contract_format)
+        self.assertIn("exactly the rules[].text values, in order", contract_format)
+        self.assertIn("one per line, and nothing else", contract_format)
+
+    def test_control_tool_schema_does_not_leak_catalog(self):
+        schema = H.canonical(H.contract_schema("control"))
+        self.assertNotIn("U01", schema)
+        self.assertNotIn("catalog", schema)
+        treatment = H.canonical(H.contract_schema("treatment"))
+        self.assertIn("U01", treatment)
+        self.assertIn("selected_catalog_ids", treatment)
+
+
+class StructuredInterfaceTest(unittest.TestCase):
+    def test_case_schemas_reject_incomplete_payloads(self):
+        suite = H.load_json(H.DATA_FILES["cold_reader_cases.json"])
+        for case in suite["qualification"]["cases"]:
+            errors = H.validate_schema({"case_id": case["id"]}, H.case_schema(case))
+            self.assertTrue(errors, case["id"])
+
+    def test_smoke_schema_exercises_later_strict_keywords(self):
+        case = H.load_json(H.DATA_FILES["cold_reader_cases.json"])["smoke"]["case"]
+        schema = H.case_schema(case)
+        answers = schema["properties"]["answers"]
+        self.assertTrue(answers["uniqueItems"])
+        self.assertEqual(answers["minItems"], answers["maxItems"])
+        self.assertEqual(answers["items"]["properties"]["item_id"]["minLength"], 1)
+        self.assertIn("null", answers["items"]["properties"]["pattern_id"]["type"])
+
+    def test_schema_rejects_extra_fields(self):
+        case = H.load_json(H.DATA_FILES["cold_reader_cases.json"])["qualification"]["cases"][1]
+        payload = {"case_id": case["id"], "answers": [
+            {"item_id": row["item_id"], "pattern_id": row["pattern_id"], "sublabel": row["sublabel"]}
+            for row in case["expected"]
+        ], "explanation": "not allowed"}
+        self.assertTrue(any("unexpected explanation" in item for item in H.validate_schema(payload, H.case_schema(case))))
+
+    def test_substitute_verdicts_cover_frozen_candidates_once_in_order(self):
+        valid = {"verdicts": [
+            {"candidate_id": "c1", "pattern_id": None},
+            {"candidate_id": "c2", "pattern_id": "U01"},
+        ]}
+        H.validate_substitute_payload(valid, ["c1", "c2"])
+        with self.assertRaises(H.FormatError):
+            H.validate_substitute_payload({"verdicts": [valid["verdicts"][0], valid["verdicts"][0]]}, ["c1", "c2"])
+
+    def test_classification_order_is_not_semantic(self):
+        case = H.load_json(H.DATA_FILES["cold_reader_cases.json"])["qualification"]["cases"][1]
+        payload = {"case_id": case["id"], "answers": list(reversed(case["expected"]))}
+        assertions = H.grade_case(case, payload)
+        self.assertTrue(all(item["pass"] for item in assertions))
+
+    def test_precedence_order_is_semantic(self):
+        case = H.load_json(H.DATA_FILES["cold_reader_cases.json"])["qualification"]["cases"][0]
+        payload = {"case_id": case["id"], **case["expected"]}
+        self.assertTrue(all(item["pass"] for item in H.grade_case(case, payload)))
+        payload["precedence"] = list(reversed(payload["precedence"]))
+        failed = [item["assertion"] for item in H.grade_case(case, payload) if not item["pass"]]
+        self.assertEqual(failed, ["precedence"])
+
+    def test_parser_requires_exactly_one_tool_call(self):
+        event = {"type": "assistant", "message": {"content": [
+            {"type": "tool_use", "name": H.CLAUDE_STRUCTURED_TOOL, "input": {"ok": True}}
+        ]}}
+        payload, _, _ = H.parse_claude_stream(json.dumps(event), H.CLAUDE_STRUCTURED_TOOL)
+        self.assertEqual(payload, {"ok": True})
+        with self.assertRaises(H.FormatError):
+            H.parse_claude_stream(json.dumps(event) + "\n" + json.dumps(event), H.CLAUDE_STRUCTURED_TOOL)
+
+
+class MatcherAndMetricTest(unittest.TestCase):
+    def test_matcher_sets_are_exactly_disjoint(self):
+        config = H.load_json(H.DATA_FILES["substitutes.json"])
+        listed = {pattern for rows in config["listed"].values() for pattern in rows}
+        substitute = {pattern for rows in config["substitute"].values() for pattern in rows}
+        self.assertFalse(listed & substitute)
+
+    def test_overlap_uses_first_catalog_id(self):
+        hits = H.matcher_hits("You're absolutely right. In summary, stop.", "listed")
+        self.assertEqual([row["pattern_id"] for row in hits], ["U01", "U02"])
+
+    def test_contract_cap_uses_lexical_tokens(self):
+        self.assertEqual(H.count_lexical("one two-three don't"), 3)
+        self.assertEqual(H.count_lexical(" ".join(["rule"] * 60)), 60)
+        self.assertEqual(H.count_lexical(" ".join(["rule"] * 61)), 61)
+
+    def test_zero_density_rule_is_defined(self):
+        rendered_relevant = set()
+        tokens = 0
+        density = (100 * len(rendered_relevant) / tokens) if tokens else 0
+        self.assertEqual(density, 0)
+
+    def test_sample_variance_is_n_minus_one(self):
+        stats = H.mean_variance([1, 2, 3, 4, 5])
+        self.assertEqual(stats["sample_variance"], 2.5)
+        self.assertEqual(stats["sample_stdev"], 2.5 ** 0.5)
+
+    def test_no_suppression_removes_preference_mapped_rule(self):
+        interview = {"result": {"contract": "- Do not flatter.\n- Keep scope fixed.\n", "rules": [
+            {"text": "Do not flatter.", "evidence_ids": ["O02"], "catalog_ids": ["U01"]},
+            {"text": "Keep scope fixed.", "evidence_ids": ["I03"], "catalog_ids": []},
+        ]}}
+        rendered = H.suppression_contract(interview, "no_suppression")
+        self.assertNotIn("Do not flatter", rendered)
+        self.assertIn("Keep scope fixed", rendered)
+
+    def test_density_uses_rendered_rule_sources_not_selected_fields(self):
+        interview = {"result": {
+            "selected_evidence_ids": ["O02", "O05"],
+            "selected_catalog_ids": ["U03"],
+            "rules": [{"text": "State facts once.", "evidence_ids": ["O02"], "catalog_ids": ["U03"]}],
+        }}
+        self.assertEqual(H.rendered_catalog_ids(interview), {"U03", "U05", "U06"})
+        self.assertNotIn("U01", H.rendered_catalog_ids(interview))
+
+    def test_undefined_rates_stay_out_of_pooled_totals(self):
+        records = [
+            {"substitute_hits": None, "output_tokens": 10},
+            {"substitute_hits": 2, "output_tokens": 0},
+        ]
+        self.assertEqual(H.pooled_rate(records, "substitute_hits", "output_tokens"),
+                         {"hits": 0, "tokens": 0, "rate_per_1000": None})
+        self.assertEqual(H.stats_n(None), 0)
+
+    def test_claim_screen_distinguishes_failure_incomplete_and_not_testable(self):
+        self.assertEqual(H.screen_status(True, True), "pass")
+        self.assertEqual(H.screen_status(True, False), "fail")
+        self.assertEqual(H.screen_status(False, True), "incomplete")
+        self.assertEqual(H.screen_status(True, True, not_testable=True), "not_testable")
+
+    def test_task_success_is_derived_from_rows(self):
+        self.assertTrue(H.derived_task_success({"status": "ok", "result": {
+            "required_pass": [True, True], "fatal_hits": [False]
+        }}))
+        self.assertFalse(H.derived_task_success({"status": "ok", "result": {
+            "required_pass": [True, False], "fatal_hits": [False]
+        }}))
+
+
+class RunnerSafetyTest(unittest.TestCase):
+    def test_schedule_has_five_per_arm_and_family(self):
+        schedule = H.measured_schedule()
+        self.assertEqual(len(schedule), 20)
+        seen = {(row["family"], row["arm"], row["rep"]) for row in schedule}
+        self.assertEqual(len(seen), 20)
+        for family in ("fable-subject", "kimi-subject"):
+            for arm in ("control", "treatment"):
+                self.assertEqual(sum(row["family"] == family and row["arm"] == arm for row in schedule), 5)
+
+    def test_model_registry_has_no_command_fragments_or_fallback(self):
+        models = H.load_json(H.DATA_FILES["models.json"])
+        text = H.canonical(models)
+        self.assertNotIn('"command"', text)
+        self.assertNotIn("fallback", text.lower())
+        self.assertEqual(models["profiles"]["haiku-reader"]["model"], "claude-haiku-4-5-20251001")
+        self.assertEqual(models["profiles"]["haiku-reader"]["effort"], "low")
+        deepseek = models["profiles"]["deepseek-reader"]
+        self.assertEqual(deepseek["adapter"], "deepinfra_api")
+        self.assertEqual(deepseek["api_base"], "https://api.deepinfra.com/v1/openai")
+        self.assertEqual(deepseek["model"], "deepseek-ai/DeepSeek-V4-Flash-0731")
+        self.assertEqual(deepseek["credential_env"], "DEEPINFRA_API_KEY")
+        self.assertNotIn("thinking", deepseek)
+
+    def test_cold_reader_attempt_key_binds_profile_and_harness(self):
+        namespace, key = H.cold_reader_namespace("smoke", "deepseek-reader")
+        profile = H.load_json(H.DATA_FILES["models.json"])["profiles"]["deepseek-reader"]
+        self.assertEqual(key["profile_sha256"], H.sha256_value(profile))
+        self.assertEqual(key["harness_sha256"], H.sha256(H.E09 / "harness.py"))
+        self.assertTrue(namespace.name.startswith("cr-"))
+
+    def test_smoke_attempts_are_repeatable_and_pass_lookup_is_explicit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp) / "smoke"
+            self.assertEqual(H.next_smoke_attempt(base).name, "attempt-001")
+            first = base / "attempt-001"
+            first.mkdir(parents=True)
+            H.write_json_atomic(first / "summary.json", {"passed": False})
+            self.assertEqual(H.next_smoke_attempt(base).name, "attempt-002")
+            second = base / "attempt-002"
+            second.mkdir()
+            H.write_json_atomic(second / "summary.json", {"passed": True})
+            self.assertEqual(H.passed_smoke_attempt(base), second)
+            third = base / "attempt-003"
+            third.mkdir()
+            H.write_json_atomic(third / "summary.json", {"passed": False})
+            self.assertIsNone(H.passed_smoke_attempt(base))
+
+    def test_dotenv_parser_never_evaluates_shell_text(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / ".env"
+            path.write_text("SAFE='$(touch should-not-exist)'\n", encoding="utf-8")
+            self.assertEqual(H.read_dotenv(path)["SAFE"], "$(touch should-not-exist)")
+            self.assertFalse((Path(tmp) / "should-not-exist").exists())
+
+    def test_append_jsonl_refuses_duplicate_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "runs.jsonl"
+            path.write_text("", encoding="utf-8")
+            H.append_jsonl(path, {"run_id": "r-1", "value": 1})
+            with self.assertRaises(H.HarnessError):
+                H.append_jsonl(path, {"run_id": "r-1", "value": 2})
+
+    def test_exclusive_json_writer_refuses_overwrite(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "attempt.json"
+            H.write_json_exclusive(path, {"status": "started"})
+            with self.assertRaises(H.HarnessError):
+                H.write_json_exclusive(path, {"status": "restarted"})
+
+    def test_final_ledger_ensure_is_idempotent_and_collision_safe(self):
+        old_ledger = H.LEDGER
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                H.LEDGER = Path(tmp) / "runs.jsonl"
+                line = {"run_id": "r-stable", "value": 1}
+                H.ensure_ledger_lines([line])
+                H.ensure_ledger_lines([line])
+                self.assertEqual(H.LEDGER.read_text().splitlines(), [H.canonical(line)])
+                with self.assertRaises(H.HarnessError):
+                    H.ensure_ledger_lines([{"run_id": "r-stable", "value": 2}])
+            finally:
+                H.LEDGER = old_ledger
+
+    def test_measured_manifest_detects_delete_or_mutation(self):
+        old_raw = H.RAW
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                H.RAW = Path(tmp) / "raw"
+                namespace = H.RAW / "measured" / "m-test"
+                path = namespace / "interviews" / "one.json"
+                H.start_measured_record(path)
+                H.write_json_atomic(path, {"status": "ok"})
+                H.complete_measured_record(path)
+                H.verify_measured_record(path)
+                H.write_json_atomic(path, {"status": "changed"})
+                with self.assertRaises(H.HarnessError):
+                    H.verify_measured_record(path)
+            finally:
+                H.RAW = old_raw
+
+    def test_no_measured_outputs_exist_in_design_pr(self):
+        measured = H.RAW / "measured"
+        self.assertFalse(measured.exists() and any(measured.iterdir()))
+
+    def test_unselected_or_rejected_rule_sources_invalidate_contract(self):
+        payload = {
+            "selected_evidence_ids": ["O01"],
+            "selected_catalog_ids": ["U01"],
+            "rejected_catalog_ids": ["U02"],
+            "automatic_bans": [],
+            "rules": [
+                {"text": "Avoid stock framing.", "evidence_ids": [], "catalog_ids": ["U02"]},
+                {"text": "Use reference codes.", "evidence_ids": ["O09"], "catalog_ids": []},
+            ],
+            "contract": "- Avoid stock framing.\n- Use reference codes.\n",
+        }
+        violations = H.contract_violations("treatment", payload)
+        self.assertIn("rule_1_uses_unselected_catalog_id", violations)
+        self.assertIn("rule_1_uses_rejected_catalog_id", violations)
+        self.assertNotIn("selected_and_rejected_catalog_overlap", violations)
+        self.assertIn("rule_2_uses_unselected_evidence", violations)
+        self.assertIn("rule_2_uses_rejected_evidence", violations)
+
+    def test_contract_must_exactly_match_ordered_rule_text(self):
+        payload = {
+            "selected_evidence_ids": ["O01"],
+            "rules": [{"text": "Lead with the outcome.", "evidence_ids": ["O01"]}],
+            "contract": "- Lead with the outcome.\n- Add an unsourced rule.\n",
+        }
+        self.assertIn("contract_does_not_exactly_match_rules", H.contract_violations("control", payload))
+        payload["contract"] = "- Lead with the outcome.\n"
+        self.assertNotIn("contract_does_not_exactly_match_rules", H.contract_violations("control", payload))
+
+    def test_selected_and_rejected_catalog_ids_cannot_overlap(self):
+        payload = {
+            "selected_evidence_ids": [],
+            "selected_catalog_ids": ["U01"],
+            "rejected_catalog_ids": ["U01"],
+            "automatic_bans": [],
+            "rules": [],
+            "contract": "",
+        }
+        self.assertIn("selected_and_rejected_catalog_overlap", H.contract_violations("treatment", payload))
+
+    def test_task_judge_schema_pins_row_counts(self):
+        schema = H.task_judge_schema("T01", 2, 1)
+        valid = {"task_id": "T01", "required_pass": [True, True], "fatal_hits": [False]}
+        self.assertEqual(H.validate_schema(valid, schema), [])
+        valid["required_pass"] = [True]
+        self.assertTrue(H.validate_schema(valid, schema))
+
+    def test_human_adjudication_sheet_is_self_contained_and_blind(self):
+        expected = {"blind-1": {
+            "candidate_ids": ["c1"],
+            "candidates": [{"candidate_id": "c1", "text": "candidate text"}],
+            "response_context": "full response",
+        }}
+        rows = {"blind-1": [
+            {"result": {"verdicts": [{"candidate_id": "c1", "pattern_id": "U01"}]}},
+            {"result": {"verdicts": [{"candidate_id": "c1", "pattern_id": None}]}},
+        ]}
+        sheet = H.build_adjudication_pending(expected, rows, ["blind-1"])
+        self.assertEqual(sheet["cases"][0]["response_context"], "full response")
+        self.assertIn("taxonomy", sheet)
+        rendered = H.canonical(sheet)
+        for forbidden in ('"arm"', '"family"', '"rep"', '"condition"', '"path"'):
+            self.assertNotIn(forbidden, rendered)
+
+
+if __name__ == "__main__":
+    unittest.main()

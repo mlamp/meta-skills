@@ -1,0 +1,747 @@
+{
+  "assertions": [
+    {
+      "actual": "SMOKE1",
+      "assertion": "case_id",
+      "expected": "SMOKE1",
+      "pass": true
+    },
+    {
+      "actual": [
+        "M1",
+        "M2",
+        "M3",
+        "M4"
+      ],
+      "assertion": "item_ids",
+      "expected": [
+        "M1",
+        "M2",
+        "M3",
+        "M4"
+      ],
+      "pass": true
+    },
+    {
+      "actual": null,
+      "assertion": "M1.pattern_id",
+      "expected": null,
+      "pass": true
+    },
+    {
+      "actual": "M01",
+      "assertion": "M2.pattern_id",
+      "expected": "M01",
+      "pass": true
+    },
+    {
+      "actual": "M02",
+      "assertion": "M3.pattern_id",
+      "expected": "M02",
+      "pass": true
+    },
+    {
+      "actual": null,
+      "assertion": "M4.pattern_id",
+      "expected": null,
+      "pass": true
+    }
+  ],
+  "attempts": [
+    {
+      "attempt": 1,
+      "elapsed_seconds": 12.485,
+      "status": "ok"
+    }
+  ],
+  "case_id": "SMOKE1",
+  "key": {
+    "catalog_sha256": "f66aadcd355dadf4da53a573065883095d3498274839b76f3cff08337bf76214",
+    "profile": "haiku-reader",
+    "suite_sha256": "b32c0797b41c73e1a87cd86c24d5d7a53046968bf8bb82eaea472771b68b0081",
+    "tier": "smoke"
+  },
+  "model": {
+    "adapter": "claude_cli",
+    "events": [
+      {
+        "hook_event": "SessionStart",
+        "hook_id": "88d648b7-1f2b-4256-8841-010994580403",
+        "hook_name": "SessionStart:startup",
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "hook_started",
+        "type": "system",
+        "uuid": "e46f9ec0-c29d-4be9-891f-63e87680da44"
+      },
+      {
+        "hook_event": "SessionStart",
+        "hook_id": "ccf0c2cc-ec30-40ae-bd08-9428cf645da6",
+        "hook_name": "SessionStart:startup",
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "hook_started",
+        "type": "system",
+        "uuid": "bc85dcf0-6cba-4d33-9dbc-fa00df039899"
+      },
+      {
+        "exit_code": 0,
+        "hook_event": "SessionStart",
+        "hook_id": "88d648b7-1f2b-4256-8841-010994580403",
+        "hook_name": "SessionStart:startup",
+        "outcome": "success",
+        "output": "",
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "stderr": "",
+        "stdout": "",
+        "subtype": "hook_response",
+        "type": "system",
+        "uuid": "86332dfa-9647-4e66-bcc5-e4104a0409a3"
+      },
+      {
+        "exit_code": 0,
+        "hook_event": "SessionStart",
+        "hook_id": "ccf0c2cc-ec30-40ae-bd08-9428cf645da6",
+        "hook_name": "SessionStart:startup",
+        "outcome": "success",
+        "output": "{\"terminalSequence\":\"\\u001b]777;notify;warp://cli-agent;{\\\"v\\\":1,\\\"agent\\\":\\\"claude\\\",\\\"event\\\":\\\"session_start\\\",\\\"session_id\\\":\\\"79125914-c30f-4203-a6ab-f4b6ccb57f67\\\",\\\"cwd\\\":\\\"/private/var/folders/4n/_9x49yyj2nbgwmg1qqljxqk00000gn/T/e09-tool-ir9crh37\\\",\\\"project\\\":\\\"e09-tool-ir9crh37\\\",\\\"plugin_version\\\":\\\"2.1.0\\\"}\\u0007\"}\n",
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "stderr": "",
+        "stdout": "{\"terminalSequence\":\"\\u001b]777;notify;warp://cli-agent;{\\\"v\\\":1,\\\"agent\\\":\\\"claude\\\",\\\"event\\\":\\\"session_start\\\",\\\"session_id\\\":\\\"79125914-c30f-4203-a6ab-f4b6ccb57f67\\\",\\\"cwd\\\":\\\"/private/var/folders/4n/_9x49yyj2nbgwmg1qqljxqk00000gn/T/e09-tool-ir9crh37\\\",\\\"project\\\":\\\"e09-tool-ir9crh37\\\",\\\"plugin_version\\\":\\\"2.1.0\\\"}\\u0007\"}\n",
+        "subtype": "hook_response",
+        "type": "system",
+        "uuid": "f5e7b3d7-a5f3-488c-b4b6-cca141e70fd3"
+      },
+      {
+        "agents": [
+          "claude",
+          "Explore",
+          "general-purpose",
+          "gsd-codebase-mapper",
+          "gsd-debugger",
+          "gsd-executor",
+          "gsd-integration-checker",
+          "gsd-phase-researcher",
+          "gsd-plan-checker",
+          "gsd-planner",
+          "gsd-project-researcher",
+          "gsd-research-synthesizer",
+          "gsd-roadmapper",
+          "gsd-verifier",
+          "Plan",
+          "prd-altitude-down",
+          "prd-altitude-up",
+          "statusline-setup"
+        ],
+        "analytics_disabled": false,
+        "apiKeySource": "none",
+        "capabilities": [
+          "interrupt_receipt_v1",
+          "interrupt_cancel_queued_v1",
+          "msg_lifecycle_v1"
+        ],
+        "claude_code_version": "2.1.237",
+        "cwd": "/private/var/folders/4n/_9x49yyj2nbgwmg1qqljxqk00000gn/T/e09-tool-ir9crh37",
+        "fast_mode_disabled_reason": "sdk_opt_in_required",
+        "fast_mode_state": "off",
+        "mcp_servers": [
+          {
+            "name": "e09",
+            "status": "connected"
+          }
+        ],
+        "memory_paths": {
+          "auto": "/Users/margus/.claude/projects/-private-var-folders-4n--9x49yyj2nbgwmg1qqljxqk00000gn-T-e09-tool-ir9crh37/memory/"
+        },
+        "messaging_socket_path": "/tmp/cc-socks/99252.sock",
+        "model": "claude-haiku-4-5-20251001",
+        "output_style": "default",
+        "permissionMode": "dontAsk",
+        "plugins": [
+          {
+            "name": "warp",
+            "path": "/Users/margus/.claude/plugins/cache/claude-code-warp/warp/2.1.0",
+            "source": "warp@claude-code-warp",
+            "version": "2.1.0"
+          }
+        ],
+        "product_feedback_disabled": false,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "skills": [],
+        "slash_commands": [],
+        "subtype": "init",
+        "tools": [
+          "mcp__e09__submit_evaluation"
+        ],
+        "type": "system",
+        "uuid": "943aa914-f138-4618-8334-551e1bf63273"
+      },
+      {
+        "estimated_tokens": 1,
+        "estimated_tokens_delta": 1,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "cd28b06f-f243-4d13-a0c9-8a4dfd0b586c"
+      },
+      {
+        "estimated_tokens": 29,
+        "estimated_tokens_delta": 28,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "6e1787c1-e475-4683-9cd6-aca9e3f1a5b6"
+      },
+      {
+        "estimated_tokens": 76,
+        "estimated_tokens_delta": 47,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "f1855caf-5bad-42f5-89f6-1598dba17261"
+      },
+      {
+        "estimated_tokens": 109,
+        "estimated_tokens_delta": 33,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "595dcc6e-baf9-4de4-9f12-418276c0480d"
+      },
+      {
+        "estimated_tokens": 139,
+        "estimated_tokens_delta": 30,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "6bc74e99-47c7-4062-ae0a-ba4a5eec40a7"
+      },
+      {
+        "estimated_tokens": 168,
+        "estimated_tokens_delta": 29,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "98695aec-121a-454f-aa45-b0a306f27add"
+      },
+      {
+        "estimated_tokens": 194,
+        "estimated_tokens_delta": 26,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "7223f85a-886d-495c-a846-b09b3c2a18e5"
+      },
+      {
+        "estimated_tokens": 224,
+        "estimated_tokens_delta": 30,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "44d5c838-0953-4bfe-b436-20b066942bbc"
+      },
+      {
+        "estimated_tokens": 251,
+        "estimated_tokens_delta": 27,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "29a74bc3-5388-4635-8959-fe5efbc739a3"
+      },
+      {
+        "estimated_tokens": 280,
+        "estimated_tokens_delta": 29,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "0ac64ffe-bc54-487f-9c1c-5bedd719def7"
+      },
+      {
+        "estimated_tokens": 314,
+        "estimated_tokens_delta": 34,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "3885766c-1593-48de-a846-cb9ce63e72cf"
+      },
+      {
+        "estimated_tokens": 339,
+        "estimated_tokens_delta": 25,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "13aa23ef-3c60-40c0-8421-15f1c5d61244"
+      },
+      {
+        "estimated_tokens": 358,
+        "estimated_tokens_delta": 19,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "0f25cc31-539a-4fa0-a73c-34e0fe6dcec3"
+      },
+      {
+        "estimated_tokens": 382,
+        "estimated_tokens_delta": 24,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "23858cb7-a052-483e-bf65-e96313da87ba"
+      },
+      {
+        "estimated_tokens": 393,
+        "estimated_tokens_delta": 11,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "452b92a3-3ed5-418a-b389-e73729f14dcb"
+      },
+      {
+        "estimated_tokens": 394,
+        "estimated_tokens_delta": 1,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "fba89e41-31c0-4723-beaa-b86cefdf9152"
+      },
+      {
+        "estimated_tokens": 427,
+        "estimated_tokens_delta": 33,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "3740d5ae-93bd-4769-8c56-cf18de711773"
+      },
+      {
+        "estimated_tokens": 451,
+        "estimated_tokens_delta": 24,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "10ddc25b-e092-411e-8b12-92fbf2b81f73"
+      },
+      {
+        "estimated_tokens": 498,
+        "estimated_tokens_delta": 47,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "810368bf-dd10-4054-9426-d8f5c0a1d4a8"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "signature": "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",
+              "thinking": "The user is asking me to classify items against a smoke catalog. Let me understand what M01 and M02 are:\n\n- M01 · Orphan label: A heading or label has no content beneath it. Boundary: A short heading with concrete content is not a hit.\n- M02 · Duplicated action: The same next action is stated twice without a new condition. Boundary: A recap that adds status is not a hit.\n\nNow let me analyze each item:\n\n1. M1: \"Next steps:\\n\\nShip the patch.\"\n   - This is \"Next steps:\" (a label/heading) followed by \"Ship the patch\" (content)\n   - This is a short heading with concrete content beneath it\n   - Not M01 (because there IS content: \"Ship the patch\")\n   - Not M02 (only one action stated once)\n   - Pattern: null\n\n2. M2: \"Next steps:\"\n   - This is just a label with no content beneath it\n   - This matches M01 · Orphan label\n   - Pattern: M01\n\n3. M3: \"Deploy now. Deploy now.\"\n   - The exact same action \"Deploy now\" is stated twice\n   - No new condition between them\n   - This matches M02 · Duplicated action\n   - Pattern: M02\n\n4. M4: \"Deploy now. Status: tests passed.\"\n   - \"Deploy now\" is stated once, followed by \"Status: tests passed\"\n   - The second statement is a status recap, not a duplicate action\n   - According to the boundary: \"A recap that adds status is not a hit\"\n   - This is not M02 because it adds status\n   - Not M01 (not an orphan label)\n   - Pattern: null\n\nSo my answers are:\n- M1: null (or no pattern)\n- M2: M01\n- M3: M02\n- M4: null (or no pattern)\n\nLet me format this according to the submit_evaluation function requirements:\ncase_id is \"SMOKE1\", with answers as four objects keyed by item_id, pattern_id, and sublabel. Since sublabel only allows null, every entry gets sublabel: null. I'll set pattern_id to M01 for M2, M02 for M3, and null for M1 and M4.",
+              "type": "thinking"
+            }
+          ],
+          "context_management": null,
+          "diagnostics": null,
+          "id": "msg_011CeFZbF5Tkw3hZLdKdgfqe",
+          "model": "claude-haiku-4-5-20251001",
+          "role": "assistant",
+          "stop_details": null,
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 9533,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 9533,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "not_available",
+            "input_tokens": 9,
+            "output_tokens": 1,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "request_id": "req_011CeFZbEUzUhE7izMBxqmuD",
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "timestamp": "2026-08-21T08:16:46.821Z",
+        "type": "assistant",
+        "uuid": "ddb0755c-eaec-4db0-a7e5-c47e2a2af7b4"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "caller": {
+                "type": "direct"
+              },
+              "id": "toolu_01Eax6Ac4rDzoUiUPKZjPm1V",
+              "input": {
+                "answers": [
+                  {
+                    "item_id": "M1",
+                    "pattern_id": null,
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M2",
+                    "pattern_id": "M01",
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M3",
+                    "pattern_id": "M02",
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M4",
+                    "pattern_id": null,
+                    "sublabel": null
+                  }
+                ],
+                "case_id": "SMOKE1"
+              },
+              "name": "mcp__e09__submit_evaluation",
+              "type": "tool_use"
+            }
+          ],
+          "context_management": null,
+          "diagnostics": null,
+          "id": "msg_011CeFZbF5Tkw3hZLdKdgfqe",
+          "model": "claude-haiku-4-5-20251001",
+          "role": "assistant",
+          "stop_details": null,
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 9533,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 9533,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "not_available",
+            "input_tokens": 9,
+            "output_tokens": 1,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "request_id": "req_011CeFZbEUzUhE7izMBxqmuD",
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "timestamp": "2026-08-21T08:16:46.826Z",
+        "tool_use_meta": [
+          {
+            "display_name": "Submit Evaluation",
+            "id": "toolu_01Eax6Ac4rDzoUiUPKZjPm1V",
+            "server_display_name": "e09-schema-gate"
+          }
+        ],
+        "type": "assistant",
+        "uuid": "49fe3db3-1cf8-4275-90e3-52cb6b74f058"
+      },
+      {
+        "rate_limit_info": {
+          "isUsingOverage": false,
+          "overageDisabledReason": "org_level_disabled",
+          "overageStatus": "rejected",
+          "rateLimitType": "five_hour",
+          "resetsAt": 1787315400,
+          "status": "allowed"
+        },
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "type": "rate_limit_event",
+        "uuid": "6102255d-c696-4958-8307-acbaeb79363b"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "content": [
+                {
+                  "text": "accepted",
+                  "type": "text"
+                }
+              ],
+              "tool_use_id": "toolu_01Eax6Ac4rDzoUiUPKZjPm1V",
+              "type": "tool_result"
+            }
+          ],
+          "role": "user"
+        },
+        "parent_tool_use_id": null,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "timestamp": "2026-08-21T08:16:46.892Z",
+        "tool_use_result": [
+          {
+            "text": "accepted",
+            "type": "text"
+          }
+        ],
+        "type": "user",
+        "uuid": "1c8c66fa-1f2d-44c0-bb4c-bf0b5bccad44"
+      },
+      {
+        "estimated_tokens": 4,
+        "estimated_tokens_delta": 4,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "941fecef-aec0-42d0-bb48-9b3ab7c0d815"
+      },
+      {
+        "estimated_tokens": 41,
+        "estimated_tokens_delta": 37,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "31d1247f-1463-4986-b34a-67ef1b5496de"
+      },
+      {
+        "estimated_tokens": 65,
+        "estimated_tokens_delta": 24,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "6dc509ab-5e30-4d9b-ab60-e5e27b8e93d2"
+      },
+      {
+        "estimated_tokens": 92,
+        "estimated_tokens_delta": 27,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "b85775d9-411a-4f4f-8ae3-e8c1fde5d6e1"
+      },
+      {
+        "estimated_tokens": 111,
+        "estimated_tokens_delta": 19,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "fea56860-96dd-4995-b339-065348b0970c"
+      },
+      {
+        "estimated_tokens": 180,
+        "estimated_tokens_delta": 69,
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "414bc4a7-6e11-4996-bf13-722cf2e09023"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "signature": "EsgFCq8BCBEYAipARpccR+4F3u3B4u/za+TPDke+by0h1lFmmc8mKiWP/MJM7v2PvH7eZlIkFe40AhWirCUCY5VaUdBYbjF/RAQEfzIZY2xhdWRlLWhhaWt1LTQtNS0yMDI1MTAwMTgAQgh0aGlua2luZ1okMTgxYmFkMGEtYTM5MC00NzE3LWI1NjctNjdlMWE1YTBlZjE4chCDB+qDvkGpyurOajLXT5RGiAEBqAHxkqDUBhIMbxZebiJGxy+pUP1NGgzMph1hF2fE1XMAqVQiMKcYt5NUQJHxbMfZClaYsC8YZA5yziiI+ffGlTzfvbumTzSPoR6vbwUBrLJjocOieyrFA9MQAMpD9vMngeSLkeZUkOV32NkOqnyPeQfDwXlnJAyYREm2lRxTsnaH0sIe+6AWfZSd+Qv6BrY6/Dd5pAKpNIbvKDRBMILCc7W5XJVeFSIjCv5zyykjmEXJgXtVlljT7zTEUtxcS2cMk/DxbVfCUsQnc7mpXFX8P+GNa+fM2F0OuMbATylHwtffj6bIT8s5QTlLW2XuAcfFEdD/TVZEMPn2ruBtTsFyHr6erBGhE/u6j1aKUhTJdApodhKLrZzAdYLaLzTwp5GOh3OzP12E4RBPZpBoa8gqX2vMstZqNLTUoCHOLM5cnc9sUlFyXGbCxXDNx9EVoP8gVLUMRC4mPmi7GOYCQlhcOBFvdDqNd1ZdxCKqiWz63rhHoHaDncgPRk5RN+p1JaA4caeesrbDjWGuR5X374O+iAVrYpI/659gJWlOgTgjp/RomxJ6XPY+7JAWM4XWIMb6+Y/YenpIeVmiOctxDXcyfou3IDyb3K6/PZsbdJ5XRKMJ+Jw9rJ2mlx9gdf/4IBbbUhNeDq5CP4M5qlz9bdxsLOXoUBMJH8iM8/J8BwZqjvd/QrL0uy6wJp8rPiIl/v4rVuzi8vhTdbZssB7HhhgB",
+              "thinking": "The evaluation has been accepted. The user provided a catalog of smoke patterns and asked me to classify four items. I successfully submitted the evaluation with:\n- M1: null (has content beneath the heading)\n- M2: M01 (orphan label with no content)\n- M3: M02 (duplicated action without new condition)\n- M4: null (has status recap, which doesn't count as a hit per the boundary rule)\n\nThe submission was accepted, so the task is complete.",
+              "type": "thinking"
+            }
+          ],
+          "context_management": null,
+          "diagnostics": null,
+          "id": "msg_011CeFZbqTB8LmPLMrvdrFaX",
+          "model": "claude-haiku-4-5-20251001",
+          "role": "assistant",
+          "stop_details": null,
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 745,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 745,
+            "cache_read_input_tokens": 9533,
+            "inference_geo": "not_available",
+            "input_tokens": 10,
+            "output_tokens": 2,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "request_id": "req_011CeFZboapJ61uwtFvez3Wn",
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "timestamp": "2026-08-21T08:16:49.514Z",
+        "type": "assistant",
+        "uuid": "41dcef1e-9e72-46c7-90c5-73bbcc1886cd"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "text": "Done.",
+              "type": "text"
+            }
+          ],
+          "context_management": null,
+          "diagnostics": null,
+          "id": "msg_011CeFZbqTB8LmPLMrvdrFaX",
+          "model": "claude-haiku-4-5-20251001",
+          "role": "assistant",
+          "stop_details": null,
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 745,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 745,
+            "cache_read_input_tokens": 9533,
+            "inference_geo": "not_available",
+            "input_tokens": 10,
+            "output_tokens": 2,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "request_id": "req_011CeFZboapJ61uwtFvez3Wn",
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "timestamp": "2026-08-21T08:16:49.535Z",
+        "type": "assistant",
+        "uuid": "313ef1c8-a77a-4a01-990a-6ecfe8357ef2"
+      },
+      {
+        "api_error_status": null,
+        "duration_api_ms": 10329,
+        "duration_ms": 10857,
+        "fast_mode_disabled_reason": "sdk_opt_in_required",
+        "fast_mode_state": "off",
+        "is_error": false,
+        "modelUsage": {
+          "claude-haiku-4-5-20251001": {
+            "cacheCreationInputTokens": 10278,
+            "cacheReadInputTokens": 9533,
+            "canonicalModel": "claude-haiku-4-5",
+            "contextWindow": 200000,
+            "costUSD": 0.025648300000000002,
+            "inputTokens": 19,
+            "maxOutputTokens": 32000,
+            "outputTokens": 824,
+            "provider": "firstParty",
+            "webSearchRequests": 0
+          }
+        },
+        "num_turns": 2,
+        "permission_denials": [],
+        "result": "Done.",
+        "session_id": "79125914-c30f-4203-a6ab-f4b6ccb57f67",
+        "stop_reason": "end_turn",
+        "subtype": "success",
+        "terminal_reason": "completed",
+        "time_to_request_ms": 82,
+        "total_cost_usd": 0.025648300000000002,
+        "ttft_ms": 7734,
+        "ttft_stream_ms": 934,
+        "type": "result",
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 10278,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_creation_input_tokens": 10278,
+          "cache_read_input_tokens": 9533,
+          "inference_geo": "not_available",
+          "input_tokens": 19,
+          "iterations": [
+            {
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 745,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "cache_creation_input_tokens": 745,
+              "cache_read_input_tokens": 9533,
+              "input_tokens": 10,
+              "output_tokens": 122,
+              "type": "message"
+            }
+          ],
+          "output_tokens": 824,
+          "output_tokens_details": {
+            "thinking_tokens": 632
+          },
+          "server_tool_use": {
+            "web_fetch_requests": 0,
+            "web_search_requests": 0
+          },
+          "service_tier": "standard",
+          "speed": "standard"
+        },
+        "uuid": "f0a0bd99-53bf-4962-a0c2-b454a5361b59"
+      }
+    ],
+    "kimi_slot": null,
+    "reported_models": [
+      "claude-haiku-4-5-20251001"
+    ],
+    "reported_providers": [
+      "firstParty"
+    ],
+    "requested_model": "claude-haiku-4-5-20251001",
+    "stderr_tail": "",
+    "stop_reason": "end_turn",
+    "usage": {
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 10278,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 10278,
+      "cache_read_input_tokens": 9533,
+      "inference_geo": "not_available",
+      "input_tokens": 19,
+      "iterations": [
+        {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 745,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_creation_input_tokens": 745,
+          "cache_read_input_tokens": 9533,
+          "input_tokens": 10,
+          "output_tokens": 122,
+          "type": "message"
+        }
+      ],
+      "output_tokens": 824,
+      "output_tokens_details": {
+        "thinking_tokens": 632
+      },
+      "server_tool_use": {
+        "web_fetch_requests": 0,
+        "web_search_requests": 0
+      },
+      "service_tier": "standard",
+      "speed": "standard"
+    }
+  },
+  "payload": {
+    "answers": [
+      {
+        "item_id": "M1",
+        "pattern_id": null,
+        "sublabel": null
+      },
+      {
+        "item_id": "M2",
+        "pattern_id": "M01",
+        "sublabel": null
+      },
+      {
+        "item_id": "M3",
+        "pattern_id": "M02",
+        "sublabel": null
+      },
+      {
+        "item_id": "M4",
+        "pattern_id": null,
+        "sublabel": null
+      }
+    ],
+    "case_id": "SMOKE1"
+  },
+  "profile": "haiku-reader",
+  "rep": 1,
+  "started_at": "2026-08-21T08:16:38+00:00",
+  "status": "pass",
+  "tier": "smoke"
+}

@@ -1,0 +1,61 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "elapsed_seconds": 4.515,
+      "status": "ok"
+    }
+  ],
+  "completed_at": "2026-08-21T08:16:33+00:00",
+  "kind": "adapter_smoke",
+  "model": {
+    "adapter": "codex_cli",
+    "cli_version": "codex-cli 0.148.0",
+    "events": [
+      {
+        "thread_id": "01a02364-944d-76f3-b9b9-332c4402e83e",
+        "type": "thread.started"
+      },
+      {
+        "type": "turn.started"
+      },
+      {
+        "item": {
+          "id": "item_0",
+          "text": "{\"ok\":true}",
+          "type": "agent_message"
+        },
+        "type": "item.completed"
+      },
+      {
+        "type": "turn.completed",
+        "usage": {
+          "cache_write_input_tokens": 0,
+          "cached_input_tokens": 0,
+          "input_tokens": 18882,
+          "output_tokens": 15,
+          "reasoning_output_tokens": 0
+        }
+      }
+    ],
+    "executable": "/Users/margus/.nvm/versions/node/v24.18.0/bin/codex",
+    "identity_evidence": "requested_model_plus_cli_version; CLI did not echo routed model",
+    "reported_models": [],
+    "requested_model": "gpt-5.6-sol",
+    "stderr_tail": "",
+    "usage": {
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 0,
+      "input_tokens": 18882,
+      "output_tokens": 15,
+      "reasoning_output_tokens": 0
+    }
+  },
+  "path": "structured",
+  "profile": "gpt-judge",
+  "result": {
+    "ok": true
+  },
+  "started_at": "2026-08-21T08:16:28+00:00",
+  "status": "ok"
+}

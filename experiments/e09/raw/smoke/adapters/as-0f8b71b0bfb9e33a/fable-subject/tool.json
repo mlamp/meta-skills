@@ -1,0 +1,504 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "elapsed_seconds": 7.545,
+      "status": "ok"
+    }
+  ],
+  "completed_at": "2026-08-21T08:16:05+00:00",
+  "kind": "adapter_smoke",
+  "model": {
+    "adapter": "claude_cli",
+    "events": [
+      {
+        "hook_event": "SessionStart",
+        "hook_id": "a71b0567-8ff1-4df5-b514-4fc74de8f2c2",
+        "hook_name": "SessionStart:startup",
+        "session_id": "37bd0447-d5e8-4597-8925-17f561282660",
+        "subtype": "hook_started",
+        "type": "system",
+        "uuid": "696ac251-a9c6-4b95-ad43-ab8ad29109ea"
+      },
+      {
+        "hook_event": "SessionStart",
+        "hook_id": "8f7dc7e1-ce06-47ac-bb5c-a711604cb3b9",
+        "hook_name": "SessionStart:startup",
+        "session_id": "37bd0447-d5e8-4597-8925-17f561282660",
+        "subtype": "hook_started",
+        "type": "system",
+        "uuid": "fbe07f91-88c9-4347-80aa-39f81d8d11fb"
+      },
+      {
+        "exit_code": 0,
+        "hook_event": "SessionStart",
+        "hook_id": "a71b0567-8ff1-4df5-b514-4fc74de8f2c2",
+        "hook_name": "SessionStart:startup",
+        "outcome": "success",
+        "output": "",
+        "session_id": "37bd0447-d5e8-4597-8925-17f561282660",
+        "stderr": "",
+        "stdout": "",
+        "subtype": "hook_response",
+        "type": "system",
+        "uuid": "c1bdb6ff-b3eb-41bd-8bac-877453464895"
+      },
+      {
+        "exit_code": 0,
+        "hook_event": "SessionStart",
+        "hook_id": "8f7dc7e1-ce06-47ac-bb5c-a711604cb3b9",
+        "hook_name": "SessionStart:startup",
+        "outcome": "success",
+        "output": "{\"terminalSequence\":\"\\u001b]777;notify;warp://cli-agent;{\\\"v\\\":1,\\\"agent\\\":\\\"claude\\\",\\\"event\\\":\\\"session_start\\\",\\\"session_id\\\":\\\"37bd0447-d5e8-4597-8925-17f561282660\\\",\\\"cwd\\\":\\\"/private/var/folders/4n/_9x49yyj2nbgwmg1qqljxqk00000gn/T/e09-tool-y74v3rwg\\\",\\\"project\\\":\\\"e09-tool-y74v3rwg\\\",\\\"plugin_version\\\":\\\"2.1.0\\\"}\\u0007\"}\n",
+        "session_id": "37bd0447-d5e8-4597-8925-17f561282660",
+        "stderr": "",
+        "stdout": "{\"terminalSequence\":\"\\u001b]777;notify;warp://cli-agent;{\\\"v\\\":1,\\\"agent\\\":\\\"claude\\\",\\\"event\\\":\\\"session_start\\\",\\\"session_id\\\":\\\"37bd0447-d5e8-4597-8925-17f561282660\\\",\\\"cwd\\\":\\\"/private/var/folders/4n/_9x49yyj2nbgwmg1qqljxqk00000gn/T/e09-tool-y74v3rwg\\\",\\\"project\\\":\\\"e09-tool-y74v3rwg\\\",\\\"plugin_version\\\":\\\"2.1.0\\\"}\\u0007\"}\n",
+        "subtype": "hook_response",
+        "type": "system",
+        "uuid": "1c9f0cc9-29cd-4824-bca2-7b55fd2302a9"
+      },
+      {
+        "agents": [
+          "claude",
+          "Explore",
+          "general-purpose",
+          "gsd-codebase-mapper",
+          "gsd-debugger",
+          "gsd-executor",
+          "gsd-integration-checker",
+          "gsd-phase-researcher",
+          "gsd-plan-checker",
+          "gsd-planner",
+          "gsd-project-researcher",
+          "gsd-research-synthesizer",
+          "gsd-roadmapper",
+          "gsd-verifier",
+          "Plan",
+          "prd-altitude-down",
+          "prd-altitude-up",
+          "statusline-setup"
+        ],
+        "analytics_disabled": false,
+        "apiKeySource": "none",
+        "capabilities": [
+          "interrupt_receipt_v1",
+          "interrupt_cancel_queued_v1",
+          "msg_lifecycle_v1"
+        ],
+        "claude_code_version": "2.1.237",
+        "cwd": "/private/var/folders/4n/_9x49yyj2nbgwmg1qqljxqk00000gn/T/e09-tool-y74v3rwg",
+        "fast_mode_disabled_reason": "sdk_opt_in_required",
+        "fast_mode_state": "off",
+        "mcp_servers": [
+          {
+            "name": "e09",
+            "status": "connected"
+          }
+        ],
+        "memory_paths": {
+          "auto": "/Users/margus/.claude/projects/-private-var-folders-4n--9x49yyj2nbgwmg1qqljxqk00000gn-T-e09-tool-y74v3rwg/memory/"
+        },
+        "messaging_socket_path": "/tmp/cc-socks/98406.sock",
+        "model": "claude-fable-5",
+        "output_style": "default",
+        "permissionMode": "dontAsk",
+        "plugins": [
+          {
+            "name": "warp",
+            "path": "/Users/margus/.claude/plugins/cache/claude-code-warp/warp/2.1.0",
+            "source": "warp@claude-code-warp",
+            "version": "2.1.0"
+          }
+        ],
+        "product_feedback_disabled": false,
+        "session_id": "37bd0447-d5e8-4597-8925-17f561282660",
+        "skills": [],
+        "slash_commands": [],
+        "subtype": "init",
+        "tools": [
+          "mcp__e09__submit_evaluation"
+        ],
+        "type": "system",
+        "uuid": "7706bce2-9583-46ce-8f91-d161b42244ba"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "text": "Classifying the four items against the two-pattern catalog and submitting.",
+              "type": "text"
+            }
+          ],
+          "context_management": null,
+          "diagnostics": null,
+          "id": "msg_011CeFZYMPtGTBpmyyoh1pBt",
+          "model": "claude-fable-5",
+          "role": "assistant",
+          "stop_details": null,
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 6404,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 6404,
+            "cache_read_input_tokens": 925,
+            "inference_geo": "not_available",
+            "input_tokens": 2,
+            "output_tokens": 2,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "request_id": "req_011CeFZYJSnEMvfywG4ZCeTb",
+        "session_id": "37bd0447-d5e8-4597-8925-17f561282660",
+        "timestamp": "2026-08-21T08:16:01.597Z",
+        "type": "assistant",
+        "uuid": "7253a38e-14d9-4342-bd55-5cf6ac4ffc72"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "caller": {
+                "type": "direct"
+              },
+              "id": "toolu_01X499nH6Q2PxnqFZ2hn4k9Z",
+              "input": {
+                "answers": [
+                  {
+                    "item_id": "M1",
+                    "pattern_id": null,
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M2",
+                    "pattern_id": "M01",
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M3",
+                    "pattern_id": "M02",
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M4",
+                    "pattern_id": null,
+                    "sublabel": null
+                  }
+                ],
+                "case_id": "SMOKE1"
+              },
+              "name": "mcp__e09__submit_evaluation",
+              "type": "tool_use"
+            }
+          ],
+          "context_management": null,
+          "diagnostics": null,
+          "id": "msg_011CeFZYMPtGTBpmyyoh1pBt",
+          "model": "claude-fable-5",
+          "role": "assistant",
+          "stop_details": null,
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 6404,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 6404,
+            "cache_read_input_tokens": 925,
+            "inference_geo": "not_available",
+            "input_tokens": 2,
+            "output_tokens": 2,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "request_id": "req_011CeFZYJSnEMvfywG4ZCeTb",
+        "session_id": "37bd0447-d5e8-4597-8925-17f561282660",
+        "timestamp": "2026-08-21T08:16:02.654Z",
+        "tool_use_meta": [
+          {
+            "display_name": "Submit Evaluation",
+            "id": "toolu_01X499nH6Q2PxnqFZ2hn4k9Z",
+            "server_display_name": "e09-schema-gate"
+          }
+        ],
+        "type": "assistant",
+        "uuid": "7bff2a4e-3ef2-4aaa-ae56-2c1eb8aa5f3e"
+      },
+      {
+        "rate_limit_info": {
+          "isUsingOverage": false,
+          "overageDisabledReason": "org_level_disabled",
+          "overageStatus": "rejected",
+          "rateLimitType": "five_hour",
+          "resetsAt": 1787315400,
+          "status": "allowed"
+        },
+        "session_id": "37bd0447-d5e8-4597-8925-17f561282660",
+        "type": "rate_limit_event",
+        "uuid": "9054a97a-f5a1-4dd8-8bd0-90a5d6db1698"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "content": [
+                {
+                  "text": "accepted",
+                  "type": "text"
+                }
+              ],
+              "tool_use_id": "toolu_01X499nH6Q2PxnqFZ2hn4k9Z",
+              "type": "tool_result"
+            }
+          ],
+          "role": "user"
+        },
+        "parent_tool_use_id": null,
+        "session_id": "37bd0447-d5e8-4597-8925-17f561282660",
+        "timestamp": "2026-08-21T08:16:02.716Z",
+        "tool_use_result": [
+          {
+            "text": "accepted",
+            "type": "text"
+          }
+        ],
+        "type": "user",
+        "uuid": "4febabd9-5b9c-4b32-99d0-7a6d0ec9d044"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "text": "Submitted. M1 and M4 are clean (heading with content; recap that adds status). M2 is M01 (heading with nothing beneath it). M3 is M02 (same action stated twice with no new condition). Nothing further is needed.",
+              "type": "text"
+            }
+          ],
+          "context_management": null,
+          "diagnostics": null,
+          "id": "msg_011CeFZYawUGPxLTCngp3kh3",
+          "model": "claude-fable-5",
+          "role": "assistant",
+          "stop_details": null,
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 234,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 234,
+            "cache_read_input_tokens": 7329,
+            "inference_geo": "not_available",
+            "input_tokens": 56,
+            "output_tokens": 6,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "request_id": "req_011CeFZYYW7sWJvGEh6bA5Hc",
+        "session_id": "37bd0447-d5e8-4597-8925-17f561282660",
+        "timestamp": "2026-08-21T08:16:04.856Z",
+        "type": "assistant",
+        "uuid": "26c14887-f69e-4692-93c4-1debb6a23512"
+      },
+      {
+        "api_error_status": null,
+        "duration_api_ms": 5420,
+        "duration_ms": 5929,
+        "fast_mode_disabled_reason": "sdk_opt_in_required",
+        "fast_mode_state": "off",
+        "is_error": false,
+        "modelUsage": {
+          "claude-fable-5": {
+            "cacheCreationInputTokens": 6638,
+            "cacheReadInputTokens": 8254,
+            "canonicalModel": "claude-fable-5",
+            "contextWindow": 1000000,
+            "costUSD": 0.15634399999999998,
+            "inputTokens": 58,
+            "maxOutputTokens": 64000,
+            "outputTokens": 295,
+            "provider": "firstParty",
+            "webSearchRequests": 0
+          }
+        },
+        "num_turns": 2,
+        "permission_denials": [],
+        "result": "Submitted. M1 and M4 are clean (heading with content; recap that adds status). M2 is M01 (heading with nothing beneath it). M3 is M02 (same action stated twice with no new condition). Nothing further is needed.",
+        "session_id": "37bd0447-d5e8-4597-8925-17f561282660",
+        "stop_reason": "end_turn",
+        "subtype": "success",
+        "terminal_reason": "completed",
+        "time_to_request_ms": 78,
+        "total_cost_usd": 0.15634399999999998,
+        "ttft_ms": 2275,
+        "ttft_stream_ms": 1476,
+        "type": "result",
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 6638,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_creation_input_tokens": 6638,
+          "cache_read_input_tokens": 8254,
+          "inference_geo": "not_available",
+          "input_tokens": 58,
+          "iterations": [
+            {
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 234,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "cache_creation_input_tokens": 234,
+              "cache_read_input_tokens": 7329,
+              "input_tokens": 56,
+              "output_tokens": 78,
+              "type": "message"
+            }
+          ],
+          "output_tokens": 295,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "server_tool_use": {
+            "web_fetch_requests": 0,
+            "web_search_requests": 0
+          },
+          "service_tier": "standard",
+          "speed": "standard"
+        },
+        "uuid": "16bbf26e-f3ff-4e68-bc9a-5295a7ff7b2c"
+      }
+    ],
+    "kimi_slot": null,
+    "reported_models": [
+      "claude-fable-5"
+    ],
+    "reported_providers": [
+      "firstParty"
+    ],
+    "requested_model": "claude-fable-5",
+    "stderr_tail": "",
+    "stop_reason": "end_turn",
+    "usage": {
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 6638,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 6638,
+      "cache_read_input_tokens": 8254,
+      "inference_geo": "not_available",
+      "input_tokens": 58,
+      "iterations": [
+        {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 234,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_creation_input_tokens": 234,
+          "cache_read_input_tokens": 7329,
+          "input_tokens": 56,
+          "output_tokens": 78,
+          "type": "message"
+        }
+      ],
+      "output_tokens": 295,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "server_tool_use": {
+        "web_fetch_requests": 0,
+        "web_search_requests": 0
+      },
+      "service_tier": "standard",
+      "speed": "standard"
+    }
+  },
+  "path": "tool",
+  "profile": "fable-subject",
+  "result": {
+    "assertions": [
+      {
+        "actual": "SMOKE1",
+        "assertion": "case_id",
+        "expected": "SMOKE1",
+        "pass": true
+      },
+      {
+        "actual": [
+          "M1",
+          "M2",
+          "M3",
+          "M4"
+        ],
+        "assertion": "item_ids",
+        "expected": [
+          "M1",
+          "M2",
+          "M3",
+          "M4"
+        ],
+        "pass": true
+      },
+      {
+        "actual": null,
+        "assertion": "M1.pattern_id",
+        "expected": null,
+        "pass": true
+      },
+      {
+        "actual": "M01",
+        "assertion": "M2.pattern_id",
+        "expected": "M01",
+        "pass": true
+      },
+      {
+        "actual": "M02",
+        "assertion": "M3.pattern_id",
+        "expected": "M02",
+        "pass": true
+      },
+      {
+        "actual": null,
+        "assertion": "M4.pattern_id",
+        "expected": null,
+        "pass": true
+      }
+    ],
+    "payload": {
+      "answers": [
+        {
+          "item_id": "M1",
+          "pattern_id": null,
+          "sublabel": null
+        },
+        {
+          "item_id": "M2",
+          "pattern_id": "M01",
+          "sublabel": null
+        },
+        {
+          "item_id": "M3",
+          "pattern_id": "M02",
+          "sublabel": null
+        },
+        {
+          "item_id": "M4",
+          "pattern_id": null,
+          "sublabel": null
+        }
+      ],
+      "case_id": "SMOKE1"
+    }
+  },
+  "started_at": "2026-08-21T08:15:58+00:00",
+  "status": "ok"
+}

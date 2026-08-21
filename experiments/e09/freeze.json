@@ -1,0 +1,18 @@
+{
+  "files": {
+    "experiments/e09/catalog.json": "0751e6455395c20d155c409d67419615b10f8386f4b206e7d824fd7ca1a0d3d8",
+    "experiments/e09/cold_reader_cases.json": "0fe710b17eea0d9302cce550ecd37a84f5a7bb1f8ca678c99968e97ed6886b6a",
+    "experiments/e09/design.md": "297ef7728d2fcbf20b00c5707b2016c56eb85e614149973cd4d70f8f6f395219",
+    "experiments/e09/harness.py": "0219c32549bc4272191a66bd89173e8acee86a2ef5f7d41b0bf8356d31e07757",
+    "experiments/e09/models.json": "2060f8ca6ceea1e0f70608fdaa9dcea5d7d1d0e9e5556cb2aaad5bd78f522519",
+    "experiments/e09/persona-stage1.json": "52ed54abaa68733797ab271d62f702f99eefc7edf84fb39e91409851da34b483",
+    "experiments/e09/persona.json": "b59a171398d31053e933af37ad4dc6d3e5c95b78060b6474881adc330fe20930",
+    "experiments/e09/prompts.json": "c66517e76e32d5451ce7213c5bd84ebc20bf43d0ea508e858a6d6c628223dfa2",
+    "experiments/e09/reviews.md": "ca185118fdb4151e41cc03b2d1bd119662f7c51c3fd4852ed0943210732da86e",
+    "experiments/e09/substitutes.json": "9290f5ee3c0d7a03099f99d7cd8fa44c13e90ad31eb8245e90805b1efd0d4890",
+    "experiments/e09/tasks.json": "c54b7dcdf992f4d32f4e22defaa9b57729e2dda21420552a1180331f45f014ee",
+    "experiments/e09/test_harness.py": "72d5f1e0c7f4ad32d817b33b021ec470a9638ba8ff72d0cb9135f9c8e5dfe786"
+  },
+  "frozen_at": "2026-08-21",
+  "schema_version": 1
+}

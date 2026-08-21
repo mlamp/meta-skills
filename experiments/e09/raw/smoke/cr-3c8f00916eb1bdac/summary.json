@@ -1,0 +1,18 @@
+{
+  "assertions": 6,
+  "completed_at": "2026-08-21T07:41:19+00:00",
+  "errors": 0,
+  "failed_assertions": 0,
+  "key": {
+    "catalog_sha256": "b5abde94d65b77a2d5ed5f3d648923b871d501543e4ee9c8df7280a6d736a532",
+    "profile": "haiku-reader",
+    "suite_sha256": "021587446b72300ed80ce55f86cdef0b3bc4a2239f88ab54bb5addd45040b35f",
+    "tier": "smoke"
+  },
+  "ledger_run_id": "r-20260821-ff3eb49de8",
+  "passed": true,
+  "profile": "haiku-reader",
+  "started_calls": 1,
+  "tier": "smoke",
+  "type": "cold_reader"
+}
