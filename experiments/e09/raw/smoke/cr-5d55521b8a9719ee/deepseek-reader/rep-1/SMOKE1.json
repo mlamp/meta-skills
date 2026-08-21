@@ -1,6 +1,6 @@
 {
   "case_id": "SMOKE1",
-  "error": "missing credential DEEPSEEK_API_KEY; set it in the environment or ignored .env",
+  "error": "missing credential in legacy pre-correction profile; current profile uses DEEPINFRA_API_KEY",
   "error_evidence": null,
   "error_type": "HarnessError",
   "key": {

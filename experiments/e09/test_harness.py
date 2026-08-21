@@ -340,6 +340,7 @@ class RunnerSafetyTest(unittest.TestCase):
         for path in (H.RAW / "smoke").rglob("*.json"):
             payload = H.load_json(path)
             self.assertEqual(payload, H.sanitize_host_metadata(payload), str(path))
+            self.assertNotIn("DEEPSEEK_API_KEY", H.canonical(payload), str(path))
 
     def test_exclusive_json_writer_refuses_overwrite(self):
         with tempfile.TemporaryDirectory() as tmp:
