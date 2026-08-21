@@ -139,7 +139,14 @@ Qualification is five repetitions per required profile. Every assertion must pas
 
 Qualification can start only when `freeze.json` matches, the frozen commit is contained in `origin/main`, and the tree is clean apart from current immutable qualification records. The attempt key also binds the freeze hash. Its pass is context for binding-text comprehension, not evidence for C19–C22.
 
-`cold_reader_cases.json` also contains a disjoint M01–M02 smoke catalog. Smoke runs prove only the adapters, tool schema, raw isolation, and grading path. They never see U01–U06 cases and never count as evidence. The current harness writes no smoke ledger lines. Four earlier pre-protocol smoke lines and their legacy non-numbered raw directories remain as append-only, explicitly `tier: smoke` context; current gates ignore them. Current smoke attempts use numbered directories and may be repeated. The latest attempt must pass. A current passing reader smoke is required before the one allowed qualification attempt begins. The smoke schemas exercise the structured-output keywords used later, including fixed array sizes, `uniqueItems`, nullable enums, and `minLength`.
+`cold_reader_cases.json` also contains a disjoint M01–M02 smoke catalog. Smoke runs prove only the adapters, tool schema, raw isolation, and grading path. They never see U01–U06 cases and never count as evidence.
+
+Smoke history has two formats:
+
+- Legacy: four reader smokes ran before the repeatable protocol existed. This PR only preserves their historical ledger rows and raw artifacts alongside current attempts. Each summary sits directly under `raw/smoke/cr-<id>/`, carries `ledger_run_id`, and remains append-only `tier: smoke` context. Qualification and measured gates ignore these runs.
+- Current: the harness writes every new reader or adapter smoke beneath `attempt-NNN`. It neither appends a ledger row nor puts `ledger_run_id` in the summary. Attempts may repeat. Only the latest attempt controls the smoke gate. A failed latest attempt blocks qualification until a newer attempt passes. For each reader profile, exactly one qualification batch may run per exact freeze, catalog, suite, profile, and harness key, and it may start only after that reader's latest current smoke passes.
+
+The smoke schemas must exercise every structured-output keyword used later, including fixed array sizes, `uniqueItems`, nullable enums, and `minLength`.
 
 Before measured execution, `adapter-smoke` must also pass for every measured path: Fable tool and text, Kimi tool and text, and GPT structured judgment. It uses only M01–M02 and `SMOKE_OK`, records exact reported identities or the documented Codex CLI limitation, and is keyed by the harness, model registry, and prompt hashes.
 
