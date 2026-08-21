@@ -239,6 +239,19 @@ class MatcherAndMetricTest(unittest.TestCase):
             "required_pass": [True, False], "fatal_hits": [False]
         }}))
 
+    def test_missing_task_outputs_and_judgments_are_incomplete(self):
+        missing_judgment = {"status": "ok", "result": "missing", "task_id": "T01"}
+        bad_judgment = {"status": "ok", "result": "bad", "task_id": "T02"}
+        good_judgment = {"status": "ok", "result": "good", "task_id": "T03"}
+        judgments = {
+            H.digest({"text": "bad", "task": "T02"}): {"status": "error"},
+            H.digest({"text": "good", "task": "T03"}): {
+                "status": "ok", "result": {"required_pass": [True], "fatal_hits": []}
+            },
+        }
+        rows = [None, {"status": "error"}, missing_judgment, bad_judgment, good_judgment]
+        self.assertEqual(H.task_judge_error_count(rows, judgments), 4)
+
 
 class RunnerSafetyTest(unittest.TestCase):
     def test_schedule_has_five_per_arm_and_family(self):

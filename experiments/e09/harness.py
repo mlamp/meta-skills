@@ -1678,6 +1678,18 @@ def derived_task_success(judgment):
     return bool(result.get("required_pass")) and all(result["required_pass"]) and not any(result.get("fatal_hits", []))
 
 
+def task_judge_error_count(task_rows, judgments):
+    errors = 0
+    for row in task_rows:
+        if not row or row.get("status") != "ok":
+            errors += 1
+            continue
+        blind = digest({"text": row["result"], "task": row["task_id"]})
+        judgment = judgments.get(blind)
+        errors += not judgment or judgment.get("status") != "ok"
+    return errors
+
+
 def build_adjudication_pending(expected, disagreement_rows, disagreements):
     return {
         "schema_version": 1,
@@ -1846,17 +1858,17 @@ def cmd_finalize(args):
                                  for tid in ("T01", "T02", "T03", "T04")]
                     listed = sum(len(matcher_hits(row.get("result", ""), "listed")) for row in task_rows if row)
                     lexical = sum(count_lexical(row.get("result", "")) for row in task_rows if row)
+                    task_outputs_complete = all(row and row.get("status") == "ok" for row in task_rows)
                     successes = 0
-                    task_judge_errors = 0
+                    task_judge_errors = task_judge_error_count(task_rows, judgments)
                     substitutes = 0
                     outside_selected = 0
-                    substitute_complete = True
+                    substitute_complete = task_outputs_complete
                     buckets = {name: 0 for name in ("unaided_only", "catalog_mapped_only", "both")}
                     for row in task_rows:
                         if not row or row.get("status") != "ok":
                             continue
                         blind = digest({"text": row["result"], "task": row["task_id"]})
-                        task_judge_errors += judgments[blind].get("status") != "ok"
                         successes += derived_task_success(judgments[blind])
                         if matcher_hits(row["result"], "substitute") and substitute_verdicts.get(blind) is None:
                             substitute_complete = False
@@ -1880,7 +1892,7 @@ def cmd_finalize(args):
                         "task_judge_errors": task_judge_errors,
                         "listed_hits": listed,
                         "output_tokens": lexical,
-                        "listed_rate_per_1000": 1000 * listed / lexical if lexical else None,
+                        "listed_rate_per_1000": 1000 * listed / lexical if lexical and task_outputs_complete else None,
                         "substitute_hits": substitutes if substitute_complete else None,
                         "substitute_rate_per_1000": 1000 * substitutes / lexical if lexical and substitute_complete else None,
                         "substitute_buckets": buckets,

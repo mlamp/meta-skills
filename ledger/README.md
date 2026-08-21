@@ -1,6 +1,6 @@
 # ledger — run records
 
-Every recorded run commits one line to `runs.jsonl`. Append-only: a line is never edited or deleted. Review lines are written only by `skills/review-skill/scripts/finalize.py` (D-015): the model authors a markdown report; the finalizer parses and validates it, extracts every evidence quote from the spans the report cites, runs the static checks, generates the machine facts, serializes with a JSON encoder, and commits. Adjudication lines are written only by `ledger/adjudicate.py` (D-017). Generation and experiment lines are written only by their documented skill or experiment harness. Never write or edit a line by hand, in any mode.
+Every run recorded in the ledger commits one line to `runs.jsonl`. Append-only: a line is never edited or deleted. Review lines are written only by `skills/review-skill/scripts/finalize.py` (D-015): the model authors a markdown report; the finalizer parses and validates it, extracts every evidence quote from the spans the report cites, runs the static checks, generates the machine facts, serializes with a JSON encoder, and commits. Adjudication lines are written only by `ledger/adjudicate.py` (D-017). Generation and experiment lines are written only by their documented skill or experiment harness. Never write or edit a line by hand, in any mode.
 
 Schema v2 fields (one JSON object per line):
 

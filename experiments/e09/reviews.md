@@ -98,3 +98,7 @@ Fresh Haiku and DeepSeek reader smokes passed 6/6 on harness hash `223628db1b4e`
 Copilot's next pass found a tautological zero-density test and an undocumented ledger subtype. Finalization and the test now share one `coverage_per_100_contract_tokens` helper. D-031 and `ledger/README.md` distinguish measured `E-xx` results from `E-09-cold-reader` gate context and require consumers to exclude the latter from evidence and effect aggregates. The qualification regression also asserts the composite `experiment` plus `tier` discriminator. A fresh Claude Haiku 4.5 process correctly restated the consumer and writer obligations with no project settings, tools, or session context.
 
 The helper change produced final harness hash `8ca20ec1b8a7`. Fresh Haiku and DeepSeek reader smokes passed 6/6, and all six Fable, Kimi, and GPT adapter paths passed on that hash.
+
+Copilot then found that non-OK task outputs were skipped without increasing `task_judge_errors`, so C20 could appear complete. Production now counts missing outputs, task errors, missing judgments, and judge errors through one tested helper. A missing task output also makes C21 substitute judgment incomplete and C22's listed-tic rate undefined. The ledger introduction now says "every run recorded in the ledger," preserving the explicit unledgered-smoke rule. All 52 tests pass.
+
+Fresh Haiku and DeepSeek reader smokes passed 6/6 on repaired harness hash `7578ed0ec1b1`. All six Fable, Kimi, and GPT adapter paths passed on the same hash.
