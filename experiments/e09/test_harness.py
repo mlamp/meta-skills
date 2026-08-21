@@ -293,6 +293,27 @@ class RunnerSafetyTest(unittest.TestCase):
             with self.assertRaises(H.HarnessError):
                 H.append_jsonl(path, {"run_id": "r-1", "value": 2})
 
+    def test_append_jsonl_compares_run_id_fields_not_substrings(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "runs.jsonl"
+            H.append_jsonl(path, {"run_id": "r-2", "note": "mentions r-1"})
+            H.append_jsonl(path, {"run_id": "r-1", "value": 2})
+            rows = [json.loads(raw) for raw in path.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual([row["run_id"] for row in rows], ["r-2", "r-1"])
+
+    def test_append_jsonl_requires_run_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "runs.jsonl"
+            with self.assertRaisesRegex(H.HarnessError, "non-empty string run_id"):
+                H.append_jsonl(path, {"value": 1})
+
+    def test_append_jsonl_rejects_existing_row_without_run_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "runs.jsonl"
+            path.write_text('{"value": 1}\n', encoding="utf-8")
+            with self.assertRaisesRegex(H.HarnessError, "non-empty string run_id"):
+                H.append_jsonl(path, {"run_id": "r-1"})
+
     def test_exclusive_json_writer_refuses_overwrite(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "attempt.json"

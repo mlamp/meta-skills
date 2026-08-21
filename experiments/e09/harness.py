@@ -133,19 +133,38 @@ def write_json_exclusive(path: Path, value):
         os.close(fd)
 
 
+def jsonl_run_ids(path: Path):
+    data = path.read_bytes() if path.exists() else b""
+    if data and not data.endswith(b"\n"):
+        raise HarnessError(f"{path} does not end in a newline")
+    run_ids = set()
+    for number, raw in enumerate(data.splitlines(), 1):
+        try:
+            row = json.loads(raw)
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise HarnessError(f"{path}:{number} is not valid JSON") from exc
+        if not isinstance(row, dict):
+            raise HarnessError(f"{path}:{number} is not a JSON object")
+        run_id = row.get("run_id")
+        if not isinstance(run_id, str) or not run_id:
+            raise HarnessError(f"{path}:{number} requires a non-empty string run_id")
+        run_ids.add(run_id)
+    return run_ids
+
+
 def append_jsonl(path: Path, value):
+    run_id = value.get("run_id") if isinstance(value, dict) else None
+    if not isinstance(run_id, str) or not run_id:
+        raise HarnessError("JSONL records require a non-empty string run_id")
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
         os.close(fd)
     except FileExistsError:
         pass
-    data = path.read_bytes()
-    if data and not data.endswith(b"\n"):
-        raise HarnessError(f"{path} does not end in a newline")
+    if run_id in jsonl_run_ids(path):
+        raise HarnessError(f"duplicate run_id {run_id}")
     encoded = canonical(value).encode() + b"\n"
-    if value.get("run_id", "").encode() in data:
-        raise HarnessError(f"duplicate run_id {value['run_id']}")
     fd = os.open(path, os.O_WRONLY | os.O_APPEND)
     try:
         os.write(fd, encoded)
@@ -883,7 +902,7 @@ def record_cold_reader_summary(summary, namespace):
     }
     run_id = "r-" + datetime.now(timezone.utc).strftime("%Y%m%d") + "-" + digest(payload, 10)
     line = {"run_id": run_id, "date": summary["completed_at"], **payload}
-    if run_id.encode() not in LEDGER.read_bytes():
+    if run_id not in jsonl_run_ids(LEDGER):
         append_jsonl(LEDGER, line)
     return run_id
 

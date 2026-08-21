@@ -74,3 +74,9 @@ Fable 5 xhigh and Kimi K3 independently reread the repaired artifact set. Kimi r
 Fable also noted that the smoke schema had not exercised `uniqueItems` or `minLength`; the current disjoint smoke now covers both. Kimi noted that the ledger allowlist checked only unstaged changes. It now compares the ledger against `HEAD`, covering staged and unstaged changes, and both worktree gates print the offending status lines.
 
 Both reviews were advice, not evidence. All accepted findings were fixed in the design, harness, tests, or frozen records rather than copied verbatim.
+
+## Pull-request review repair
+
+Copilot found that `append_jsonl` searched for raw run-ID bytes instead of comparing the decoded `run_id` field. An ID mentioned in another field could therefore block a valid append, and a record without `run_id` could reach a `KeyError`.
+
+The harness now parses each existing JSONL object, requires a non-empty string `run_id`, and compares that field exactly. The cold-reader ledger pre-check uses the same parser. Regression tests cover exact duplicates, unrelated-field substrings, missing new IDs, and missing IDs in existing rows. All 47 tests pass. Fresh Haiku and DeepSeek smokes passed 6/6, and all six Fable, Kimi, and GPT adapter paths passed on the repaired harness hash.

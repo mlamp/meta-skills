@@ -2,44 +2,32 @@
   "attempts": [
     {
       "attempt": 1,
-      "elapsed_seconds": 2.88,
+      "elapsed_seconds": 3.03,
       "status": "ok"
     }
   ],
-  "completed_at": "2026-08-21T09:06:32+00:00",
+  "completed_at": "2026-08-21T09:30:11+00:00",
   "kind": "adapter_smoke",
   "model": {
     "configuration_isolation": "safe_mode_ephemeral_cwd_explicit_effort",
     "kimi_slot": null,
     "raw": {
       "api_error_status": null,
-      "duration_api_ms": 2434,
-      "duration_ms": 1490,
+      "duration_api_ms": 1441,
+      "duration_ms": 1640,
       "fast_mode_disabled_reason": "sdk_opt_in_required",
       "fast_mode_state": "off",
       "is_error": false,
       "modelUsage": {
         "claude-fable-5": {
-          "cacheCreationInputTokens": 3070,
+          "cacheCreationInputTokens": 3068,
           "cacheReadInputTokens": 0,
           "canonicalModel": "claude-fable-5",
           "contextWindow": 1000000,
-          "costUSD": 0.061919999999999996,
+          "costUSD": 0.06188,
           "inputTokens": 2,
           "maxOutputTokens": 64000,
           "outputTokens": 10,
-          "provider": "firstParty",
-          "webSearchRequests": 0
-        },
-        "claude-haiku-4-5-20251001": {
-          "cacheCreationInputTokens": 0,
-          "cacheReadInputTokens": 0,
-          "canonicalModel": "claude-haiku-4-5",
-          "contextWindow": 200000,
-          "costUSD": 0.000975,
-          "inputTokens": 900,
-          "maxOutputTokens": 32000,
-          "outputTokens": 15,
           "provider": "firstParty",
           "webSearchRequests": 0
         }
@@ -47,31 +35,31 @@
       "num_turns": 1,
       "permission_denials": [],
       "result": "SMOKE_OK",
-      "session_id": "b253664f-0e3e-4c6b-8f69-5b6a6ef7d238",
+      "session_id": "90ac3d74-30f1-4d44-ad70-f6bd15e6665a",
       "stop_reason": "end_turn",
       "subtype": "success",
       "terminal_reason": "completed",
-      "time_to_request_ms": 74,
-      "total_cost_usd": 0.06289499999999999,
-      "ttft_ms": 1476,
-      "ttft_stream_ms": 1335,
+      "time_to_request_ms": 200,
+      "total_cost_usd": 0.06188,
+      "ttft_ms": 1626,
+      "ttft_stream_ms": 1491,
       "type": "result",
       "usage": {
         "cache_creation": {
-          "ephemeral_1h_input_tokens": 3070,
+          "ephemeral_1h_input_tokens": 3068,
           "ephemeral_5m_input_tokens": 0
         },
-        "cache_creation_input_tokens": 3070,
+        "cache_creation_input_tokens": 3068,
         "cache_read_input_tokens": 0,
         "inference_geo": "not_available",
         "input_tokens": 2,
         "iterations": [
           {
             "cache_creation": {
-              "ephemeral_1h_input_tokens": 3070,
+              "ephemeral_1h_input_tokens": 3068,
               "ephemeral_5m_input_tokens": 0
             },
-            "cache_creation_input_tokens": 3070,
+            "cache_creation_input_tokens": 3068,
             "cache_read_input_tokens": 0,
             "input_tokens": 2,
             "output_tokens": 10,
@@ -89,11 +77,10 @@
         "service_tier": "standard",
         "speed": "standard"
       },
-      "uuid": "5fded485-867e-4252-9680-d82fdfd5a18e"
+      "uuid": "48bddf8f-44aa-4b74-be39-1f76fb6d314b"
     },
     "reported_models": [
-      "claude-fable-5",
-      "claude-haiku-4-5-20251001"
+      "claude-fable-5"
     ],
     "reported_providers": [
       "firstParty"
@@ -101,20 +88,20 @@
     "requested_model": "claude-fable-5",
     "usage": {
       "cache_creation": {
-        "ephemeral_1h_input_tokens": 3070,
+        "ephemeral_1h_input_tokens": 3068,
         "ephemeral_5m_input_tokens": 0
       },
-      "cache_creation_input_tokens": 3070,
+      "cache_creation_input_tokens": 3068,
       "cache_read_input_tokens": 0,
       "inference_geo": "not_available",
       "input_tokens": 2,
       "iterations": [
         {
           "cache_creation": {
-            "ephemeral_1h_input_tokens": 3070,
+            "ephemeral_1h_input_tokens": 3068,
             "ephemeral_5m_input_tokens": 0
           },
-          "cache_creation_input_tokens": 3070,
+          "cache_creation_input_tokens": 3068,
           "cache_read_input_tokens": 0,
           "input_tokens": 2,
           "output_tokens": 10,
@@ -136,6 +123,6 @@
   "path": "text",
   "profile": "fable-subject",
   "result": "SMOKE_OK",
-  "started_at": "2026-08-21T09:06:29+00:00",
+  "started_at": "2026-08-21T09:30:08+00:00",
   "status": "ok"
 }

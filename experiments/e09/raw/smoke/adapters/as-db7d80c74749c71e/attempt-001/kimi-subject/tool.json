@@ -1,0 +1,1060 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "elapsed_seconds": 6.402,
+      "status": "ok"
+    }
+  ],
+  "completed_at": "2026-08-21T09:30:17+00:00",
+  "kind": "adapter_smoke",
+  "model": {
+    "adapter": "kimi_cli",
+    "configuration_isolation": "safe_mode_ephemeral_cwd_explicit_effort",
+    "events": [
+      {
+        "agents": [
+          "claude",
+          "Explore",
+          "general-purpose",
+          "Plan"
+        ],
+        "analytics_disabled": false,
+        "apiKeySource": "none",
+        "capabilities": [
+          "interrupt_receipt_v1",
+          "interrupt_cancel_queued_v1",
+          "msg_lifecycle_v1"
+        ],
+        "claude_code_version": "2.1.237",
+        "cwd": "/private/var/folders/4n/_9x49yyj2nbgwmg1qqljxqk00000gn/T/e09-tool-uq6zvd2x",
+        "fast_mode_disabled_reason": "sdk_opt_in_required",
+        "fast_mode_state": "off",
+        "mcp_servers": [],
+        "model": "k3[1m]",
+        "output_style": "default",
+        "permissionMode": "dontAsk",
+        "plugins": [],
+        "product_feedback_disabled": false,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "skills": [],
+        "slash_commands": [],
+        "subtype": "init",
+        "tools": [
+          "StructuredOutput"
+        ],
+        "type": "system",
+        "uuid": "65ffb6b9-a96e-43ef-9b7a-bb7b8f7e147b"
+      },
+      {
+        "estimated_tokens": 1,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "c9bd486b-3703-4a2b-b3ed-e7758c3c892c"
+      },
+      {
+        "estimated_tokens": 2,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "3fa55da5-578f-4b5e-9bf7-82c3d54e5dc5"
+      },
+      {
+        "estimated_tokens": 3,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "fc7f6658-64ef-4d4d-972e-6170c5831e12"
+      },
+      {
+        "estimated_tokens": 4,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "1366be01-c6ff-4611-8132-a552337e3c87"
+      },
+      {
+        "estimated_tokens": 5,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "9fd13143-8dbe-4db2-9744-9154f346b3ee"
+      },
+      {
+        "estimated_tokens": 7,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "49e9307b-d921-4e03-a605-ef0b62d08a93"
+      },
+      {
+        "estimated_tokens": 8,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "98f51de2-1d74-4f49-ae02-1d9088d573d4"
+      },
+      {
+        "estimated_tokens": 10,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "80678c8a-2755-40a9-9f4e-78156efb493e"
+      },
+      {
+        "estimated_tokens": 12,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "7ce7dc38-4188-4094-a54d-dbbe3f80cc77"
+      },
+      {
+        "estimated_tokens": 14,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "a7ff04e0-7b2a-4901-b8d0-21e7356e9c03"
+      },
+      {
+        "estimated_tokens": 15,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "7360562c-f83a-45e0-a2a5-05f7aabf5127"
+      },
+      {
+        "estimated_tokens": 16,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "ac96a629-fdca-4843-89a2-16fac18559bc"
+      },
+      {
+        "estimated_tokens": 17,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "c0a4851e-5e8f-4ab5-957b-4e55c879a8aa"
+      },
+      {
+        "estimated_tokens": 19,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "f5df4b53-1f2d-48a8-8645-d0ef1d4440f6"
+      },
+      {
+        "estimated_tokens": 20,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "cd2660eb-f025-4a91-b567-9699c4e4065e"
+      },
+      {
+        "estimated_tokens": 21,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "e3812dc8-2754-4ade-824f-5e6d7efaa573"
+      },
+      {
+        "estimated_tokens": 24,
+        "estimated_tokens_delta": 3,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "5bf81281-b655-4e20-8409-04df76dd1752"
+      },
+      {
+        "estimated_tokens": 26,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "97020b18-2840-4a70-aa37-76a03ebcc091"
+      },
+      {
+        "estimated_tokens": 28,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "7e217c3c-fe6f-4a9d-ab15-7ff3b77e44d7"
+      },
+      {
+        "estimated_tokens": 30,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "e0d31d21-5b77-48c8-8d52-4b7f5ea6f450"
+      },
+      {
+        "estimated_tokens": 32,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "85afb9ae-918e-4d61-8654-94153ab83900"
+      },
+      {
+        "estimated_tokens": 35,
+        "estimated_tokens_delta": 3,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "79c0e992-c66b-44d9-9541-14a66b153936"
+      },
+      {
+        "estimated_tokens": 37,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "11a1b5ed-9893-466f-aee8-133005227066"
+      },
+      {
+        "estimated_tokens": 38,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "65c5b0e4-d4bc-4d7e-ac14-fbd4fcc466a7"
+      },
+      {
+        "estimated_tokens": 39,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "8948b313-318e-40e2-8b39-e14fa18818fe"
+      },
+      {
+        "estimated_tokens": 40,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "dea4b2bc-8e14-42a8-a882-c4562d781682"
+      },
+      {
+        "estimated_tokens": 41,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "b4a7ad83-0f9a-43be-858c-571bfb04fdaf"
+      },
+      {
+        "estimated_tokens": 42,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "b245b7a3-1f61-4ae5-8070-e1c5f1a776c3"
+      },
+      {
+        "estimated_tokens": 44,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "5389cdf1-ab43-4fdd-b874-404caf78b671"
+      },
+      {
+        "estimated_tokens": 45,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "992df6c6-07f8-42d8-8455-a547cb75f16d"
+      },
+      {
+        "estimated_tokens": 46,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "07d7ae08-a03d-4761-b96c-435cfd7b3ccf"
+      },
+      {
+        "estimated_tokens": 47,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "2a08d792-dbaa-4b24-91f1-cfa56c63d4b2"
+      },
+      {
+        "estimated_tokens": 48,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "99511d4a-fd0e-4556-afea-a8ee378dc29b"
+      },
+      {
+        "estimated_tokens": 49,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "040eb86d-675d-4d1c-91f1-614106e5595a"
+      },
+      {
+        "estimated_tokens": 50,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "93f3dbf5-bedb-4faf-a221-58ddf4df1824"
+      },
+      {
+        "estimated_tokens": 52,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "69b7dcc0-19be-4108-8204-43f0a0f53a88"
+      },
+      {
+        "estimated_tokens": 53,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "9135309d-cb8e-44eb-88ac-af13368ed05c"
+      },
+      {
+        "estimated_tokens": 55,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "13f1e561-9b28-4f8f-b947-e1b58c332e9f"
+      },
+      {
+        "estimated_tokens": 56,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "da321294-7af1-412e-b0a7-744a789dc67d"
+      },
+      {
+        "estimated_tokens": 58,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "4ab9b81c-77e8-4bb6-a032-b053ef5a68a6"
+      },
+      {
+        "estimated_tokens": 59,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "47bceadd-d3b6-4c51-8c33-00de8506eb79"
+      },
+      {
+        "estimated_tokens": 60,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "0ff89da4-6417-4856-a6e4-36591d6df06e"
+      },
+      {
+        "estimated_tokens": 61,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "afa4958e-41f5-47bd-8eb5-0dbddf04516a"
+      },
+      {
+        "estimated_tokens": 62,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "ac4f7b97-ff9f-44ec-8e37-11e55e801dda"
+      },
+      {
+        "estimated_tokens": 63,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "92d3c3b1-0942-4b4a-90fd-015bd6005099"
+      },
+      {
+        "estimated_tokens": 64,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "a8d55429-1e11-4444-8912-d97a46c97bd3"
+      },
+      {
+        "estimated_tokens": 65,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "13e07e68-29eb-4988-9a4a-39f57a2d8b05"
+      },
+      {
+        "estimated_tokens": 66,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "40b73435-aa34-4cc8-abef-f6aa2932473b"
+      },
+      {
+        "estimated_tokens": 68,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "2bbd26fc-f293-4a2d-9a92-e6a2f8fa7654"
+      },
+      {
+        "estimated_tokens": 69,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "388cb126-a2ea-40ea-9873-08e96d194680"
+      },
+      {
+        "estimated_tokens": 70,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "c19d7c46-8e4c-4c4e-ab07-2c1841595dad"
+      },
+      {
+        "estimated_tokens": 72,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "3ca269c4-c667-4523-8303-4db6bf189324"
+      },
+      {
+        "estimated_tokens": 73,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "88da2526-bfb0-4221-b0e2-71df146fc545"
+      },
+      {
+        "estimated_tokens": 74,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "c9cd9a3b-b60b-4bb3-92dd-45937e94fdbb"
+      },
+      {
+        "estimated_tokens": 77,
+        "estimated_tokens_delta": 3,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "52fc09a8-a074-40fa-9291-fe211f67cc75"
+      },
+      {
+        "estimated_tokens": 79,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "22c86361-84e5-4824-8b07-274dacd94993"
+      },
+      {
+        "estimated_tokens": 80,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "2987cf3b-e061-48e5-bb06-41ab06a8b968"
+      },
+      {
+        "estimated_tokens": 81,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "b443358b-9ff5-4e3b-a9fb-fc0406a6d422"
+      },
+      {
+        "estimated_tokens": 82,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "a9a32cae-f2c6-4094-a8a7-256289bb95e3"
+      },
+      {
+        "estimated_tokens": 85,
+        "estimated_tokens_delta": 3,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "b7c983ff-90a7-4767-bca3-08352c8264fd"
+      },
+      {
+        "estimated_tokens": 86,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "5843f608-a75e-457a-bb9f-48eb4d277cb1"
+      },
+      {
+        "estimated_tokens": 87,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "64ff76da-7e56-467f-a4dd-5995b44596d6"
+      },
+      {
+        "estimated_tokens": 88,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "d2a5703f-7bc0-41f6-9009-b95dc208982e"
+      },
+      {
+        "estimated_tokens": 89,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "95e704fd-06bc-4f79-8f49-534027e7227a"
+      },
+      {
+        "estimated_tokens": 90,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "a20ea182-7e7e-47d3-9278-0009b9697b62"
+      },
+      {
+        "estimated_tokens": 91,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "3149c258-68a2-447e-8001-60309c070c53"
+      },
+      {
+        "estimated_tokens": 92,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "f809b076-8d12-4847-9921-a4825935ecf0"
+      },
+      {
+        "estimated_tokens": 93,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "e401341a-a37e-44b6-a5cb-51140827837f"
+      },
+      {
+        "estimated_tokens": 95,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "42f5ef0e-43fe-4ac3-abb2-71761090e050"
+      },
+      {
+        "estimated_tokens": 96,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "d4f57dae-ee44-4f6e-92b4-ca3b75c49efd"
+      },
+      {
+        "estimated_tokens": 97,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "2a0ef33d-f5a7-4880-b1b5-f974ec2df51e"
+      },
+      {
+        "estimated_tokens": 99,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "ce982471-05b5-474d-9d9e-8ac146dc146a"
+      },
+      {
+        "estimated_tokens": 100,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "c9bef5da-5da3-4d8d-b610-4eb8ccb4ddb2"
+      },
+      {
+        "estimated_tokens": 102,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "1fe51292-1f45-4898-8b6f-92806590d3d4"
+      },
+      {
+        "estimated_tokens": 104,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "070681d4-7310-4979-8daf-e94773a2c041"
+      },
+      {
+        "estimated_tokens": 105,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "197a8803-33b0-48c2-9032-f0d4dfecf57e"
+      },
+      {
+        "estimated_tokens": 107,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "3f70422f-43de-4238-8f43-fec386b8b298"
+      },
+      {
+        "estimated_tokens": 109,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "e912ac3d-30d6-434f-acc3-9a55a8496c1d"
+      },
+      {
+        "estimated_tokens": 111,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "3eea7de5-f7ad-4ad5-8624-b39db26e5296"
+      },
+      {
+        "estimated_tokens": 112,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "16cb5bb4-8674-49ff-93a3-693a0eb1db8b"
+      },
+      {
+        "estimated_tokens": 115,
+        "estimated_tokens_delta": 3,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "195afd8e-f0a4-4325-bb98-434664ea2361"
+      },
+      {
+        "estimated_tokens": 116,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "8e13f58a-d213-4942-b467-fcf34dd156c6"
+      },
+      {
+        "estimated_tokens": 117,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "bf2d6df0-957a-4c31-9782-3a70e157e5f5"
+      },
+      {
+        "estimated_tokens": 118,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "04f167bd-128f-4716-bd51-0051a07a41e4"
+      },
+      {
+        "estimated_tokens": 119,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "5d082be0-de43-4ce2-b995-23ffa846267e"
+      },
+      {
+        "estimated_tokens": 120,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "1dd11630-7651-4d3f-a434-eb4949235e85"
+      },
+      {
+        "estimated_tokens": 122,
+        "estimated_tokens_delta": 2,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "052e263b-f4c6-4c1b-b205-d12190232ea7"
+      },
+      {
+        "estimated_tokens": 123,
+        "estimated_tokens_delta": 1,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "bc9124a4-5eeb-4154-b827-bb13119e903e"
+      },
+      {
+        "estimated_tokens": 814,
+        "estimated_tokens_delta": 691,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "4869d25d-6d70-4dbe-9b2a-6d2e69e64f9b"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "signature": "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",
+              "thinking": "M1: \"Next steps:\" heading with content \"Ship the patch.\" — boundary says short heading with concrete content is not a hit → null.\nM2: \"Next steps:\" with no content → M01.\nM3: \"Deploy now. Deploy now.\" duplicated action, no new condition → M02.\nM4: \"Deploy now. Status: tests passed.\" recap adds status → boundary, not a hit → null.",
+              "type": "thinking"
+            }
+          ],
+          "context_management": null,
+          "id": "msg_sUTGDJfWYrofPZuJ3iS9PvQ9",
+          "model": "k3",
+          "role": "assistant",
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "not_available",
+            "input_tokens": 1451,
+            "output_tokens": 0,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "timestamp": "2026-08-21T09:30:15.579Z",
+        "type": "assistant",
+        "uuid": "979831c1-009c-46f4-9d2b-3194c6adda44"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "id": "tool_jJmJUBj5zc4A2pEBEG0TNlX1",
+              "input": {
+                "answers": [
+                  {
+                    "item_id": "M1",
+                    "pattern_id": null,
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M2",
+                    "pattern_id": "M01",
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M3",
+                    "pattern_id": "M02",
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M4",
+                    "pattern_id": null,
+                    "sublabel": null
+                  }
+                ],
+                "case_id": "SMOKE1"
+              },
+              "name": "StructuredOutput",
+              "type": "tool_use"
+            }
+          ],
+          "context_management": null,
+          "id": "msg_sUTGDJfWYrofPZuJ3iS9PvQ9",
+          "model": "k3",
+          "role": "assistant",
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "not_available",
+            "input_tokens": 1451,
+            "output_tokens": 0,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "timestamp": "2026-08-21T09:30:17.189Z",
+        "type": "assistant",
+        "uuid": "72c09cbd-5341-4b4d-b90b-e9b5192bef5e"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "content": "Structured output provided successfully",
+              "tool_use_id": "tool_jJmJUBj5zc4A2pEBEG0TNlX1",
+              "type": "tool_result"
+            }
+          ],
+          "role": "user"
+        },
+        "parent_tool_use_id": null,
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "timestamp": "2026-08-21T09:30:17.193Z",
+        "tool_use_result": "Structured output provided successfully",
+        "type": "user",
+        "uuid": "51baf578-fda1-41da-8818-10eb24b040a4"
+      },
+      {
+        "api_error_status": null,
+        "duration_api_ms": 5505,
+        "duration_ms": 5517,
+        "fast_mode_disabled_reason": "sdk_opt_in_required",
+        "fast_mode_state": "off",
+        "is_error": false,
+        "modelUsage": {
+          "k3[1m]": {
+            "cacheCreationInputTokens": 0,
+            "cacheReadInputTokens": 768,
+            "canonicalModel": "k3[1m]",
+            "contextWindow": 1000000,
+            "costUSD": 0.009449,
+            "inputTokens": 683,
+            "maxOutputTokens": 32000,
+            "outputTokens": 226,
+            "provider": "firstParty",
+            "webSearchRequests": 0
+          }
+        },
+        "num_turns": 2,
+        "permission_denials": [],
+        "result": "{\"case_id\":\"SMOKE1\",\"answers\":[{\"item_id\":\"M1\",\"pattern_id\":null,\"sublabel\":null},{\"item_id\":\"M2\",\"pattern_id\":\"M01\",\"sublabel\":null},{\"item_id\":\"M3\",\"pattern_id\":\"M02\",\"sublabel\":null},{\"item_id\":\"M4\",\"pattern_id\":null,\"sublabel\":null}]}",
+        "session_id": "1a9b0e9d-6150-47d1-b4e2-d3a1f34dd7aa",
+        "stop_reason": "tool_use",
+        "structured_output": {
+          "answers": [
+            {
+              "item_id": "M1",
+              "pattern_id": null,
+              "sublabel": null
+            },
+            {
+              "item_id": "M2",
+              "pattern_id": "M01",
+              "sublabel": null
+            },
+            {
+              "item_id": "M3",
+              "pattern_id": "M02",
+              "sublabel": null
+            },
+            {
+              "item_id": "M4",
+              "pattern_id": null,
+              "sublabel": null
+            }
+          ],
+          "case_id": "SMOKE1"
+        },
+        "subtype": "success",
+        "terminal_reason": "completed",
+        "time_to_request_ms": 18,
+        "total_cost_usd": 0.009449,
+        "ttft_ms": 3872,
+        "ttft_stream_ms": 1916,
+        "type": "result",
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 768,
+          "inference_geo": "not_available",
+          "input_tokens": 683,
+          "iterations": [],
+          "output_tokens": 226,
+          "output_tokens_details": {
+            "thinking_tokens": 88
+          },
+          "server_tool_use": {
+            "web_fetch_requests": 0,
+            "web_search_requests": 0
+          },
+          "service_tier": "standard",
+          "speed": "standard"
+        },
+        "uuid": "23dfd1bd-6c8e-4ae7-967d-1de321d0dd43"
+      }
+    ],
+    "kimi_slot": "1",
+    "reported_models": [
+      "k3[1m]"
+    ],
+    "reported_providers": [
+      "firstParty"
+    ],
+    "requested_model": "k3[1m]",
+    "stderr_tail": "claude-kimi: slot 1\n[claude-code:unrecognized_model] {\"model\":\"k3[1m]\",\"query_source\":\"generate_session_title\"}\n",
+    "stop_reason": "tool_use",
+    "structured_interface": "claude_cli_StructuredOutput_tool",
+    "usage": {
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 768,
+      "inference_geo": "not_available",
+      "input_tokens": 683,
+      "iterations": [],
+      "output_tokens": 226,
+      "output_tokens_details": {
+        "thinking_tokens": 88
+      },
+      "server_tool_use": {
+        "web_fetch_requests": 0,
+        "web_search_requests": 0
+      },
+      "service_tier": "standard",
+      "speed": "standard"
+    }
+  },
+  "path": "tool",
+  "profile": "kimi-subject",
+  "result": {
+    "assertions": [
+      {
+        "actual": "SMOKE1",
+        "assertion": "case_id",
+        "expected": "SMOKE1",
+        "pass": true
+      },
+      {
+        "actual": [
+          "M1",
+          "M2",
+          "M3",
+          "M4"
+        ],
+        "assertion": "item_ids",
+        "expected": [
+          "M1",
+          "M2",
+          "M3",
+          "M4"
+        ],
+        "pass": true
+      },
+      {
+        "actual": null,
+        "assertion": "M1.pattern_id",
+        "expected": null,
+        "pass": true
+      },
+      {
+        "actual": "M01",
+        "assertion": "M2.pattern_id",
+        "expected": "M01",
+        "pass": true
+      },
+      {
+        "actual": "M02",
+        "assertion": "M3.pattern_id",
+        "expected": "M02",
+        "pass": true
+      },
+      {
+        "actual": null,
+        "assertion": "M4.pattern_id",
+        "expected": null,
+        "pass": true
+      }
+    ],
+    "payload": {
+      "answers": [
+        {
+          "item_id": "M1",
+          "pattern_id": null,
+          "sublabel": null
+        },
+        {
+          "item_id": "M2",
+          "pattern_id": "M01",
+          "sublabel": null
+        },
+        {
+          "item_id": "M3",
+          "pattern_id": "M02",
+          "sublabel": null
+        },
+        {
+          "item_id": "M4",
+          "pattern_id": null,
+          "sublabel": null
+        }
+      ],
+      "case_id": "SMOKE1"
+    }
+  },
+  "started_at": "2026-08-21T09:30:11+00:00",
+  "status": "ok"
+}

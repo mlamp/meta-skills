@@ -1,0 +1,560 @@
+{
+  "assertions": [
+    {
+      "actual": "SMOKE1",
+      "assertion": "case_id",
+      "expected": "SMOKE1",
+      "pass": true
+    },
+    {
+      "actual": [
+        "M1",
+        "M2",
+        "M3",
+        "M4"
+      ],
+      "assertion": "item_ids",
+      "expected": [
+        "M1",
+        "M2",
+        "M3",
+        "M4"
+      ],
+      "pass": true
+    },
+    {
+      "actual": null,
+      "assertion": "M1.pattern_id",
+      "expected": null,
+      "pass": true
+    },
+    {
+      "actual": "M01",
+      "assertion": "M2.pattern_id",
+      "expected": "M01",
+      "pass": true
+    },
+    {
+      "actual": "M02",
+      "assertion": "M3.pattern_id",
+      "expected": "M02",
+      "pass": true
+    },
+    {
+      "actual": null,
+      "assertion": "M4.pattern_id",
+      "expected": null,
+      "pass": true
+    }
+  ],
+  "attempts": [
+    {
+      "attempt": 1,
+      "elapsed_seconds": 9.499,
+      "status": "ok"
+    }
+  ],
+  "case_id": "SMOKE1",
+  "key": {
+    "catalog_sha256": "0751e6455395c20d155c409d67419615b10f8386f4b206e7d824fd7ca1a0d3d8",
+    "harness_sha256": "39007aaf40200f524b9ab1c868c3f80540a9dea8b285cee23b9384f838d722d4",
+    "profile": "haiku-reader",
+    "profile_sha256": "d5d5ed21efdf38146acf3ebc9b2b56a9d21ba91b87b205489de40318a159cc85",
+    "suite_sha256": "0fe710b17eea0d9302cce550ecd37a84f5a7bb1f8ca678c99968e97ed6886b6a",
+    "tier": "smoke"
+  },
+  "model": {
+    "adapter": "claude_cli",
+    "configuration_isolation": "safe_mode_ephemeral_cwd_explicit_effort",
+    "events": [
+      {
+        "agents": [
+          "claude",
+          "Explore",
+          "general-purpose",
+          "Plan"
+        ],
+        "analytics_disabled": false,
+        "apiKeySource": "none",
+        "capabilities": [
+          "interrupt_receipt_v1",
+          "interrupt_cancel_queued_v1",
+          "msg_lifecycle_v1"
+        ],
+        "claude_code_version": "2.1.237",
+        "cwd": "/private/var/folders/4n/_9x49yyj2nbgwmg1qqljxqk00000gn/T/e09-tool-2yhnmwte",
+        "fast_mode_disabled_reason": "sdk_opt_in_required",
+        "fast_mode_state": "off",
+        "mcp_servers": [],
+        "messaging_socket_path": "/tmp/cc-socks/47920.sock",
+        "model": "claude-haiku-4-5-20251001",
+        "output_style": "default",
+        "permissionMode": "dontAsk",
+        "plugins": [
+          {
+            "name": "warp",
+            "path": "/Users/margus/.claude/plugins/cache/claude-code-warp/warp/2.1.0",
+            "source": "warp@claude-code-warp",
+            "version": "2.1.0"
+          }
+        ],
+        "product_feedback_disabled": false,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "skills": [],
+        "slash_commands": [],
+        "subtype": "init",
+        "tools": [
+          "StructuredOutput"
+        ],
+        "type": "system",
+        "uuid": "feb974c4-9cf5-4b07-a24e-bd38cacc8f70"
+      },
+      {
+        "estimated_tokens": 1,
+        "estimated_tokens_delta": 1,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "b9831fe8-13a0-4fa8-b5fe-c927d29944ff"
+      },
+      {
+        "rate_limit_info": {
+          "isUsingOverage": false,
+          "overageDisabledReason": "org_level_disabled",
+          "overageStatus": "rejected",
+          "rateLimitType": "five_hour",
+          "resetsAt": 1787315400,
+          "status": "allowed"
+        },
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "type": "rate_limit_event",
+        "uuid": "162951d9-d6b0-4807-80f9-2ea2b35ac02a"
+      },
+      {
+        "estimated_tokens": 34,
+        "estimated_tokens_delta": 33,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "a284c91c-2ce3-441c-a9ff-66d4dd5db822"
+      },
+      {
+        "estimated_tokens": 81,
+        "estimated_tokens_delta": 47,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "afeb4c51-2519-414a-8937-40a6bcce8a8e"
+      },
+      {
+        "estimated_tokens": 108,
+        "estimated_tokens_delta": 27,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "65723f6b-4bc1-4121-b3e0-e1984b809cb9"
+      },
+      {
+        "estimated_tokens": 132,
+        "estimated_tokens_delta": 24,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "5dc63271-52f8-4c25-a4d6-8200efee3ea4"
+      },
+      {
+        "estimated_tokens": 161,
+        "estimated_tokens_delta": 29,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "66a0619d-ac61-4c0c-b8ef-c2704af9053d"
+      },
+      {
+        "estimated_tokens": 193,
+        "estimated_tokens_delta": 32,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "93c004d2-709b-4675-8954-62b08dfb82d5"
+      },
+      {
+        "estimated_tokens": 228,
+        "estimated_tokens_delta": 35,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "66a48e95-276c-4f0b-8c8e-a19dbc789b88"
+      },
+      {
+        "estimated_tokens": 265,
+        "estimated_tokens_delta": 37,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "3afacb8c-0112-4227-9816-7c6aed185808"
+      },
+      {
+        "estimated_tokens": 297,
+        "estimated_tokens_delta": 32,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "9153453f-009d-4146-985d-3a148bd21963"
+      },
+      {
+        "estimated_tokens": 329,
+        "estimated_tokens_delta": 32,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "db67bb2e-e8d3-4a98-9c22-c98251a5103c"
+      },
+      {
+        "estimated_tokens": 356,
+        "estimated_tokens_delta": 27,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "8cf33177-3c25-4f18-af94-9ede5a13fcae"
+      },
+      {
+        "estimated_tokens": 375,
+        "estimated_tokens_delta": 19,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "51fd7a4c-ca19-42de-894a-aa525cb8797f"
+      },
+      {
+        "estimated_tokens": 382,
+        "estimated_tokens_delta": 7,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "d8097eab-36de-4c97-a205-14865bf3d353"
+      },
+      {
+        "estimated_tokens": 383,
+        "estimated_tokens_delta": 1,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "0ed22cb4-aa88-4ce2-a7dd-66e0a729e3ce"
+      },
+      {
+        "estimated_tokens": 412,
+        "estimated_tokens_delta": 29,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "4fc5117a-1ecb-44f6-9190-de8c9cd1e21f"
+      },
+      {
+        "estimated_tokens": 448,
+        "estimated_tokens_delta": 36,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "17694528-83ad-4527-aa22-37d5b961a431"
+      },
+      {
+        "estimated_tokens": 538,
+        "estimated_tokens_delta": 90,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "subtype": "thinking_tokens",
+        "type": "system",
+        "uuid": "15eb74e1-a205-4299-8c9e-f48268cdb90e"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "signature": "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",
+              "thinking": "Let me analyze each item against the smoke catalog:\n\n**M01 · Orphan label**: A heading or label has no content beneath it. Boundary: A short heading with concrete content is not a hit.\n\n**M02 · Duplicated action**: The same next action is stated twice without a new condition. Boundary: A recap that adds status is not a hit.\n\nNow let me classify each item:\n\n**M1**: \"Next steps:\\n\\nShip the patch.\"\n- \"Next steps:\" is a label/heading\n- \"Ship the patch.\" is concrete content beneath it\n- This is NOT an orphan label (M01) - there IS content beneath it\n- This is NOT duplicated action (M02) - there's only one action\n- Pattern: null\n\n**M2**: \"Next steps:\"\n- \"Next steps:\" is a label/heading\n- There is NO content beneath it\n- This IS an orphan label (M01)\n- Pattern: M01\n\n**M3**: \"Deploy now. Deploy now.\"\n- \"Deploy now.\" appears twice\n- This is the same action stated twice without a new condition\n- This IS duplicated action (M02)\n- Pattern: M02\n\n**M4**: \"Deploy now. Status: tests passed.\"\n- \"Deploy now.\" appears once\n- \"Status: tests passed.\" adds status information\n- According to the M02 boundary: \"A recap that adds status is not a hit\" - so this means if something adds status, it's NOT M02\n- This is NOT duplicated action (M02) - even though there are two statements, the second one adds status, which according to the boundary makes it not a hit\n- Pattern: null\n\nLet me double-check my analysis:\n\nM1: \"Next steps:\\n\\nShip the patch.\"\n- Has label + content = NOT M01, only 1 action = NOT M02 → null\nM2: \"Next steps:\" alone has no content following it, fitting M01 squarely.\nM3 repeats \"Deploy now.\" verbatim with nothing new added, matching M02.\nM4 pairs \"Deploy now.\" with a status update, which the boundary explicitly excludes from M02, so it stays null.",
+              "type": "thinking"
+            }
+          ],
+          "context_management": null,
+          "diagnostics": null,
+          "id": "msg_011CeFfAkp8MJHmjv9dpxjfp",
+          "model": "claude-haiku-4-5-20251001",
+          "role": "assistant",
+          "stop_details": null,
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 4585,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 4585,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "not_available",
+            "input_tokens": 9,
+            "output_tokens": 1,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "request_id": "req_011CeFfAju4djQ6DD7eJbxee",
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "timestamp": "2026-08-21T09:29:55.816Z",
+        "type": "assistant",
+        "uuid": "28a17087-843f-4625-a493-1251bbb8b8ed"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "caller": {
+                "type": "direct"
+              },
+              "id": "toolu_01VpyJB6kC4wsMRURA1m3Cun",
+              "input": {
+                "answers": [
+                  {
+                    "item_id": "M1",
+                    "pattern_id": null,
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M2",
+                    "pattern_id": "M01",
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M3",
+                    "pattern_id": "M02",
+                    "sublabel": null
+                  },
+                  {
+                    "item_id": "M4",
+                    "pattern_id": null,
+                    "sublabel": null
+                  }
+                ],
+                "case_id": "SMOKE1"
+              },
+              "name": "StructuredOutput",
+              "type": "tool_use"
+            }
+          ],
+          "context_management": null,
+          "diagnostics": null,
+          "id": "msg_011CeFfAkp8MJHmjv9dpxjfp",
+          "model": "claude-haiku-4-5-20251001",
+          "role": "assistant",
+          "stop_details": null,
+          "stop_reason": null,
+          "stop_sequence": null,
+          "type": "message",
+          "usage": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 4585,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 4585,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "not_available",
+            "input_tokens": 9,
+            "output_tokens": 1,
+            "service_tier": "standard"
+          }
+        },
+        "parent_tool_use_id": null,
+        "request_id": "req_011CeFfAju4djQ6DD7eJbxee",
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "timestamp": "2026-08-21T09:29:55.821Z",
+        "type": "assistant",
+        "uuid": "dc1fac16-7d90-4593-b59d-4c3d4ffeaed9"
+      },
+      {
+        "message": {
+          "content": [
+            {
+              "content": "Structured output provided successfully",
+              "tool_use_id": "toolu_01VpyJB6kC4wsMRURA1m3Cun",
+              "type": "tool_result"
+            }
+          ],
+          "role": "user"
+        },
+        "parent_tool_use_id": null,
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "timestamp": "2026-08-21T09:29:55.825Z",
+        "tool_use_result": "Structured output provided successfully",
+        "type": "user",
+        "uuid": "0212ac4e-69e7-41b9-93e9-972c0663a389"
+      },
+      {
+        "api_error_status": null,
+        "duration_api_ms": 9029,
+        "duration_ms": 7945,
+        "fast_mode_disabled_reason": "sdk_opt_in_required",
+        "fast_mode_state": "off",
+        "is_error": false,
+        "modelUsage": {
+          "claude-haiku-4-5-20251001": {
+            "cacheCreationInputTokens": 4585,
+            "cacheReadInputTokens": 0,
+            "canonicalModel": "claude-haiku-4-5",
+            "contextWindow": 200000,
+            "costUSD": 0.013931999999999998,
+            "inputTokens": 1097,
+            "maxOutputTokens": 32000,
+            "outputTokens": 733,
+            "provider": "firstParty",
+            "webSearchRequests": 0
+          }
+        },
+        "num_turns": 2,
+        "permission_denials": [],
+        "result": "{\"case_id\":\"SMOKE1\",\"answers\":[{\"item_id\":\"M1\",\"pattern_id\":null,\"sublabel\":null},{\"item_id\":\"M2\",\"pattern_id\":\"M01\",\"sublabel\":null},{\"item_id\":\"M3\",\"pattern_id\":\"M02\",\"sublabel\":null},{\"item_id\":\"M4\",\"pattern_id\":null,\"sublabel\":null}]}",
+        "session_id": "b6be8393-7fe5-4552-86f9-38d4d4c15b2b",
+        "stop_reason": "tool_use",
+        "structured_output": {
+          "answers": [
+            {
+              "item_id": "M1",
+              "pattern_id": null,
+              "sublabel": null
+            },
+            {
+              "item_id": "M2",
+              "pattern_id": "M01",
+              "sublabel": null
+            },
+            {
+              "item_id": "M3",
+              "pattern_id": "M02",
+              "sublabel": null
+            },
+            {
+              "item_id": "M4",
+              "pattern_id": null,
+              "sublabel": null
+            }
+          ],
+          "case_id": "SMOKE1"
+        },
+        "subtype": "success",
+        "terminal_reason": "completed",
+        "time_to_request_ms": 17,
+        "total_cost_usd": 0.013931999999999998,
+        "ttft_ms": 7918,
+        "ttft_stream_ms": 857,
+        "type": "result",
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 4585,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_creation_input_tokens": 4585,
+          "cache_read_input_tokens": 0,
+          "inference_geo": "not_available",
+          "input_tokens": 9,
+          "iterations": [
+            {
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 4585,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "cache_creation_input_tokens": 4585,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 9,
+              "output_tokens": 721,
+              "type": "message"
+            }
+          ],
+          "output_tokens": 721,
+          "output_tokens_details": {
+            "thinking_tokens": 542
+          },
+          "server_tool_use": {
+            "web_fetch_requests": 0,
+            "web_search_requests": 0
+          },
+          "service_tier": "standard",
+          "speed": "standard"
+        },
+        "uuid": "3620927a-4afc-43e0-953d-ee87613aae60"
+      }
+    ],
+    "kimi_slot": null,
+    "reported_models": [
+      "claude-haiku-4-5-20251001"
+    ],
+    "reported_providers": [
+      "firstParty"
+    ],
+    "requested_model": "claude-haiku-4-5-20251001",
+    "stderr_tail": "",
+    "stop_reason": "tool_use",
+    "structured_interface": "claude_cli_StructuredOutput_tool",
+    "usage": {
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 4585,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 4585,
+      "cache_read_input_tokens": 0,
+      "inference_geo": "not_available",
+      "input_tokens": 9,
+      "iterations": [
+        {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 4585,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_creation_input_tokens": 4585,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 9,
+          "output_tokens": 721,
+          "type": "message"
+        }
+      ],
+      "output_tokens": 721,
+      "output_tokens_details": {
+        "thinking_tokens": 542
+      },
+      "server_tool_use": {
+        "web_fetch_requests": 0,
+        "web_search_requests": 0
+      },
+      "service_tier": "standard",
+      "speed": "standard"
+    }
+  },
+  "payload": {
+    "answers": [
+      {
+        "item_id": "M1",
+        "pattern_id": null,
+        "sublabel": null
+      },
+      {
+        "item_id": "M2",
+        "pattern_id": "M01",
+        "sublabel": null
+      },
+      {
+        "item_id": "M3",
+        "pattern_id": "M02",
+        "sublabel": null
+      },
+      {
+        "item_id": "M4",
+        "pattern_id": null,
+        "sublabel": null
+      }
+    ],
+    "case_id": "SMOKE1"
+  },
+  "profile": "haiku-reader",
+  "rep": 1,
+  "started_at": "2026-08-21T09:29:46+00:00",
+  "status": "pass",
+  "tier": "smoke"
+}
