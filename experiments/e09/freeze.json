@@ -11,7 +11,7 @@
     "experiments/e09/reviews.md": "9735060b692925cb93f7d811023b30ae7b5e58cf93462d625033a41e7011fce7",
     "experiments/e09/substitutes.json": "9290f5ee3c0d7a03099f99d7cd8fa44c13e90ad31eb8245e90805b1efd0d4890",
     "experiments/e09/tasks.json": "c54b7dcdf992f4d32f4e22defaa9b57729e2dda21420552a1180331f45f014ee",
-    "experiments/e09/test_harness.py": "8fae1236e2527f751958133f92aa26de85a7035f40cc270be0ff6a1e64ea8248"
+    "experiments/e09/test_harness.py": "b792f659c8dc55075ffcd318eb7944f3a03405fd6d95383a0ac7887bb75c2ff2"
   },
   "frozen_at": "2026-08-21",
   "schema_version": 1

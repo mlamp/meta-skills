@@ -380,9 +380,11 @@ class RunnerSafetyTest(unittest.TestCase):
             finally:
                 H.RAW = old_raw
 
-    def test_no_measured_outputs_exist_in_design_pr(self):
-        measured = H.RAW / "measured"
-        self.assertFalse(measured.exists() and any(measured.iterdir()))
+    def test_freeze_excludes_run_outputs(self):
+        frozen = set(H.freeze_payload()["files"])
+        self.assertTrue(frozen)
+        self.assertFalse(any("/raw/" in path for path in frozen))
+        self.assertNotIn("ledger/runs.jsonl", frozen)
 
     def test_unselected_or_rejected_rule_sources_invalidate_contract(self):
         payload = {
