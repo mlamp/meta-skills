@@ -8,6 +8,7 @@ releases and keep publication separate from draft staging.
 from __future__ import annotations
 
 import argparse
+import base64
 import gzip
 import hashlib
 import io
@@ -24,6 +25,7 @@ import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
+from urllib.parse import quote
 
 
 SCHEMA_VERSION = 2
@@ -824,6 +826,8 @@ def verify_source(manifest_path: Path, plan, raw_root: Path, repo_root: Path):
 def verify_trusted_plan(plan, repo_root: Path):
     """Require numeric experiments to reproduce their plan from frozen code."""
     validate_plan(plan)
+    packager_root = Path(__file__).resolve(strict=True).parent.parent
+    supplied_root = repo_root.resolve()
     experiment = plan["experiment"]
     trusted_sources = {
         "experiments/e09/freeze.json": ("E-09", "experiments/e09/harness.py"),
@@ -836,11 +840,13 @@ def verify_trusted_plan(plan, repo_root: Path):
     expected_experiment, harness_relative = trusted
     if experiment != expected_experiment:
         raise ArtifactError("trusted experiment provenance is paired with the wrong experiment id")
-    harness = repo_file(repo_root, harness_relative)
+    if supplied_root != packager_root:
+        raise ArtifactError("trusted plan derivation refuses an external executable root")
+    harness = repo_file(packager_root, harness_relative)
     command = [sys.executable, str(harness), "artifact-plan-json"]
     if plan.get("supersedes") is not None:
         command.extend(("--supersedes", plan["supersedes"]))
-    output = run(command, cwd=repo_root, timeout=300)
+    output = run(command, cwd=packager_root, timeout=300)
     try:
         derived = strict_json_loads(output)
     except json.JSONDecodeError as exc:
@@ -868,6 +874,71 @@ def gh_json(repo: str, endpoint: str):
         return strict_json_loads(output)
     except json.JSONDecodeError as exc:
         raise ArtifactError(f"GitHub returned invalid JSON for {endpoint}") from exc
+
+
+def github_file_bytes(repo: str, commit: str, relative: str) -> bytes:
+    path = safe_relative(relative).as_posix()
+    document = gh_json(repo, f"contents/{quote(path, safe='/')}?ref={commit}")
+    if not isinstance(document, dict) or document.get("type") != "file" \
+            or document.get("encoding") != "base64" or not isinstance(document.get("content"), str):
+        raise ArtifactError(f"frozen commit file response is invalid: {path}")
+    encoded = "".join(document["content"].splitlines())
+    try:
+        data = base64.b64decode(encoded, validate=True)
+    except (ValueError, base64.binascii.Error) as exc:
+        raise ArtifactError(f"frozen commit file is not valid base64: {path}") from exc
+    if not isinstance(document.get("size"), int) or isinstance(document["size"], bool) \
+            or document["size"] != len(data):
+        raise ArtifactError(f"frozen commit file size differs: {path}")
+    git_blob_sha = hashlib.sha1(
+        b"blob " + str(len(data)).encode() + b"\0" + data,
+        usedforsecurity=False,
+    ).hexdigest()
+    if document.get("sha") != git_blob_sha:
+        raise ArtifactError(f"frozen commit path is linked or differs from its Git blob: {path}")
+    return data
+
+
+def verify_remote_frozen_source(manifest):
+    repo = manifest["repository"]["name"]
+    commit = manifest["frozen_commit"]
+    if manifest.get("packager_commit") != commit:
+        raise ArtifactError("packager_commit must equal frozen_commit")
+    provenance_index = manifest["provenance_index"]
+    index_bytes = github_file_bytes(repo, commit, provenance_index)
+    index_sha256 = sha256_bytes(index_bytes)
+    if manifest["freeze_sha256"] != index_sha256:
+        raise ArtifactError("manifest freeze_sha256 differs from the remote frozen provenance index")
+    try:
+        index = strict_json_loads(index_bytes)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise ArtifactError("remote frozen provenance index is not valid JSON") from exc
+    frozen_files = index.get("files") if isinstance(index, dict) else None
+    validate_hash_map(frozen_files, "remote frozen provenance index files")
+    expected_provenance = {**frozen_files, provenance_index: index_sha256}
+    if manifest["provenance"] != expected_provenance:
+        raise ArtifactError("manifest provenance differs from the remote frozen provenance index")
+    source_bytes = {provenance_index: index_bytes}
+    for relative, expected_sha256 in sorted(manifest["provenance"].items()):
+        data = index_bytes if relative == provenance_index else github_file_bytes(
+            repo, commit, relative
+        )
+        source_bytes[relative] = data
+        if sha256_bytes(data) != expected_sha256:
+            raise ArtifactError(f"manifest provenance differs from remote frozen commit: {relative}")
+    policy_source = manifest["sanitization_policy_source"]
+    try:
+        policy_document = strict_json_loads(source_bytes[policy_source])
+        expected_policy = {
+            "credential_env_names": policy_document["credential_env_names"],
+            "forbidden_patterns": policy_document["forbidden_patterns"],
+        }
+    except (json.JSONDecodeError, UnicodeDecodeError, KeyError, TypeError) as exc:
+        raise ArtifactError("remote frozen sanitization policy source is invalid") from exc
+    expected_policy_sha256 = sha256_bytes(canonical(expected_policy).encode())
+    if manifest["sanitization"]["policy_sha256"] != expected_policy_sha256:
+        raise ArtifactError("manifest sanitizer policy differs from the remote frozen policy source")
+    return True
 
 
 def gh_paginated_json(repo: str, endpoint: str):
@@ -1110,6 +1181,7 @@ def download_and_verify(
     tag = manifest["release"]["tag"]
     repository = verify_repository_identity(manifest)
     commit_is_on_default_branch(repo, manifest["frozen_commit"], repository)
+    verify_remote_frozen_source(manifest)
     release = gh_json(repo, f"releases/tags/{tag}")
     if release.get("draft") or release.get("immutable") is not True:
         raise ArtifactError("release is not published and immutable")

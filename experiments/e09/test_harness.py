@@ -245,6 +245,24 @@ class StructuredInterfaceTest(unittest.TestCase):
              self.assertRaisesRegex(H.FormatError, "exactly one required tool call"):
             H.call_deepinfra_tool(profile, "prompt", {"type": "object"})
 
+    def test_deepinfra_malformed_http_json_is_nonretryable_format_failure(self):
+        profile = {
+            "api_base": "https://example.invalid",
+            "timeout_seconds": 1,
+            "credential_env": "TEST_KEY",
+        }
+        response = mock.MagicMock()
+        response.__enter__.return_value.read.return_value = b'{"value":1,"value":2}'
+        with mock.patch.object(H, "credential", return_value="secret"), \
+             mock.patch.object(H.urllib.request, "urlopen", return_value=response), \
+             self.assertRaisesRegex(H.FormatError, "invalid strict JSON"):
+            H.deepinfra_request(profile, {"test": True})
+        failure = H.FormatError("bad format")
+        with mock.patch.object(H, "call_tool", side_effect=failure) as caller, \
+             self.assertRaises(H.FormatError):
+            H.run_with_transport_retry({}, "prompt", {})
+        caller.assert_called_once()
+
 
 class MatcherAndMetricTest(unittest.TestCase):
     def test_matcher_sets_are_exactly_disjoint(self):
@@ -339,6 +357,49 @@ class MatcherAndMetricTest(unittest.TestCase):
 
 
 class RunnerSafetyTest(unittest.TestCase):
+    def write_valid_reader_smoke(self, namespace, profile_name="haiku-reader"):
+        case = H.load_json(H.DATA_FILES["cold_reader_cases.json"])["smoke"]["case"]
+        payload = {
+            "case_id": case["id"],
+            "answers": [{**row, "sublabel": None} for row in case["expected"]],
+        }
+        assertions = H.grade_case(case, payload)
+        _, key = H.cold_reader_namespace("smoke", profile_name)
+        timestamp = "2026-08-24T00:00:00+00:00"
+        profile = H.profile_map()[profile_name]
+        record = {
+            "profile": profile_name,
+            "tier": "smoke",
+            "rep": 1,
+            "case_id": case["id"],
+            "started_at": timestamp,
+            "key": key,
+            "status": "pass",
+            "payload": payload,
+            "assertions": assertions,
+            "model": {
+                "requested_model": profile["model"],
+                "reported_models": [profile["reported_identity_required"]],
+                "reported_providers": [profile["reported_provider_required"]],
+            },
+            "attempts": [{"attempt": 1, "status": "ok", "elapsed_seconds": 0}],
+        }
+        H.write_json_atomic(
+            namespace / profile_name / "rep-1" / f"{case['id']}.json", record
+        )
+        H.write_json_atomic(namespace / "summary.json", {
+            "type": "cold_reader",
+            "tier": "smoke",
+            "profile": profile_name,
+            "key": key,
+            "started_calls": 1,
+            "passed": True,
+            "assertions": len(assertions),
+            "failed_assertions": 0,
+            "errors": 0,
+            "completed_at": timestamp,
+        })
+
     def write_valid_adapter_smoke(self, namespace):
         profiles = H.profile_map()
         case = H.load_json(H.DATA_FILES["cold_reader_cases.json"])["smoke"]["case"]
@@ -573,7 +634,7 @@ class RunnerSafetyTest(unittest.TestCase):
         self.assertEqual(row, expected)
         H.artifact_store.validate_e09_result_row(row, e09_manifest())
 
-    def test_smoke_attempts_are_repeatable_and_pass_lookup_is_explicit(self):
+    def test_smoke_attempts_are_repeatable_and_latest_selection_does_not_read_summary(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp) / "smoke"
             self.assertEqual(H.next_smoke_attempt(base).name, "attempt-001")
@@ -584,11 +645,11 @@ class RunnerSafetyTest(unittest.TestCase):
             second = base / "attempt-002"
             second.mkdir()
             H.write_json_atomic(second / "summary.json", {"passed": True})
-            self.assertEqual(H.passed_smoke_attempt(base), second)
+            self.assertEqual(H.latest_smoke_attempt(base), second)
             third = base / "attempt-003"
             third.mkdir()
             H.write_json_atomic(third / "summary.json", {"passed": False})
-            self.assertIsNone(H.passed_smoke_attempt(base))
+            self.assertEqual(H.latest_smoke_attempt(base), third)
 
     def test_adapter_smoke_gate_revalidates_records_not_summary_claims(self):
         with tempfile.TemporaryDirectory(dir=H.ROOT) as tmp:
@@ -605,6 +666,23 @@ class RunnerSafetyTest(unittest.TestCase):
             with self.assertRaisesRegex(H.HarnessError, "summary differs"):
                 H.validate_adapter_smoke_evidence(namespace)
 
+    def test_reader_smoke_gate_validates_namespace_before_summary(self):
+        with tempfile.TemporaryDirectory(dir=H.ROOT) as tmp:
+            namespace = Path(tmp) / "attempt-001"
+            self.write_valid_reader_smoke(namespace)
+            self.assertTrue(H.validate_reader_smoke_evidence(
+                namespace, "haiku-reader", require_pass=True
+            )["passed"])
+            outside = Path(tmp) / "outside.json"
+            outside.write_text("{}\n", encoding="utf-8")
+            summary = namespace / "summary.json"
+            summary.unlink()
+            summary.symlink_to(outside)
+            with self.assertRaisesRegex(H.HarnessError, "symlink"):
+                H.validate_reader_smoke_evidence(
+                    namespace, "haiku-reader", require_pass=True
+                )
+
     def test_qualification_namespace_rejects_redirected_parent(self):
         with tempfile.TemporaryDirectory(dir=H.ROOT) as tmp:
             base = Path(tmp)
@@ -616,6 +694,32 @@ class RunnerSafetyTest(unittest.TestCase):
             with self.assertRaisesRegex(H.HarnessError, "redirected parent"):
                 H.validate_qualification_evidence(
                     {}, linked_parent / "qualification", "haiku-reader"
+                )
+
+    def test_new_qualification_namespace_rejects_redirected_parent(self):
+        with tempfile.TemporaryDirectory(dir=H.ROOT) as tmp:
+            base = Path(tmp)
+            real = base / "real"
+            real.mkdir()
+            linked_parent = base / "redirected"
+            linked_parent.symlink_to(real, target_is_directory=True)
+            with self.assertRaisesRegex(H.HarnessError, "symlink"):
+                H.ensure_local_namespace(
+                    linked_parent / "qualification", "qualification evidence"
+                )
+            self.assertFalse((real / "qualification").exists())
+
+    def test_partial_qualification_namespace_stops_before_any_call(self):
+        with tempfile.TemporaryDirectory(dir=H.ROOT) as tmp:
+            namespace = Path(tmp) / "qualification"
+            namespace.mkdir()
+            self.assertIsNone(H.validated_qualification_summary(
+                namespace, "haiku-reader", allow_empty=True
+            ))
+            H.write_json_atomic(namespace / "haiku-reader" / "rep-1" / "C0.json", {})
+            with self.assertRaisesRegex(H.HarnessError, "namespace is incomplete"):
+                H.validated_qualification_summary(
+                    namespace, "haiku-reader", allow_empty=True
                 )
 
     def test_dotenv_parser_never_evaluates_shell_text(self):
@@ -816,6 +920,36 @@ class RunnerSafetyTest(unittest.TestCase):
                 H.write_json_atomic(path, {"status": "changed"})
                 with self.assertRaises(H.HarnessError):
                     H.verify_measured_record(path)
+            finally:
+                H.RAW = old_raw
+
+    def test_measured_manifest_recovers_both_append_crash_windows_without_repeating_call(self):
+        old_raw = H.RAW
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                H.RAW = Path(tmp) / "raw"
+                namespace = H.RAW / "measured" / "m-test"
+                missing = namespace / "interviews" / "missing.json"
+                H.start_measured_record(missing)
+                provider = mock.Mock(side_effect=AssertionError("provider must not run"))
+                interrupted = H.call_record(
+                    missing, provider, {"kind": "interview", "rep": 1}
+                )
+                self.assertEqual(interrupted["status"], "interrupted")
+                provider.assert_not_called()
+                H.validate_attempt_protocol(interrupted, "interviews/missing.json")
+                H.verify_measured_record(missing)
+
+                written = namespace / "interviews" / "written.json"
+                H.start_measured_record(written)
+                H.write_json_atomic(written, {"kind": "interview", "status": "ok"})
+                provider = mock.Mock(side_effect=AssertionError("provider must not run"))
+                recovered = H.call_record(
+                    written, provider, {"kind": "interview", "rep": 2}
+                )
+                self.assertEqual(recovered["status"], "ok")
+                provider.assert_not_called()
+                H.verify_measured_record(written)
             finally:
                 H.RAW = old_raw
 
@@ -1220,6 +1354,32 @@ class RunnerSafetyTest(unittest.TestCase):
         }
         with self.assertRaisesRegex(H.HarnessError, "reported provider differs"):
             H.validate_model_metadata(record, profile, "interviews/example.json")
+        deepseek = H.profile_map()["deepseek-reader"]
+        deepseek_record = {
+            "status": "pass",
+            "model": {
+                "provider": deepseek["provider"],
+                "requested_model": deepseek["model"],
+                "reported_models": [deepseek["reported_identity_required"]],
+                "reported_providers": [],
+            },
+        }
+        H.validate_model_metadata(deepseek_record, deepseek, "reader/example.json")
+        del deepseek_record["model"]["provider"]
+        with self.assertRaisesRegex(H.HarnessError, "configured provider metadata differs"):
+            H.validate_model_metadata(deepseek_record, deepseek, "reader/example.json")
+
+    def test_codex_minimum_version_is_required_before_exec(self):
+        profile = H.profile_map()["gpt-judge"]
+        old = mock.Mock(returncode=0, stdout="codex-cli 0.147.9\n", stderr="")
+        with mock.patch.object(H.subprocess, "run", return_value=old):
+            with self.assertRaisesRegex(H.HarnessError, "below required 0.148.0"):
+                H.require_codex_cli_version(profile, "/bin/codex")
+        current = mock.Mock(returncode=0, stdout="codex-cli 0.148.0\n", stderr="")
+        with mock.patch.object(H.subprocess, "run", return_value=current):
+            self.assertEqual(
+                H.require_codex_cli_version(profile, "/bin/codex"), "codex-cli 0.148.0"
+            )
 
     def test_finalize_requires_published_artifact_manifest_before_evidence(self):
         old_raw = H.RAW

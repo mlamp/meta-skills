@@ -796,21 +796,31 @@ class ReleaseGateTest(unittest.TestCase):
     def test_numeric_release_plan_is_rederived_by_its_frozen_harness(self):
         value = plan()
         retarget_manifest_experiment(value, "E-09")
+        root = Path(A.__file__).resolve().parent.parent
         with mock.patch.object(A, "repo_file", return_value=Path("/repo/experiments/e09/harness.py")), \
              mock.patch.object(A, "run", return_value=A.canonical(value)) as runner:
-            A.verify_trusted_plan(value, Path("/repo"))
+            A.verify_trusted_plan(value, root)
         runner.assert_called_once_with([
             A.sys.executable, "/repo/experiments/e09/harness.py", "artifact-plan-json",
-        ], cwd=Path("/repo"), timeout=300)
+        ], cwd=root, timeout=300)
         changed = json.loads(json.dumps(value))
         changed["execution"]["retry_attempts"] = 1
         with mock.patch.object(A, "repo_file", return_value=Path("/repo/experiments/e09/harness.py")), \
              mock.patch.object(A, "run", return_value=A.canonical(value)), \
              self.assertRaisesRegex(A.ArtifactError, "differs from the frozen harness"):
-            A.verify_trusted_plan(changed, Path("/repo"))
+            A.verify_trusted_plan(changed, root)
         disguised = {**value, "experiment": "artifact-storage-smoke"}
         with self.assertRaisesRegex(A.ArtifactError, "wrong experiment id"):
             A.verify_trusted_plan(disguised, Path("/repo"))
+
+    def test_verifier_refuses_candidate_executable_root(self):
+        value = plan()
+        retarget_manifest_experiment(value, "E-09")
+        with tempfile.TemporaryDirectory() as name, \
+             mock.patch.object(A, "run") as runner, \
+             self.assertRaisesRegex(A.ArtifactError, "external executable root"):
+            A.verify_trusted_plan(value, Path(name))
+        runner.assert_not_called()
 
     def test_remote_verifier_binds_expected_repository_before_network(self):
         with tempfile.TemporaryDirectory() as name:
@@ -844,6 +854,99 @@ class ReleaseGateTest(unittest.TestCase):
                  mock.patch.object(A, "commit_is_on_default_branch", side_effect=A.ArtifactError("not contained")):
                 with self.assertRaisesRegex(A.ArtifactError, "not contained"):
                     A.download_and_verify(manifest, manifest_path)
+
+    def test_remote_file_fetch_rejects_resolved_symlink_bytes(self):
+        target = b"target contents\n"
+        symlink_blob = b"target.txt"
+        document = {
+            "type": "file",
+            "encoding": "base64",
+            "content": A.base64.b64encode(target).decode(),
+            "size": len(target),
+            "sha": A.hashlib.sha1(
+                b"blob " + str(len(symlink_blob)).encode() + b"\0" + symlink_blob,
+                usedforsecurity=False,
+            ).hexdigest(),
+        }
+        with mock.patch.object(A, "gh_json", return_value=document), \
+             self.assertRaisesRegex(A.ArtifactError, "linked"):
+            A.github_file_bytes("mlamp/meta-skills", "a" * 40, "linked.json")
+        regular = {
+            **document,
+            "sha": A.hashlib.sha1(
+                b"blob " + str(len(target)).encode() + b"\0" + target,
+                usedforsecurity=False,
+            ).hexdigest(),
+        }
+        with mock.patch.object(A, "gh_json", return_value=regular):
+            self.assertEqual(
+                A.github_file_bytes("mlamp/meta-skills", "a" * 40, "regular.json"),
+                target,
+            )
+
+    def test_remote_download_invokes_frozen_source_rebind_before_release_lookup(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            _, manifest_path = self.packed(root)
+            manifest = A.load_json(manifest_path)
+            with mock.patch.object(
+                A, "verify_repository_identity", return_value={"default_branch": "main"}
+            ), mock.patch.object(A, "commit_is_on_default_branch"), \
+                 mock.patch.object(
+                     A, "verify_remote_frozen_source",
+                     side_effect=A.ArtifactError("remote source sentinel"),
+                 ) as source, mock.patch.object(A, "gh_json") as release:
+                with self.assertRaisesRegex(A.ArtifactError, "remote source sentinel"):
+                    A.download_and_verify(manifest, manifest_path)
+            source.assert_called_once_with(manifest)
+            release.assert_not_called()
+
+    def test_remote_verifier_rebinds_manifest_to_frozen_commit_bytes(self):
+        commit = "a" * 40
+        policy_path = "experiments/e09/artifact-spec.json"
+        design_path = "experiments/e09/design.md"
+        freeze_path = "experiments/e09/freeze.json"
+        policy = {
+            "credential_env_names": ["SECRET"],
+            "forbidden_patterns": [{"id": "private", "regex": "PRIVATE"}],
+        }
+        sources = {
+            policy_path: (A.canonical(policy) + "\n").encode(),
+            design_path: b"frozen design\n",
+        }
+        freeze = {
+            "schema_version": 1,
+            "frozen_at": "2026-08-24",
+            "files": {path: A.sha256_bytes(data) for path, data in sources.items()},
+        }
+        sources[freeze_path] = (A.canonical(freeze) + "\n").encode()
+        manifest = {
+            "repository": {"name": "mlamp/meta-skills"},
+            "frozen_commit": commit,
+            "packager_commit": commit,
+            "freeze_sha256": A.sha256_bytes(sources[freeze_path]),
+            "provenance_index": freeze_path,
+            "provenance": {
+                **freeze["files"], freeze_path: A.sha256_bytes(sources[freeze_path]),
+            },
+            "sanitization_policy_source": policy_path,
+            "sanitization": {
+                "policy_sha256": A.sha256_bytes(A.canonical(policy).encode()),
+            },
+        }
+
+        def fetch(repo, requested_commit, relative):
+            self.assertEqual((repo, requested_commit), ("mlamp/meta-skills", commit))
+            return sources[relative]
+
+        with mock.patch.object(A, "github_file_bytes", side_effect=fetch):
+            self.assertTrue(A.verify_remote_frozen_source(manifest))
+            changed = {
+                **manifest,
+                "provenance": {**manifest["provenance"], design_path: "0" * 64},
+            }
+            with self.assertRaisesRegex(A.ArtifactError, "remote frozen provenance index"):
+                A.verify_remote_frozen_source(changed)
 
     def test_publish_checks_existing_tag_and_committed_copy_before_irreversible_edit(self):
         with tempfile.TemporaryDirectory() as name:

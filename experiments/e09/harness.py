@@ -687,7 +687,7 @@ def deepinfra_request(profile, body, method="POST", path="/chat/completions"):
         try:
             return strict_json_loads(response_bytes)
         except (json.JSONDecodeError, StrictJSONError) as exc:
-            raise TransportError("DeepInfra returned invalid strict JSON") from exc
+            raise FormatError("DeepInfra returned invalid strict JSON") from exc
     except urllib.error.HTTPError as exc:
         if exc.code in (401, 403):
             raise RequestError(f"DeepInfra HTTP {exc.code}: authentication failed") from exc
@@ -886,6 +886,9 @@ def validate_model_metadata(record, profile, relative: str):
         raise HarnessError(f"provider model metadata is invalid: {relative}")
     if metadata.get("requested_model") != profile.get("model"):
         raise HarnessError(f"provider requested model differs from its frozen profile: {relative}")
+    configured_provider = profile.get("provider")
+    if configured_provider is not None and metadata.get("provider") != configured_provider:
+        raise HarnessError(f"configured provider metadata differs from its frozen profile: {relative}")
     reported = metadata.get("reported_models")
     if not isinstance(reported, list) or any(not isinstance(value, str) for value in reported):
         raise HarnessError(f"provider reported model metadata is invalid: {relative}")
@@ -987,6 +990,19 @@ def cmd_validate(args):
     print("PASS inputs, schemas, matchers" + suffix)
 
 
+def require_codex_cli_version(profile, binary):
+    proc = subprocess.run([binary, "--version"], text=True, capture_output=True, timeout=30)
+    version_text = proc.stdout.strip() or proc.stderr.strip()
+    match = re.search(r"(\d+)\.(\d+)\.(\d+)", version_text)
+    actual = tuple(map(int, match.groups())) if match else (0, 0, 0)
+    required = tuple(map(int, profile.get("minimum_cli_version", "0.0.0").split(".")))
+    if proc.returncode or actual < required:
+        raise HarnessError(
+            f"codex CLI {version_text or 'unknown'} is below required {profile.get('minimum_cli_version')}"
+        )
+    return version_text
+
+
 def preflight_one(name, profile):
     adapter = profile["adapter"]
     if adapter in ("claude_cli", "kimi_cli"):
@@ -1001,12 +1017,8 @@ def preflight_one(name, profile):
         path = os.environ.get(profile.get("binary_env", "E09_CODEX_BIN")) or shutil.which("codex")
         if not path:
             raise HarnessError("codex is not installed")
-        proc = subprocess.run([path, "--version"], text=True, capture_output=True, timeout=30)
-        version_text = proc.stdout.strip() or proc.stderr.strip()
-        match = re.search(r"(\d+)\.(\d+)\.(\d+)", version_text)
-        actual = tuple(map(int, match.groups())) if match else (0, 0, 0)
-        required = tuple(map(int, profile.get("minimum_cli_version", "0.0.0").split(".")))
-        return {"profile": name, "ok": proc.returncode == 0 and actual >= required, "adapter": adapter,
+        version_text = require_codex_cli_version(profile, path)
+        return {"profile": name, "ok": True, "adapter": adapter,
                 "executable": Path(path).name, "version": version_text,
                 "minimum_version": profile.get("minimum_cli_version")}
     if adapter == "deepinfra_api":
@@ -1077,13 +1089,88 @@ def next_smoke_attempt(base: Path) -> Path:
     return base / f"attempt-{max(numbers, default=0) + 1:03d}"
 
 
-def passed_smoke_attempt(base: Path):
-    attempts = sorted(base.glob("attempt-*")) if base.exists() else []
-    if not attempts:
-        return None
-    latest = attempts[-1]
-    summary = latest / "summary.json"
-    return latest if summary.exists() and load_json(summary).get("passed") else None
+def latest_smoke_attempt(base: Path):
+    attempts = [
+        path for path in base.glob("attempt-*")
+        if re.fullmatch(r"attempt-\d{3}", path.name)
+    ] if base.exists() else []
+    return sorted(attempts)[-1] if attempts else None
+
+
+def validate_reader_smoke_evidence(namespace: Path, profile_name: str, require_pass=False):
+    validate_local_namespace(namespace, "reader smoke")
+    _, expected_key = cold_reader_namespace("smoke", profile_name)
+    expected_paths = {"summary.json", f"{profile_name}/rep-1/SMOKE1.json"}
+    try:
+        actual_paths = set(artifact_store.actual_regular_files(namespace))
+    except artifact_store.ArtifactError as exc:
+        raise HarnessError(str(exc)) from exc
+    if actual_paths != expected_paths:
+        raise HarnessError("reader smoke inventory differs from the frozen probe")
+    suite = load_json(DATA_FILES["cold_reader_cases.json"])
+    case = suite["smoke"]["case"]
+    relative = f"{profile_name}/rep-1/{case['id']}.json"
+    record = load_artifact_record(namespace, relative)
+    identity_fields = {"profile", "tier", "rep", "case_id", "started_at", "key", "status"}
+    if not isinstance(record, dict) or not identity_fields <= set(record) \
+            or record["profile"] != profile_name or record["tier"] != "smoke" \
+            or not same_json(record["rep"], 1) or record["case_id"] != case["id"] \
+            or not same_json(record["key"], expected_key) \
+            or record["status"] not in ("pass", "fail", "error"):
+        raise HarnessError("reader smoke record identity differs from the frozen probe")
+    started_time = parse_canonical_utc(record["started_at"], "reader smoke started_at")
+    if record["status"] in ("pass", "fail"):
+        if set(record) != identity_fields | {"payload", "assertions", "model", "attempts"}:
+            raise HarnessError("reader smoke record fields differ from the frozen probe")
+        schema_errors = validate_schema(record["payload"], case_schema(case))
+        assertions = grade_case(case, record["payload"])
+        expected_status = "pass" if all(item["pass"] for item in assertions) else "fail"
+        if schema_errors or not same_json(record["assertions"], assertions) \
+                or record["status"] != expected_status:
+            raise HarnessError("reader smoke result differs from regrading")
+        validate_model_metadata(record, profile_map()[profile_name], relative)
+        attempts = record["attempts"]
+        if not isinstance(attempts, list) or len(attempts) not in (1, 2):
+            raise HarnessError("reader smoke retry record is invalid")
+        for index, attempt in enumerate(attempts, 1):
+            expected_fields = {"attempt", "status", "elapsed_seconds"}
+            if isinstance(attempt, dict) and attempt.get("status") != "ok":
+                expected_fields.add("error")
+            if not isinstance(attempt, dict) or set(attempt) != expected_fields \
+                    or not same_json(attempt.get("attempt"), index) \
+                    or not isinstance(attempt.get("elapsed_seconds"), (int, float)) \
+                    or isinstance(attempt.get("elapsed_seconds"), bool) \
+                    or not math.isfinite(attempt["elapsed_seconds"]) \
+                    or attempt["elapsed_seconds"] < 0:
+                raise HarnessError("reader smoke retry record is invalid")
+        if attempts[-1]["status"] != "ok" \
+                or (len(attempts) == 2 and attempts[0]["status"] != "transport_error"):
+            raise HarnessError("reader smoke retry record is invalid")
+    else:
+        if set(record) != identity_fields | {"error_type", "error", "error_evidence"}:
+            raise HarnessError("reader smoke error record fields differ from the frozen probe")
+    summary = load_artifact_record(namespace, "summary.json")
+    completed_time = parse_canonical_utc(summary.get("completed_at"), "reader smoke completed_at") \
+        if isinstance(summary, dict) else None
+    expected_summary = {
+        "type": "cold_reader",
+        "tier": "smoke",
+        "profile": profile_name,
+        "key": expected_key,
+        "started_calls": 1,
+        "passed": record["status"] == "pass",
+        "assertions": len(record.get("assertions", [])),
+        "failed_assertions": sum(
+            1 for assertion in record.get("assertions", []) if not assertion["pass"]
+        ),
+        "errors": int(record["status"] == "error"),
+        "completed_at": summary.get("completed_at") if isinstance(summary, dict) else None,
+    }
+    if completed_time is None or started_time > completed_time or not same_json(summary, expected_summary):
+        raise HarnessError("reader smoke summary differs from revalidated record")
+    if require_pass and record["status"] != "pass":
+        raise HarnessError(f"current reader smoke has not passed for {profile_name}")
+    return summary
 
 
 def cold_reader_ledger_line(summary, namespace):
@@ -1252,6 +1339,34 @@ def validate_qualification_evidence(
     return expected_line
 
 
+def validated_qualification_summary(
+    namespace: Path, profile_name: str, require_pass=False, allow_empty=False
+):
+    if namespace.is_symlink():
+        validate_local_namespace(namespace, "qualification evidence")
+    if not namespace.exists():
+        if allow_empty:
+            return None
+        raise HarnessError(f"current cold-reader qualification has not passed for {profile_name}")
+    validate_local_namespace(namespace, "qualification evidence")
+    if not any(namespace.iterdir()):
+        if allow_empty:
+            return None
+        raise HarnessError(f"current cold-reader qualification has not passed for {profile_name}")
+    summary_path = namespace / "summary.json"
+    if not summary_path.exists():
+        raise HarnessError(f"qualification namespace is incomplete for {profile_name}")
+    try:
+        artifact_store.require_regular_file(summary_path, "qualification summary")
+    except artifact_store.ArtifactError as exc:
+        raise HarnessError(str(exc)) from exc
+    summary = load_json(summary_path)
+    validate_qualification_evidence(
+        summary, namespace, profile_name, require_pass=require_pass
+    )
+    return summary
+
+
 def run_with_transport_retry(profile, prompt, schema):
     attempts = []
     for attempt in (1, 2):
@@ -1297,8 +1412,10 @@ def cmd_cold_reader(args):
             namespace = next_smoke_attempt(base_namespace)
         else:
             smoke_base, _ = cold_reader_namespace("smoke", name)
-            if passed_smoke_attempt(smoke_base) is None:
+            smoke_namespace = latest_smoke_attempt(smoke_base)
+            if smoke_namespace is None:
                 raise HarnessError(f"qualification requires a current passing reader smoke for {name}")
+            validate_reader_smoke_evidence(smoke_namespace, name, require_pass=True)
             namespace = base_namespace
         summary_path = namespace / "summary.json"
         marker_path = namespace / "attempt.json"
@@ -1636,16 +1753,18 @@ def ensure_qualification_start_gate():
     allowed_run_ids = []
     for name in load_json(DATA_FILES["models.json"])["qualification_profiles"]:
         namespace, _ = cold_reader_namespace("qualification", name)
-        if namespace.exists():
-            allowed_prefixes.append(str(namespace.relative_to(ROOT)) + "/")
-            summary = namespace / "summary.json"
-            if summary.exists():
-                summary_payload = load_json(summary)
-                validate_qualification_evidence(summary_payload, namespace, name)
-                payload = ensure_qualification_summary_ledger(
-                    summary, summary_payload, namespace
-                )
-                allowed_run_ids.append(payload["ledger_run_id"])
+        ensure_local_namespace(namespace, "qualification evidence")
+        summary_payload = validated_qualification_summary(
+            namespace, name, allow_empty=True
+        )
+        if summary_payload is None:
+            continue
+        allowed_prefixes.append(str(namespace.relative_to(ROOT)) + "/")
+        summary = namespace / "summary.json"
+        payload = ensure_qualification_summary_ledger(
+            summary, summary_payload, namespace
+        )
+        allowed_run_ids.append(payload["ledger_run_id"])
     remaining = []
     ledger_path = str(LEDGER.relative_to(ROOT))
     for line in git("status", "--porcelain=v1", "--untracked-files=all").splitlines():
@@ -1659,22 +1778,26 @@ def ensure_qualification_start_gate():
         raise HarnessError("qualification found unrelated changes: " + " | ".join(remaining))
 
 
-def ensure_measured_namespace(namespace: Path):
+def ensure_local_namespace(namespace: Path, label: str):
     try:
         relative = namespace.relative_to(ROOT)
     except ValueError as exc:
-        raise HarnessError("measured namespace must be beneath the repository") from exc
+        raise HarnessError(f"{label} namespace must be beneath the repository") from exc
     current = ROOT
     for part in relative.parts:
         current = current / part
         if current.is_symlink():
-            raise HarnessError(f"measured namespace path contains a symlink: {current}")
+            raise HarnessError(f"{label} namespace path contains a symlink: {current}")
         if current.exists():
             if not current.is_dir():
-                raise HarnessError(f"measured namespace path is not a directory: {current}")
+                raise HarnessError(f"{label} namespace path is not a directory: {current}")
         else:
             current.mkdir(mode=0o755)
-    validate_artifact_namespace(namespace)
+    validate_local_namespace(namespace, label)
+
+
+def ensure_measured_namespace(namespace: Path):
+    ensure_local_namespace(namespace, "measured artifact")
 
 
 def ensure_measured_gate():
@@ -1688,11 +1811,8 @@ def ensure_measured_gate():
     for name in load_json(DATA_FILES["models.json"])["qualification_profiles"]:
         qualification_namespace, _ = cold_reader_namespace("qualification", name)
         summary_path = qualification_namespace / "summary.json"
-        if not summary_path.exists() or not load_json(summary_path).get("passed"):
-            raise HarnessError(f"current cold-reader qualification has not passed for {name}")
-        summary_payload = load_json(summary_path)
-        validate_qualification_evidence(
-            summary_payload, qualification_namespace, name, require_pass=True
+        summary_payload = validated_qualification_summary(
+            qualification_namespace, name, require_pass=True
         )
         summary = ensure_qualification_summary_ledger(
             summary_path, summary_payload, qualification_namespace
@@ -1700,7 +1820,7 @@ def ensure_measured_gate():
         qualification_prefixes.append(str(qualification_namespace.relative_to(ROOT)) + "/")
         qualification_run_ids.append(summary["ledger_run_id"])
     adapter_base, _ = adapter_smoke_namespace()
-    adapter_namespace = passed_smoke_attempt(adapter_base)
+    adapter_namespace = latest_smoke_attempt(adapter_base)
     if adapter_namespace is None:
         raise HarnessError("current measured-adapter smoke has not passed")
     validate_adapter_smoke_evidence(adapter_namespace)
@@ -1786,12 +1906,32 @@ def measured_manifest_rows(namespace: Path):
     return [strict_json_loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+def measured_record_state(path: Path):
+    namespace = measured_record_namespace(path)
+    if namespace is None:
+        return "untracked", None
+    relative = str(path.relative_to(namespace))
+    rows = [row for row in measured_manifest_rows(namespace) if row.get("path") == relative]
+    for row in rows:
+        validate_measured_manifest_row(namespace, row)
+    starts = [row for row in rows if row["event"] == "started"]
+    completions = [row for row in rows if row["event"] == "completed"]
+    if len(starts) > 1 or len(completions) > 1 or (completions and not starts):
+        raise HarnessError(f"measured call manifest has an invalid state for {relative}")
+    if completions:
+        return "completed", starts[0]
+    if starts:
+        return "started", starts[0]
+    return "new", None
+
+
 def start_measured_record(path: Path):
     namespace = measured_record_namespace(path)
     if namespace is None:
         return
     relative = str(path.relative_to(namespace))
-    if any(row.get("path") == relative for row in measured_manifest_rows(namespace)):
+    state, _ = measured_record_state(path)
+    if state != "new":
         raise HarnessError(f"measured call path was already started: {relative}")
     payload = {"event": "started", "path": relative, "started_at": utc_now()}
     append_jsonl(namespace / "record-manifest.jsonl", {
@@ -1805,6 +1945,13 @@ def complete_measured_record(path: Path):
     if namespace is None:
         return
     relative = str(path.relative_to(namespace))
+    state, _ = measured_record_state(path)
+    if state != "started":
+        raise HarnessError(f"measured call path is not awaiting completion: {relative}")
+    try:
+        artifact_store.require_regular_file(path, "measured call record")
+    except artifact_store.ArtifactError as exc:
+        raise HarnessError(str(exc)) from exc
     payload = {"event": "completed", "path": relative, "sha256": sha256(path)}
     append_jsonl(namespace / "record-manifest.jsonl", {
         "run_id": "record-complete-" + digest({"namespace": namespace.name, **payload}, 20),
@@ -1843,13 +1990,13 @@ def verify_measured_record(path: Path):
     if namespace is None:
         return
     relative = str(path.relative_to(namespace))
-    rows = [row for row in measured_manifest_rows(namespace) if row.get("path") == relative]
-    starts = [row for row in rows if row.get("event") == "started"]
-    completions = [row for row in rows if row.get("event") == "completed"]
-    if len(starts) != 1 or len(completions) != 1:
+    state, _ = measured_record_state(path)
+    if state != "completed":
         raise HarnessError(f"measured call manifest is incomplete for {relative}")
-    validate_measured_manifest_row(namespace, starts[0])
-    validate_measured_manifest_row(namespace, completions[0])
+    completions = [
+        row for row in measured_manifest_rows(namespace)
+        if row.get("path") == relative and row.get("event") == "completed"
+    ]
     if not path.exists() or completions[0].get("sha256") != sha256(path):
         raise HarnessError(f"measured call record differs from its manifest: {relative}")
 
@@ -1877,12 +2024,29 @@ def verify_measured_manifest(namespace: Path):
 
 
 def call_record(path, thunk, identity, finalize_record=None):
+    state, start_row = measured_record_state(path)
     if path.exists():
+        if state == "started":
+            complete_measured_record(path)
         verify_measured_record(path)
         existing = load_json(path)
         if existing.get("status") == "harness_error":
             raise HarnessError(f"recorded harness fault requires a corrected freeze: {path}")
         return existing
+    if state == "completed":
+        verify_measured_record(path)
+    if state == "started":
+        record = {
+            **identity,
+            "started_at": start_row["started_at"],
+            "status": "interrupted",
+            "error": "process interrupted after durable call start; provider call was not repeated",
+            "attempts": [],
+            "completed_at": utc_now(),
+        }
+        write_json_atomic(path, record)
+        complete_measured_record(path)
+        return record
     start_measured_record(path)
     record = {**identity, "started_at": utc_now()}
     attempts = []
@@ -2090,6 +2254,7 @@ def call_codex_schema(profile, prompt, schema):
     binary = os.environ.get(profile.get("binary_env", "E09_CODEX_BIN")) or shutil.which("codex")
     if not binary:
         raise HarnessError("codex is not installed")
+    version_text = require_codex_cli_version(profile, binary)
     with tempfile.TemporaryDirectory(prefix="e09-codex-") as tmp_name:
         tmp = Path(tmp_name)
         schema_path = tmp / "schema.json"
@@ -2121,11 +2286,10 @@ def call_codex_schema(profile, prompt, schema):
             except (json.JSONDecodeError, StrictJSONError):
                 continue
         completed = [event for event in events if event.get("type") == "turn.completed"]
-        version = subprocess.run([binary, "--version"], text=True, capture_output=True, timeout=30)
         return payload, {"requested_model": profile["model"], "reported_models": [],
                          "identity_evidence": "requested_model_plus_cli_version; CLI did not echo routed model",
                          "adapter": "codex_cli", "executable": Path(binary).name,
-                         "cli_version": version.stdout.strip() or version.stderr.strip(),
+                         "cli_version": version_text,
                          "usage": completed[-1].get("usage") if completed else None,
                          "events": events, "stderr_tail": proc.stderr[-1000:]}
 
@@ -2439,6 +2603,14 @@ def validate_attempt_protocol(record, relative: str):
             raise HarnessError(f"excluded task must not carry provider attempts: {relative}")
         if "result" in record:
             raise HarnessError(f"excluded task must not carry a result: {relative}")
+        return
+    if status == "interrupted":
+        if record.get("attempts") != [] \
+                or not isinstance(record.get("error"), str) or not record["error"] \
+                or "result" in record:
+            raise HarnessError(f"interrupted provider record is invalid: {relative}")
+        parse_canonical_utc(record.get("started_at"), f"interrupted record started_at: {relative}")
+        parse_canonical_utc(record.get("completed_at"), f"interrupted record completed_at: {relative}")
         return
     allowed_sequences = {
         ("ok",),
