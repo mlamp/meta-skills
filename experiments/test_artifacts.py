@@ -23,7 +23,13 @@ def plan():
         "frozen_commit": "a" * 40,
         "freeze_sha256": "b" * 64,
         "packager_commit": "a" * 40,
-        "provenance": {"design.md": "c" * 64},
+        "provenance": {
+            "artifact-spec.json": "e" * 64,
+            "design.md": "c" * 64,
+            "freeze.json": "b" * 64,
+        },
+        "provenance_index": "freeze.json",
+        "sanitization_policy_source": "artifact-spec.json",
         "schedule": {"test_sha256": "d" * 64},
         "expected_members": [
             {"path": "interviews/one.json", "kind": "interview"},
@@ -52,6 +58,19 @@ def pinned_legacy_rows():
     ledger = Path(__file__).resolve().parent.parent / "ledger" / "runs.jsonl"
     rows = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines() if line.strip()]
     return [row for row in rows if row.get("run_id") in A.LEGACY_ARTIFACTLESS_RUNS]
+
+
+def retarget_manifest_experiment(payload, experiment):
+    directory = experiment.lower().replace("-", "")
+    provenance = dict(payload["provenance"])
+    provenance[f"experiments/{directory}/freeze.json"] = provenance.pop("freeze.json")
+    provenance[f"experiments/{directory}/artifact-spec.json"] = provenance.pop("artifact-spec.json")
+    payload.update({
+        "experiment": experiment,
+        "provenance": provenance,
+        "provenance_index": f"experiments/{directory}/freeze.json",
+        "sanitization_policy_source": f"experiments/{directory}/artifact-spec.json",
+    })
 
 
 def write_test_ledger(path: Path, rows):
@@ -110,10 +129,11 @@ class ArtifactPackTest(unittest.TestCase):
                 A.pack(plan(), raw, root / "a.tar.gz", root / "a.json", root)
 
     def test_path_traversal_in_expected_inventory_is_rejected(self):
-        bad = plan()
-        bad["expected_members"] = [{"path": "../secret.json", "kind": "raw"}]
-        with self.assertRaisesRegex(A.ArtifactError, "unsafe"):
-            A.validate_plan(bad)
+        for path in ("../secret.json", r"..\secret.json", "C:/secret.json"):
+            bad = plan()
+            bad["expected_members"] = [{"path": path, "kind": "raw"}]
+            with self.assertRaisesRegex(A.ArtifactError, "unsafe"):
+                A.validate_plan(bad)
 
     def test_schema_version_and_release_names_are_strict(self):
         self.assertEqual(A.SCHEMA_VERSION, 2)
@@ -177,6 +197,42 @@ class ArtifactPackTest(unittest.TestCase):
             with self.assertRaisesRegex(A.ArtifactError, "sanitization pattern windows"):
                 A.pack(windows_plan, raw, root / "a.tar.gz", root / "a.json", root)
 
+    def test_every_nested_json_string_is_scanned_and_resource_overflow_fails_closed(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            raw = self.make_raw(root)
+            secret = "nested-secret"
+            (root / ".env").write_text(f"TEST_ARTIFACT_API_KEY={secret}\n", encoding="utf-8")
+            nested = secret
+            for _ in range(12):
+                nested = json.dumps(nested)
+            (raw / "interviews" / "one.json").write_text(json.dumps({"event": nested}), encoding="utf-8")
+            with self.assertRaisesRegex(A.ArtifactError, "configured credential"):
+                A.pack(plan(), raw, root / "a.tar.gz", root / "a.json", root)
+        with mock.patch.object(A, "MAX_DECODED_STRINGS", 1):
+            with self.assertRaisesRegex(A.ArtifactError, "resource limit"):
+                list(A.json_strings(["one", "two"]))
+
+    def test_source_rebind_pins_complete_sanitization_policy(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            _, manifest = self.pack_at(root, "one")
+            changed = plan()
+            changed["forbidden_patterns"][0]["regex"] = "(?!)"
+            with self.assertRaisesRegex(A.ArtifactError, "sanitization result differs"):
+                A.verify_source(manifest, changed, root / "raw", root)
+
+    def test_manifest_requires_explicit_supersedes(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            archive, manifest = self.pack_at(root, "one")
+            payload = A.load_json(manifest)
+            payload.pop("supersedes")
+            manifest.unlink()
+            A.write_json_exclusive(manifest, payload)
+            with self.assertRaisesRegex(A.ArtifactError, "requires supersedes"):
+                A.verify_local(manifest, archive)
+
     def test_raw_root_must_match_plan_and_must_not_be_a_symlink(self):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
@@ -227,7 +283,7 @@ class ArtifactPackTest(unittest.TestCase):
             A.verify_local(manifest, archive)
 
     def test_plan_requires_freeze_provenance_and_exact_counts(self):
-        for field in ("freeze_sha256", "provenance"):
+        for field in ("freeze_sha256", "provenance", "provenance_index", "sanitization_policy_source"):
             bad = plan()
             bad.pop(field)
             with self.assertRaisesRegex(A.ArtifactError, f"requires {field}"):
@@ -235,6 +291,10 @@ class ArtifactPackTest(unittest.TestCase):
         bad = plan()
         bad["expected_counts"] = {"interview": 2}
         with self.assertRaisesRegex(A.ArtifactError, "expected_counts"):
+            A.validate_plan(bad)
+        bad = plan()
+        bad["experiment"] = "E-09"
+        with self.assertRaisesRegex(A.ArtifactError, "noncanonical frozen source paths"):
             A.validate_plan(bad)
 
     def test_local_verifier_rejects_archive_mutation(self):
@@ -257,10 +317,15 @@ class ArtifactPackTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
             archive, manifest = self.pack_at(root, "one")
-            with tarfile.open(archive, "w:gz") as handle:
-                info = tarfile.TarInfo("../escape.json")
-                info.size = 2
-                handle.addfile(info, io.BytesIO(b"{}"))
+            with archive.open("wb") as raw:
+                with gzip.GzipFile(filename="", mode="wb", fileobj=raw, compresslevel=9, mtime=0) as zipped:
+                    with tarfile.open(fileobj=zipped, mode="w", format=tarfile.PAX_FORMAT) as handle:
+                        info = tarfile.TarInfo("../escape.json")
+                        info.size = 2
+                        info.mode = 0o644
+                        info.uid = info.gid = info.mtime = 0
+                        info.uname = info.gname = ""
+                        handle.addfile(info, io.BytesIO(b"{}"))
             payload = A.load_json(manifest)
             payload["archive"]["sha256"] = A.sha256_file(archive)
             payload["archive"]["bytes"] = archive.stat().st_size
@@ -305,6 +370,42 @@ class ArtifactPackTest(unittest.TestCase):
             with self.assertRaisesRegex(A.ArtifactError, "metadata is not normalized"):
                 A.verify_local(manifest, archive)
 
+    def test_local_verifier_rejects_wrong_gzip_header_and_member_order(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            archive, manifest = self.pack_at(root, "one")
+            with tarfile.open(archive, "w:gz") as bundle:
+                info = tarfile.TarInfo("interviews/one.json")
+                info.size = 2
+                bundle.addfile(info, io.BytesIO(b"{}"))
+            payload = A.load_json(manifest)
+            payload["archive"].update({"sha256": A.sha256_file(archive), "bytes": archive.stat().st_size})
+            manifest.unlink()
+            A.write_json_exclusive(manifest, payload)
+            with self.assertRaisesRegex(A.ArtifactError, "gzip header"):
+                A.verify_local(manifest, archive)
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            archive, manifest = self.pack_at(root, "one")
+            payload = A.load_json(manifest)
+            contents = {row["path"]: (root / "raw" / row["path"]).read_bytes()
+                        for row in payload["inventory"]["members"]}
+            with archive.open("wb") as raw:
+                with gzip.GzipFile(filename="", mode="wb", fileobj=raw, compresslevel=9, mtime=0) as zipped:
+                    with tarfile.open(fileobj=zipped, mode="w", format=tarfile.PAX_FORMAT) as bundle:
+                        for relative in reversed(sorted(contents)):
+                            info = tarfile.TarInfo(relative)
+                            info.size = len(contents[relative])
+                            info.mode = 0o644
+                            info.uid = info.gid = info.mtime = 0
+                            info.uname = info.gname = ""
+                            bundle.addfile(info, io.BytesIO(contents[relative]))
+            payload["archive"].update({"sha256": A.sha256_file(archive), "bytes": archive.stat().st_size})
+            manifest.unlink()
+            A.write_json_exclusive(manifest, payload)
+            with self.assertRaisesRegex(A.ArtifactError, "member order"):
+                A.verify_local(manifest, archive)
+
 
 class ReleaseGateTest(unittest.TestCase):
     def packed(self, root):
@@ -340,7 +441,98 @@ class ReleaseGateTest(unittest.TestCase):
             root = Path(name)
             with mock.patch.object(A, "run", return_value="b" * 40):
                 with self.assertRaisesRegex(A.ArtifactError, "local HEAD"):
-                    A.require_local_frozen_head(root, "a" * 40)
+                    A.require_local_frozen_source(root, {
+                        "frozen_commit": "a" * 40, "provenance": {"design.md": "b" * 64},
+                    })
+
+    def test_release_commands_reject_uncommitted_packager_or_provenance_bytes(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            packager = root / "experiments" / "artifacts.py"
+            packager.parent.mkdir(parents=True)
+            packager_bytes = b"frozen packager\n"
+            packager.write_bytes(packager_bytes)
+            design = root / "design.md"
+            design.write_text("locally changed\n", encoding="utf-8")
+            spec_bytes = json.dumps({
+                "credential_env_names": ["TEST_ARTIFACT_API_KEY"],
+                "forbidden_patterns": [{"id": "private", "regex": "PRIVATE-MARKER"}],
+            }).encode()
+            (root / "artifact-spec.json").write_bytes(spec_bytes)
+            frozen_files = {
+                "artifact-spec.json": A.sha256_bytes(spec_bytes),
+                "design.md": A.sha256_bytes(b"frozen design\n"),
+                "experiments/artifacts.py": A.sha256_bytes(packager_bytes),
+            }
+            freeze_bytes = json.dumps({"files": frozen_files}).encode()
+            (root / "freeze.json").write_bytes(freeze_bytes)
+            policy = {
+                "credential_env_names": ["TEST_ARTIFACT_API_KEY"],
+                "forbidden_patterns": [{"id": "private", "regex": "PRIVATE-MARKER"}],
+            }
+            manifest = {
+                "frozen_commit": "a" * 40,
+                "freeze_sha256": A.sha256_bytes(freeze_bytes),
+                "provenance": {**frozen_files, "freeze.json": A.sha256_bytes(freeze_bytes)},
+                "provenance_index": "freeze.json",
+                "sanitization_policy_source": "artifact-spec.json",
+                "sanitization": {"policy_sha256": A.sha256_bytes(A.canonical(policy).encode())},
+            }
+            committed = {**{
+                "artifact-spec.json": spec_bytes,
+                "design.md": b"frozen design\n",
+                "experiments/artifacts.py": packager_bytes,
+            }, "freeze.json": freeze_bytes}
+            with mock.patch.object(A, "__file__", str(packager)), \
+                 mock.patch.object(A, "run", return_value="a" * 40), \
+                 mock.patch.object(A, "committed_file_bytes", side_effect=lambda root, commit, path: committed[path]):
+                with self.assertRaisesRegex(A.ArtifactError, "working file differs"):
+                    A.require_local_frozen_source(root, manifest)
+
+    def test_release_commands_bind_policy_and_provenance_to_frozen_index(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            packager = root / "experiments" / "artifacts.py"
+            packager.parent.mkdir(parents=True)
+            packager_bytes = b"frozen packager\n"
+            packager.write_bytes(packager_bytes)
+            policy = {
+                "credential_env_names": ["TEST_ARTIFACT_API_KEY"],
+                "forbidden_patterns": [{"id": "private", "regex": "PRIVATE-MARKER"}],
+            }
+            spec_bytes = json.dumps(policy).encode()
+            (root / "artifact-spec.json").write_bytes(spec_bytes)
+            frozen_files = {
+                "artifact-spec.json": A.sha256_bytes(spec_bytes),
+                "experiments/artifacts.py": A.sha256_bytes(packager_bytes),
+            }
+            freeze_bytes = json.dumps({"files": frozen_files}).encode()
+            (root / "freeze.json").write_bytes(freeze_bytes)
+            weakened = {"credential_env_names": ["TEST_ARTIFACT_API_KEY"], "forbidden_patterns": []}
+            manifest = {
+                "frozen_commit": "a" * 40,
+                "freeze_sha256": A.sha256_bytes(freeze_bytes),
+                "provenance": {**frozen_files, "freeze.json": A.sha256_bytes(freeze_bytes)},
+                "provenance_index": "freeze.json",
+                "sanitization_policy_source": "artifact-spec.json",
+                "sanitization": {"policy_sha256": A.sha256_bytes(A.canonical(weakened).encode())},
+            }
+            committed = {
+                "artifact-spec.json": spec_bytes,
+                "experiments/artifacts.py": packager_bytes,
+                "freeze.json": freeze_bytes,
+            }
+            with mock.patch.object(A, "__file__", str(packager)), \
+                 mock.patch.object(A, "run", return_value="a" * 40), \
+                 mock.patch.object(A, "committed_file_bytes", side_effect=lambda root, commit, path: committed[path]):
+                with self.assertRaisesRegex(A.ArtifactError, "sanitizer policy differs"):
+                    A.require_local_frozen_source(root, manifest)
+            missing = {**manifest, "provenance": {"freeze.json": A.sha256_bytes(freeze_bytes)}}
+            with mock.patch.object(A, "__file__", str(packager)), \
+                 mock.patch.object(A, "run", return_value="a" * 40), \
+                 mock.patch.object(A, "committed_file_bytes", side_effect=lambda root, commit, path: committed[path]):
+                with self.assertRaisesRegex(A.ArtifactError, "provenance differs"):
+                    A.require_local_frozen_source(root, missing)
 
     def test_server_assets_require_exact_names_sizes_and_digests(self):
         with tempfile.TemporaryDirectory() as name:
@@ -388,13 +580,22 @@ class ReleaseGateTest(unittest.TestCase):
             with self.assertRaisesRegex(A.ArtifactError, "multiple releases"):
                 A.release_by_tag_any_state("owner/repo", "tag")
 
+    def test_existing_tag_lookup_is_paginated_and_exact(self):
+        refs = [
+            {"ref": "refs/tags/tag-extra", "object": {"type": "commit", "sha": "b" * 40}},
+            {"ref": "refs/tags/tag", "object": {"type": "commit", "sha": "a" * 40}},
+        ]
+        with mock.patch.object(A, "gh_paginated_json", return_value=refs) as listing:
+            self.assertEqual(A.existing_tag_commit("owner/repo", "tag"), "a" * 40)
+        listing.assert_called_once_with("owner/repo", "git/matching-refs/tags/tag?per_page=100")
+
     def test_stage_resume_reuploads_exact_draft_assets(self):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
             archive, manifest_path = self.packed(root)
             release = self.release(manifest_path, archive)
             with mock.patch.object(A, "require_immutable_releases"), \
-                 mock.patch.object(A, "require_local_frozen_head"), \
+                 mock.patch.object(A, "require_local_frozen_source"), \
                  mock.patch.object(A, "verify_repository_identity", return_value={"default_branch": "main"}), \
                  mock.patch.object(A, "commit_is_on_default_branch"), \
                  mock.patch.object(A, "verify_superseded_release"), \
@@ -436,6 +637,63 @@ class ReleaseGateTest(unittest.TestCase):
                     )
             github.assert_not_called()
 
+    def test_remote_verifier_requires_frozen_commit_on_default_branch(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            _, manifest_path = self.packed(root)
+            manifest = A.load_json(manifest_path)
+            with mock.patch.object(A, "verify_repository_identity", return_value={"default_branch": "main"}), \
+                 mock.patch.object(A, "commit_is_on_default_branch", side_effect=A.ArtifactError("not contained")):
+                with self.assertRaisesRegex(A.ArtifactError, "not contained"):
+                    A.download_and_verify(manifest, manifest_path)
+
+    def test_publish_checks_existing_tag_and_committed_copy_before_irreversible_edit(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            archive, manifest_path = self.packed(root)
+            committed = root / "tracked" / "manifest.json"
+            release = self.release(manifest_path, archive)
+            with mock.patch.object(A, "require_immutable_releases"), \
+                 mock.patch.object(A, "require_local_frozen_source"), \
+                 mock.patch.object(A, "verify_repository_identity", return_value={"default_branch": "main"}), \
+                 mock.patch.object(A, "commit_is_on_default_branch"), \
+                 mock.patch.object(A, "verify_superseded_release"), \
+                 mock.patch.object(A, "release_by_tag_any_state", return_value=release), \
+                 mock.patch.object(A, "existing_tag_commit", return_value="b" * 40), \
+                 mock.patch.object(A, "run") as runner:
+                with self.assertRaisesRegex(A.ArtifactError, "tag points to the wrong commit"):
+                    A.publish_release(
+                        manifest_path, archive, "evidence-test-m-test", committed,
+                        plan(), root / "raw", root,
+                    )
+            runner.assert_not_called()
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            archive, manifest_path = self.packed(root)
+            committed = root / "tracked" / "manifest.json"
+            committed.parent.mkdir(parents=True)
+            committed.write_text("conflict\n", encoding="utf-8")
+            with mock.patch.object(A, "require_local_frozen_source"), \
+                 mock.patch.object(A, "require_immutable_releases") as immutable:
+                with self.assertRaisesRegex(A.ArtifactError, "committed manifest differs"):
+                    A.publish_release(
+                        manifest_path, archive, "evidence-test-m-test", committed,
+                        plan(), root / "raw", root,
+                    )
+            immutable.assert_not_called()
+
+    def test_committed_copy_rejects_redirected_parent_before_creation(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            source = root / "manifest.json"
+            source.write_text("{}\n", encoding="utf-8")
+            actual = root / "actual"
+            actual.mkdir()
+            (root / "redirected").symlink_to(actual, target_is_directory=True)
+            with self.assertRaisesRegex(A.ArtifactError, "contains a symlink"):
+                A.preflight_committed_copy(source, root / "redirected" / "copy.json", root)
+            self.assertFalse((actual / "copy.json").exists())
+
     def test_publish_retry_accepts_matching_immutable_release_and_copies_manifest(self):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
@@ -444,7 +702,7 @@ class ReleaseGateTest(unittest.TestCase):
             release = self.release(manifest_path, archive, draft=False, immutable=True)
             receipt = {"verified": True, "release_id": 42}
             with mock.patch.object(A, "require_immutable_releases"), \
-                 mock.patch.object(A, "require_local_frozen_head"), \
+                 mock.patch.object(A, "require_local_frozen_source"), \
                  mock.patch.object(A, "verify_repository_identity"), \
                  mock.patch.object(A, "commit_is_on_default_branch"), \
                  mock.patch.object(A, "release_by_tag_any_state", return_value=release), \
@@ -466,7 +724,7 @@ class ReleaseGateTest(unittest.TestCase):
             committed = root / "tracked" / "manifest.json"
             release = self.release(manifest_path, archive, draft=False, immutable=True)
             with mock.patch.object(A, "require_immutable_releases"), \
-                 mock.patch.object(A, "require_local_frozen_head"), \
+                 mock.patch.object(A, "require_local_frozen_source"), \
                  mock.patch.object(A, "verify_repository_identity"), \
                  mock.patch.object(A, "commit_is_on_default_branch"), \
                  mock.patch.object(A, "release_by_tag_any_state", return_value=release), \
@@ -490,7 +748,7 @@ class LedgerReferenceTest(unittest.TestCase):
             root = Path(name)
             _, local_manifest = ArtifactPackTest().pack_at(root, "ledger")
             payload = A.load_json(local_manifest)
-            payload["experiment"] = "E-99"
+            retarget_manifest_experiment(payload, "E-99")
             local_manifest.unlink()
             A.write_json_exclusive(local_manifest, payload)
             manifest_path = root / "experiments" / "e99" / "artifacts" / "m-test.json"
@@ -590,7 +848,7 @@ class LedgerReferenceTest(unittest.TestCase):
             root = Path(name)
             _, local_manifest = ArtifactPackTest().pack_at(root, "ledger")
             payload = A.load_json(local_manifest)
-            payload["experiment"] = "E-99"
+            retarget_manifest_experiment(payload, "E-99")
             local_manifest.unlink()
             A.write_json_exclusive(local_manifest, payload)
             manifest_path = root / "experiments" / "e99" / "artifacts" / "m-test.json"

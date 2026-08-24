@@ -6,6 +6,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 HERE = Path(__file__).resolve().parent
@@ -543,6 +544,39 @@ class RunnerSafetyTest(unittest.TestCase):
         interview = {"kind": "interview", **job}
         H.validate_record_identity(interview, {"kind": "interview", **job}, "interviews/example.json")
 
+    def test_successful_artifact_payloads_must_match_frozen_schemas(self):
+        valid = {"status": "ok", "result": "task output"}
+        H.validate_success_schema(valid, {"type": "string", "minLength": 1}, "tasks/T01.json")
+        with self.assertRaisesRegex(H.HarnessError, "frozen schema"):
+            H.validate_success_schema(
+                {"status": "ok", "result": {}}, H.contract_schema("control"), "interviews/rep-1.json"
+            )
+        task = H.load_json(H.DATA_FILES["tasks.json"])["tasks"][0]
+        schema = H.task_judge_schema(
+            task["id"], len(task["rubric"]["required"]), len(task["rubric"]["fatal"])
+        )
+        with self.assertRaisesRegex(H.HarnessError, "frozen schema"):
+            H.validate_success_schema({"status": "ok", "result": {}}, schema, "judgments/task/x.json")
+
+    def test_interview_derived_fields_are_recomputed_from_successful_payload(self):
+        record = {
+            "status": "ok",
+            "result": {"contract": "Lead with the outcome."},
+            "contract_lexical_tokens": 999,
+            "over_cap": False,
+            "contract_violations": [],
+        }
+        with mock.patch.object(H, "contract_violations", return_value=[]):
+            with self.assertRaisesRegex(H.HarnessError, "derived fields differ"):
+                H.validate_interview_derived_fields(record, "control", "interviews/rep-1.json")
+
+    def test_substitute_blind_requires_a_matching_successful_task(self):
+        task = {"status": "ok", "result": "candidate", "task_id": "T01"}
+        blind = H.digest({"text": task["result"], "task": task["task_id"]})
+        self.assertEqual(H.successful_task_for_blind([task], blind), task)
+        with self.assertRaisesRegex(H.HarnessError, "no matching successful task"):
+            H.successful_task_for_blind([task], "missing")
+
     def test_artifact_attempts_follow_the_exact_retry_protocol(self):
         H.validate_attempt_protocol({
             "kind": "task", "status": "ok", "result": "done",
@@ -584,6 +618,84 @@ class RunnerSafetyTest(unittest.TestCase):
         with self.assertRaisesRegex(H.HarnessError, "task schedule differs"):
             H.validate_artifact_schedules(metadata, interviews, tasks)
 
+    def test_artifact_metadata_binds_experiment_freeze_commit_and_schedule(self):
+        head = "a" * 40
+        metadata = {
+            "experiment": "E-09",
+            "freeze_sha256": H.sha256(H.E09 / "freeze.json"),
+            "base_commit": head,
+            "schedule": H.measured_schedule(),
+        }
+        H.validate_artifact_metadata(metadata, head)
+        for field, value in (("experiment", "E-08"), ("freeze_sha256", "0" * 64)):
+            changed = {**metadata, field: value}
+            with self.assertRaises(H.HarnessError):
+                H.validate_artifact_metadata(changed, head)
+
+    def test_artifact_namespace_rejects_root_or_child_symlinks_before_reads(self):
+        old_root = H.ROOT
+        with tempfile.TemporaryDirectory() as name:
+            try:
+                H.ROOT = Path(name)
+                real = H.ROOT / "real"
+                real.mkdir()
+                os.symlink(real, H.ROOT / "namespace")
+                with self.assertRaisesRegex(H.HarnessError, "symlink"):
+                    H.validate_artifact_namespace(H.ROOT / "namespace")
+                (H.ROOT / "namespace").unlink()
+                namespace = H.ROOT / "namespace"
+                namespace.mkdir()
+                target = H.ROOT / "outside.json"
+                target.write_text("{}\n", encoding="utf-8")
+                os.symlink(target, namespace / "linked.json")
+                with self.assertRaisesRegex(H.HarnessError, "symlink"):
+                    H.validate_artifact_namespace(namespace)
+            finally:
+                H.ROOT = old_root
+
+    def test_artifact_spec_cannot_redirect_e09_repository(self):
+        original = H.DATA_FILES["artifact-spec.json"]
+        with tempfile.TemporaryDirectory() as name:
+            changed = H.load_json(original)
+            changed["repository"] = {"id": 1, "name": "other/repo"}
+            path = Path(name) / "artifact-spec.json"
+            path.write_text(json.dumps(changed), encoding="utf-8")
+            H.DATA_FILES["artifact-spec.json"] = path
+            try:
+                with self.assertRaisesRegex(H.HarnessError, "canonical E-09 repository"):
+                    H.load_artifact_spec()
+            finally:
+                H.DATA_FILES["artifact-spec.json"] = original
+
+    def test_e09_remote_verification_passes_canonical_repository(self):
+        with mock.patch.object(H, "load_json", return_value={"manifest": True}), \
+             mock.patch.object(H.artifact_store, "download_and_verify", return_value={"verified": True}) as remote:
+            self.assertEqual(H.verify_published_artifact(Path("manifest.json")), {"verified": True})
+        remote.assert_called_once_with(
+            {"manifest": True}, Path("manifest.json"), expected_repository="mlamp/meta-skills"
+        )
+
+    def test_existing_compact_result_must_equal_recomputed_lines(self):
+        with tempfile.TemporaryDirectory() as name:
+            path = Path(name) / "result.json"
+            completed = "2026-08-24T00:00:00+00:00"
+            saved = {"schema_version": 2, "lines": [
+                {"run_id": "r-one", "completed_at": completed},
+                {"run_id": "r-two", "completed_at": completed},
+            ]}
+            H.write_json_atomic(path, saved)
+            existing, timestamp = H.load_existing_compact_result(path)
+            self.assertEqual(timestamp, completed)
+            H.write_or_verify_compact_result(path, saved, existing)
+            changed = {**saved, "lines": [{**saved["lines"][0], "fabricated": True}, saved["lines"][1]]}
+            with self.assertRaisesRegex(H.HarnessError, "differs from recomputed"):
+                H.write_or_verify_compact_result(path, changed, existing)
+            saved["lines"][0]["completed_at"] = "not-a-time"
+            saved["lines"][1]["completed_at"] = "not-a-time"
+            H.write_json_atomic(path, saved)
+            with self.assertRaisesRegex(H.HarnessError, "not ISO 8601"):
+                H.load_existing_compact_result(path)
+
     def test_measured_operations_require_the_commit_that_last_changed_freeze(self):
         old_frozen_commit = H.frozen_commit
         try:
@@ -622,6 +734,7 @@ class RunnerSafetyTest(unittest.TestCase):
         old_manifests = H.ARTIFACT_MANIFESTS
         old_gate = H.ensure_measured_gate
         old_verify = H.verify_measured_manifest
+        old_namespace_check = H.validate_artifact_namespace
         old_id = H.measured_id
         with tempfile.TemporaryDirectory() as tmp:
             try:
@@ -629,6 +742,7 @@ class RunnerSafetyTest(unittest.TestCase):
                 H.ARTIFACT_MANIFESTS = Path(tmp) / "manifests"
                 H.ensure_measured_gate = lambda: "a" * 40
                 H.verify_measured_manifest = lambda namespace: None
+                H.validate_artifact_namespace = lambda namespace: None
                 H.measured_id = lambda: "m-test"
                 with self.assertRaisesRegex(H.HarnessError, "published raw-artifact manifest is absent"):
                     H.cmd_finalize(None)
@@ -637,7 +751,53 @@ class RunnerSafetyTest(unittest.TestCase):
                 H.ARTIFACT_MANIFESTS = old_manifests
                 H.ensure_measured_gate = old_gate
                 H.verify_measured_manifest = old_verify
+                H.validate_artifact_namespace = old_namespace_check
                 H.measured_id = old_id
+
+    def test_pack_and_finalize_invoke_frozen_source_verifier(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plan = {"batch_id": "m-test", "release": {"tag": "evidence-e09-m-test"}}
+            manifest = {"archive": {"sha256": "a" * 64}}
+            paths = (
+                root / "staging" / "archive.tar.gz",
+                root / "staging" / "manifest.json",
+                root / "staging" / "plan.json",
+                root / "artifacts" / "m-test.json",
+            )
+            with mock.patch.object(H, "ROOT", root), \
+                 mock.patch.object(H, "RAW", root / "raw"), \
+                 mock.patch.object(H, "ensure_measured_gate", return_value="a" * 40), \
+                 mock.patch.object(H, "measured_id", return_value="m-test"), \
+                 mock.patch.object(H, "artifact_plan", return_value=plan), \
+                 mock.patch.object(H, "artifact_paths", return_value=paths), \
+                 mock.patch.object(H.artifact_store, "pack", return_value=manifest), \
+                 mock.patch.object(H.artifact_store, "require_local_frozen_source",
+                                   side_effect=H.artifact_store.ArtifactError("frozen sentinel")) as frozen, \
+                 mock.patch.object(H.artifact_store, "verify_source") as source:
+                with self.assertRaisesRegex(H.HarnessError, "frozen sentinel"):
+                    H.cmd_artifact_pack(mock.Mock(supersedes=None))
+            frozen.assert_called_once_with(root, manifest)
+            source.assert_not_called()
+
+            manifest_dir = root / "manifests"
+            H.write_json_atomic(manifest_dir / "m-test.json", {})
+            with mock.patch.object(H, "ROOT", root), \
+                 mock.patch.object(H, "RAW", root / "raw"), \
+                 mock.patch.object(H, "ARTIFACT_MANIFESTS", manifest_dir), \
+                 mock.patch.object(H, "ensure_measured_gate", return_value="a" * 40), \
+                 mock.patch.object(H, "measured_id", return_value="m-test"), \
+                 mock.patch.object(H, "validate_artifact_namespace"), \
+                 mock.patch.object(H, "verify_measured_manifest"), \
+                 mock.patch.object(H, "validate_artifact_binding", return_value=manifest), \
+                 mock.patch.object(H, "artifact_plan", return_value=plan), \
+                 mock.patch.object(H.artifact_store, "require_local_frozen_source",
+                                   side_effect=H.artifact_store.ArtifactError("frozen sentinel")) as frozen, \
+                 mock.patch.object(H, "verify_published_artifact") as remote:
+                with self.assertRaisesRegex(H.HarnessError, "frozen sentinel"):
+                    H.cmd_finalize(None)
+            frozen.assert_called_once_with(root, manifest)
+            remote.assert_not_called()
 
     def test_finalize_manifest_must_bind_current_batch_freeze_and_commit(self):
         old_id = H.measured_id
@@ -645,7 +805,11 @@ class RunnerSafetyTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             namespace = Path(tmp) / "raw" / "m-test"
             manifest_path = Path(tmp) / "manifest.json"
-            H.write_json_atomic(namespace / "metadata.json", {"base_commit": head})
+            H.write_json_atomic(namespace / "metadata.json", {
+                "experiment": "E-09",
+                "base_commit": head,
+                "freeze_sha256": H.sha256(H.E09 / "freeze.json"),
+            })
             spec = H.load_json(H.DATA_FILES["artifact-spec.json"])
             frozen = H.load_json(H.E09 / "freeze.json")
             try:
@@ -662,6 +826,8 @@ class RunnerSafetyTest(unittest.TestCase):
                         **frozen["files"],
                         "experiments/e09/freeze.json": H.sha256(H.E09 / "freeze.json"),
                     },
+                    "provenance_index": "experiments/e09/freeze.json",
+                    "sanitization_policy_source": "experiments/e09/artifact-spec.json",
                     "release": {
                         "tag": "evidence-e09-m-test",
                         "archive_asset_name": "m-test.raw.tar.gz",

@@ -30,6 +30,8 @@ COMMIT_RE = re.compile(r"[0-9a-f]{40}")
 REPOSITORY_RE = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 TAG_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 EXPERIMENT_RE = re.compile(r"E-[0-9]+")
+MAX_DECODED_STRINGS = 100_000
+MAX_DECODED_STRING_BYTES = 64 * 1024 * 1024
 LEGACY_ARTIFACTLESS_RUNS = {
     "r-20260817-4cccea322c": ("E-07", "f9d64f749a7fbb2604185f4d6d39085ae51c1b9e88dba80fb210c5a6fb95bc01"),
     "r-20260817-8fbcc01b2b": ("E-07", "0a3ca024718cf8f956bcf74f602962d16e2a15985e666d95381f63331e304bf5"),
@@ -162,6 +164,8 @@ def read_dotenv(path: Path) -> dict[str, str]:
 def safe_relative(value: str) -> PurePosixPath:
     if not isinstance(value, str) or not value:
         raise ArtifactError("artifact member path must be a non-empty string")
+    if "\\" in value or ":" in value:
+        raise ArtifactError(f"unsafe artifact member path: {value!r}")
     path = PurePosixPath(value)
     if path.is_absolute() or value != path.as_posix() or any(part in ("", ".", "..") for part in path.parts):
         raise ArtifactError(f"unsafe artifact member path: {value!r}")
@@ -223,6 +227,16 @@ def validate_schedule(value):
         if not isinstance(name, str) or not name.endswith("_sha256"):
             raise ArtifactError("schedule keys must end in _sha256")
         require_sha256(digest, f"schedule.{name}")
+
+
+def validate_frozen_source_paths(experiment: str, provenance_index: str, policy_source: str):
+    if EXPERIMENT_RE.fullmatch(experiment) is None:
+        return
+    directory = experiment.lower().replace("-", "")
+    expected_index = f"experiments/{directory}/freeze.json"
+    expected_policy = f"experiments/{directory}/artifact-spec.json"
+    if provenance_index != expected_index or policy_source != expected_policy:
+        raise ArtifactError("numeric experiment uses noncanonical frozen source paths")
 
 
 def validate_execution(execution, exclusions):
@@ -348,24 +362,50 @@ def read_regular_bytes(path: Path) -> bytes:
         return handle.read()
 
 
-def json_strings(value, remaining_decodes=4, seen=None):
-    seen = seen or set()
-    if isinstance(value, str):
-        yield value
-        candidate = value.strip()
-        if remaining_decodes and candidate[:1] in ("{", "[", '"') and candidate not in seen:
-            try:
-                decoded = json.loads(candidate)
-            except json.JSONDecodeError:
-                return
-            yield from json_strings(decoded, remaining_decodes - 1, seen | {candidate})
-    elif isinstance(value, dict):
-        for key, item in value.items():
-            yield from json_strings(key, remaining_decodes, seen)
-            yield from json_strings(item, remaining_decodes, seen)
-    elif isinstance(value, list):
-        for item in value:
-            yield from json_strings(item, remaining_decodes, seen)
+def json_strings(value):
+    stack = [value]
+    decoded_candidates = set()
+    seen_containers = set()
+    retained_containers = []
+    string_count = 0
+    string_bytes = 0
+    while stack:
+        current = stack.pop()
+        if isinstance(current, str):
+            string_count += 1
+            string_bytes += len(current.encode("utf-8"))
+            if string_count > MAX_DECODED_STRINGS or string_bytes > MAX_DECODED_STRING_BYTES:
+                raise ArtifactError("decoded JSON string scan exceeds the fail-closed resource limit")
+            yield current
+            candidate = current.strip()
+            if candidate[:1] in ("{", "[", '"') and candidate not in decoded_candidates:
+                decoded_candidates.add(candidate)
+                try:
+                    stack.append(json.loads(candidate))
+                except json.JSONDecodeError:
+                    pass
+        elif isinstance(current, dict):
+            identity = id(current)
+            if identity in seen_containers:
+                raise ArtifactError("decoded JSON structure contains a cycle")
+            seen_containers.add(identity)
+            retained_containers.append(current)
+            for key, item in reversed(list(current.items())):
+                stack.extend((item, key))
+        elif isinstance(current, list):
+            identity = id(current)
+            if identity in seen_containers:
+                raise ArtifactError("decoded JSON structure contains a cycle")
+            seen_containers.add(identity)
+            retained_containers.append(current)
+            stack.extend(reversed(current))
+
+
+def sanitization_policy(plan):
+    return {
+        "credential_env_names": plan["credential_env_names"],
+        "forbidden_patterns": plan["forbidden_patterns"],
+    }
 
 
 def scan_members(plan, files: dict[str, Path], repo_root: Path):
@@ -410,6 +450,7 @@ def scan_members(plan, files: dict[str, Path], repo_root: Path):
         "exact_secret_scan": "configured names plus credential-suffixed environment and .env values",
         "files_scanned": len(files),
         "forbidden_pattern_ids": [row[0] for row in patterns],
+        "policy_sha256": sha256_bytes(canonical(sanitization_policy(plan)).encode()),
         "scanned_bytes": scanned_bytes,
         "status": "passed",
     }
@@ -456,7 +497,8 @@ def validate_plan(plan):
         raise ArtifactError(f"plan schema_version must be {SCHEMA_VERSION}")
     for field in (
         "repository", "experiment", "batch_id", "raw_root", "frozen_commit",
-        "freeze_sha256", "packager_commit", "provenance", "schedule", "release",
+        "freeze_sha256", "packager_commit", "provenance", "provenance_index",
+        "sanitization_policy_source", "schedule", "release",
         "expected_counts", "credential_env_names", "forbidden_patterns", "execution",
     ):
         if not plan.get(field):
@@ -475,6 +517,11 @@ def validate_plan(plan):
         raise ArtifactError("packager_commit must equal frozen_commit")
     require_sha256(plan["freeze_sha256"], "freeze_sha256")
     validate_hash_map(plan["provenance"], "provenance")
+    provenance_index = safe_relative(plan["provenance_index"]).as_posix()
+    policy_source = safe_relative(plan["sanitization_policy_source"]).as_posix()
+    validate_frozen_source_paths(plan["experiment"], provenance_index, policy_source)
+    if provenance_index not in plan["provenance"] or policy_source not in plan["provenance"]:
+        raise ArtifactError("provenance must contain its index and sanitization policy source")
     validate_schedule(plan["schedule"])
     expected = expected_map(plan)
     if not isinstance(plan["expected_counts"], dict) or plan["expected_counts"] != kind_counts([
@@ -511,7 +558,8 @@ def validate_manifest(manifest):
         raise ArtifactError("unsupported manifest schema")
     for field in (
         "repository", "experiment", "batch_id", "raw_root", "frozen_commit", "freeze_sha256",
-        "packager_commit", "provenance", "schedule", "release", "exclusions", "execution",
+        "packager_commit", "provenance", "provenance_index", "sanitization_policy_source",
+        "schedule", "release", "supersedes", "exclusions", "execution",
         "inventory", "sanitization", "archive",
     ):
         if field not in manifest:
@@ -530,6 +578,11 @@ def validate_manifest(manifest):
         raise ArtifactError("packager_commit must equal frozen_commit")
     require_sha256(manifest["freeze_sha256"], "freeze_sha256")
     validate_hash_map(manifest["provenance"], "provenance")
+    provenance_index = safe_relative(manifest["provenance_index"]).as_posix()
+    policy_source = safe_relative(manifest["sanitization_policy_source"]).as_posix()
+    validate_frozen_source_paths(manifest["experiment"], provenance_index, policy_source)
+    if provenance_index not in manifest["provenance"] or policy_source not in manifest["provenance"]:
+        raise ArtifactError("provenance must contain its index and sanitization policy source")
     validate_schedule(manifest["schedule"])
     validate_execution(manifest["execution"], manifest["exclusions"])
     supersedes = manifest.get("supersedes")
@@ -556,7 +609,8 @@ def validate_manifest(manifest):
         raise ArtifactError("manifest inventory counts differ from member rows")
     sanitization = manifest["sanitization"]
     required_scan = {
-        "exact_secret_scan", "files_scanned", "forbidden_pattern_ids", "scanned_bytes", "status", "report_sha256"
+        "exact_secret_scan", "files_scanned", "forbidden_pattern_ids", "policy_sha256", "scanned_bytes",
+        "status", "report_sha256",
     }
     if not isinstance(sanitization, dict) or set(sanitization) != required_scan or sanitization.get("status") != "passed":
         raise ArtifactError("manifest sanitization report is invalid")
@@ -564,6 +618,7 @@ def validate_manifest(manifest):
     require_sha256(sanitization["report_sha256"], "sanitization.report_sha256")
     if sanitization["report_sha256"] != sha256_bytes(canonical(report).encode()):
         raise ArtifactError("sanitization report digest is invalid")
+    require_sha256(sanitization["policy_sha256"], "sanitization.policy_sha256")
     if sanitization.get("files_scanned") != len(members):
         raise ArtifactError("sanitization file count differs from inventory")
     archive = manifest["archive"]
@@ -614,6 +669,8 @@ def pack(plan, raw_root: Path, archive_path: Path, manifest_path: Path, repo_roo
         "freeze_sha256": plan["freeze_sha256"],
         "packager_commit": plan["packager_commit"],
         "provenance": plan["provenance"],
+        "provenance_index": plan["provenance_index"],
+        "sanitization_policy_source": plan["sanitization_policy_source"],
         "schedule": plan["schedule"],
         "release": plan["release"],
         "supersedes": plan["supersedes"],
@@ -650,10 +707,17 @@ def verify_local(manifest_path: Path, archive_path: Path):
     for path in expected:
         safe_relative(path)
     seen = {}
+    contents = {}
+    order = []
     try:
+        with archive_path.open("rb") as raw:
+            header = raw.read(10)
+        if header != b"\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff":
+            raise ArtifactError("gzip header does not match level-9 deterministic contract")
         with tarfile.open(archive_path, mode="r:gz") as archive:
             for info in archive:
                 safe_relative(info.name)
+                order.append(info.name)
                 if info.name in seen:
                     raise ArtifactError(f"duplicate archive member: {info.name}")
                 if not info.isreg() or info.issym() or info.islnk():
@@ -664,14 +728,23 @@ def verify_local(manifest_path: Path, archive_path: Path):
                 if handle is None:
                     raise ArtifactError(f"cannot read archive member: {info.name}")
                 data = handle.read()
+                contents[info.name] = data
                 seen[info.name] = {"bytes": len(data), "sha256": sha256_bytes(data)}
     except (tarfile.TarError, OSError) as exc:
         raise ArtifactError("cannot read archive") from exc
+    if order != sorted(expected):
+        raise ArtifactError("archive member order is not the sorted manifest order")
     if set(seen) != set(expected):
         raise ArtifactError("archive members differ from manifest")
     for path, values in seen.items():
         if values["bytes"] != expected[path].get("bytes") or values["sha256"] != expected[path].get("sha256"):
             raise ArtifactError(f"archive member differs from manifest: {path}")
+    with tempfile.TemporaryDirectory() as temporary:
+        canonical_archive = Path(temporary) / "canonical.tar.gz"
+        create_archive(contents, sorted(expected), canonical_archive)
+        if canonical_archive.stat().st_size != archive_path.stat().st_size \
+                or sha256_file(canonical_archive) != sha256_file(archive_path):
+            raise ArtifactError("archive bytes differ from the deterministic packer output")
     return manifest
 
 
@@ -681,7 +754,8 @@ def verify_source(manifest_path: Path, plan, raw_root: Path, repo_root: Path):
     manifest = validate_manifest(load_json(manifest_path))
     expected_fields = (
         "repository", "experiment", "batch_id", "raw_root", "frozen_commit", "freeze_sha256",
-        "packager_commit", "provenance", "schedule", "release", "supersedes", "exclusions", "execution",
+        "packager_commit", "provenance", "provenance_index", "sanitization_policy_source",
+        "schedule", "release", "supersedes", "exclusions", "execution",
     )
     for field in expected_fields:
         if manifest.get(field) != plan.get(field):
@@ -815,11 +889,69 @@ def commit_is_on_default_branch(repo: str, commit: str, repository=None):
         raise ArtifactError(f"frozen commit is not contained in {default}")
 
 
-def require_local_frozen_head(repo_root: Path, frozen_commit: str):
+def committed_file_bytes(repo_root: Path, commit: str, relative: str) -> bytes:
+    safe_relative(relative)
+    try:
+        process = subprocess.run(
+            ["git", "-C", str(repo_root), "show", f"{commit}:{relative}"],
+            capture_output=True, timeout=60,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ArtifactError(f"timed out reading frozen file from Git: {relative}") from exc
+    if process.returncode:
+        raise ArtifactError(f"frozen commit does not contain provenance file: {relative}")
+    return process.stdout
+
+
+def committed_file_sha256(repo_root: Path, commit: str, relative: str) -> str:
+    return sha256_bytes(committed_file_bytes(repo_root, commit, relative))
+
+
+def require_local_frozen_source(repo_root: Path, manifest):
     root = repo_root.resolve(strict=True)
     head = run(["git", "-C", str(root), "rev-parse", "HEAD"])
+    frozen_commit = manifest["frozen_commit"]
     if head != frozen_commit:
         raise ArtifactError("local HEAD must equal frozen_commit")
+    provenance = dict(manifest["provenance"])
+    provenance_index = manifest["provenance_index"]
+    index_bytes = committed_file_bytes(root, frozen_commit, provenance_index)
+    index_sha256 = sha256_bytes(index_bytes)
+    if manifest["freeze_sha256"] != index_sha256:
+        raise ArtifactError("manifest freeze_sha256 differs from the frozen provenance index")
+    try:
+        index = json.loads(index_bytes)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise ArtifactError("frozen provenance index is not valid JSON") from exc
+    frozen_files = index.get("files") if isinstance(index, dict) else None
+    validate_hash_map(frozen_files, "frozen provenance index files")
+    expected_provenance = {**frozen_files, provenance_index: index_sha256}
+    if provenance != expected_provenance:
+        raise ArtifactError("manifest provenance differs from the frozen provenance index")
+    policy_source = manifest["sanitization_policy_source"]
+    try:
+        policy_document = json.loads(committed_file_bytes(root, frozen_commit, policy_source))
+        expected_policy = {
+            "credential_env_names": policy_document["credential_env_names"],
+            "forbidden_patterns": policy_document["forbidden_patterns"],
+        }
+    except (json.JSONDecodeError, UnicodeDecodeError, KeyError, TypeError) as exc:
+        raise ArtifactError("frozen sanitization policy source is invalid") from exc
+    expected_policy_sha256 = sha256_bytes(canonical(expected_policy).encode())
+    if manifest["sanitization"]["policy_sha256"] != expected_policy_sha256:
+        raise ArtifactError("manifest sanitizer policy differs from the frozen policy source")
+    try:
+        packager_relative = Path(__file__).resolve(strict=True).relative_to(root).as_posix()
+    except ValueError as exc:
+        raise ArtifactError("running packager is outside repo_root") from exc
+    paths = set(provenance) | {packager_relative}
+    for relative in sorted(paths):
+        committed_sha256 = committed_file_sha256(root, frozen_commit, relative)
+        if relative in provenance and provenance[relative] != committed_sha256:
+            raise ArtifactError(f"manifest provenance differs from frozen commit: {relative}")
+        current = repo_file(root, relative)
+        if sha256_file(current) != committed_sha256:
+            raise ArtifactError(f"working file differs from frozen commit: {relative}")
 
 
 def verify_superseded_release(manifest):
@@ -836,7 +968,7 @@ def verify_superseded_release(manifest):
 def stage_release(manifest_path: Path, archive_path: Path, plan, raw_root: Path, repo_root: Path):
     manifest = verify_local(manifest_path, archive_path)
     verify_source(manifest_path, plan, raw_root, repo_root)
-    require_local_frozen_head(repo_root, manifest["frozen_commit"])
+    require_local_frozen_source(repo_root, manifest)
     repo = manifest["repository"]["name"]
     require_immutable_releases(repo)
     repository = verify_repository_identity(manifest)
@@ -868,15 +1000,30 @@ def stage_release(manifest_path: Path, archive_path: Path, plan, raw_root: Path,
 
 
 def resolve_tag_commit(repo: str, tag: str) -> str:
-    ref = gh_json(repo, f"git/ref/tags/{tag}")
-    target = ref["object"]
+    commit = existing_tag_commit(repo, tag)
+    if commit is None:
+        raise ArtifactError(f"tag does not exist: {tag}")
+    return commit
+
+
+def resolve_git_target(repo: str, target) -> str:
     for _ in range(3):
         if target.get("type") == "commit":
             return target["sha"]
         if target.get("type") != "tag":
             break
         target = gh_json(repo, f"git/tags/{target['sha']}")["object"]
-    raise ArtifactError(f"tag does not resolve to a commit: {tag}")
+    raise ArtifactError("tag does not resolve to a commit")
+
+
+def existing_tag_commit(repo: str, tag: str) -> str | None:
+    refs = gh_paginated_json(repo, f"git/matching-refs/tags/{tag}?per_page=100")
+    exact = [row for row in refs if row.get("ref") == f"refs/tags/{tag}"]
+    if len(exact) > 1:
+        raise ArtifactError(f"multiple exact tag refs exist: {tag}")
+    if not exact:
+        return None
+    return resolve_git_target(repo, exact[0].get("object", {}))
 
 
 def download_and_verify(
@@ -889,7 +1036,8 @@ def download_and_verify(
             f"manifest repository differs from verifier repository; expected={expected_repository}, actual={repo}"
         )
     tag = manifest["release"]["tag"]
-    verify_repository_identity(manifest)
+    repository = verify_repository_identity(manifest)
+    commit_is_on_default_branch(repo, manifest["frozen_commit"], repository)
     release = gh_json(repo, f"releases/tags/{tag}")
     if release.get("draft") or release.get("immutable") is not True:
         raise ArtifactError("release is not published and immutable")
@@ -910,6 +1058,7 @@ def download_and_verify(
         verify_local(released_manifest, archive)
         run(["gh", "release", "verify", tag, "-R", repo, "--format", "json"])
         run(["gh", "release", "verify-asset", tag, str(archive), "-R", repo, "--format", "json"])
+        source_manifest_sha256 = sha256_file(source_manifest)
     return {
         "archive_sha256": manifest["archive"]["sha256"],
         "attestations": {
@@ -923,7 +1072,7 @@ def download_and_verify(
                 "tag": tag,
             },
         },
-        "manifest_sha256": sha256_file(source_manifest),
+        "manifest_sha256": source_manifest_sha256,
         "release_id": release["id"],
         "release_tag": tag,
         "verified": True,
@@ -936,11 +1085,12 @@ def publish_release(
 ):
     manifest = verify_local(manifest_path, archive_path)
     verify_source(manifest_path, plan, raw_root, repo_root)
-    require_local_frozen_head(repo_root, manifest["frozen_commit"])
+    require_local_frozen_source(repo_root, manifest)
     repo = manifest["repository"]["name"]
     tag = manifest["release"]["tag"]
     if confirm_tag != tag:
         raise ArtifactError("--confirm-tag must exactly match the manifest tag")
+    committed_copy = preflight_committed_copy(manifest_path, committed_copy, repo_root)
     require_immutable_releases(repo)
     repository = verify_repository_identity(manifest)
     commit_is_on_default_branch(repo, manifest["frozen_commit"], repository)
@@ -951,6 +1101,9 @@ def publish_release(
     if release.get("draft") is True:
         if release.get("target_commitish") != manifest["frozen_commit"]:
             raise ArtifactError("draft release targets the wrong commit")
+        tag_commit = existing_tag_commit(repo, tag)
+        if tag_commit is not None and tag_commit != manifest["frozen_commit"]:
+            raise ArtifactError("existing release tag points to the wrong commit")
         verify_server_assets(release, manifest_path, archive_path)
         run(["gh", "release", "edit", tag, "-R", repo, "--draft=false", "--latest=false"])
     for _ in range(15):
@@ -963,6 +1116,37 @@ def publish_release(
     receipt = download_and_verify(manifest, manifest_path)
     copy_exclusive(manifest_path, committed_copy)
     return receipt
+
+
+def preflight_committed_copy(source: Path, target: Path, repo_root: Path) -> Path:
+    require_regular_file(source, "source manifest")
+    lexical_root = Path(os.path.abspath(repo_root))
+    root = repo_root.resolve(strict=True)
+    lexical_candidate = target if target.is_absolute() else lexical_root / target
+    lexical_candidate = Path(os.path.abspath(lexical_candidate))
+    try:
+        relative = lexical_candidate.relative_to(lexical_root)
+    except ValueError as exc:
+        try:
+            relative = lexical_candidate.relative_to(root)
+        except ValueError:
+            raise ArtifactError("committed manifest path must be beneath repo_root") from exc
+    unresolved = lexical_root
+    for part in relative.parts[:-1]:
+        unresolved = unresolved / part
+        if unresolved.is_symlink():
+            raise ArtifactError("committed manifest path contains a symlink")
+    candidate = root / relative
+    candidate.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        candidate.parent.resolve(strict=True).relative_to(root)
+    except ValueError as exc:
+        raise ArtifactError("committed manifest parent escapes repo_root") from exc
+    if candidate.exists() or candidate.is_symlink():
+        require_regular_file(candidate, "committed manifest")
+        if candidate.read_bytes() != source.read_bytes():
+            raise ArtifactError(f"committed manifest differs: {candidate}")
+    return candidate
 
 
 def repo_file(repo_root: Path, relative: str) -> Path:

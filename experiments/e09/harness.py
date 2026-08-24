@@ -79,6 +79,7 @@ FREEZE_INPUTS = tuple(DATA_FILES.values()) + (
 REPS = 5
 SEED = 20260821
 JUDGE_SEED = 20260822
+E09_REPOSITORY = {"id": 1337622598, "name": "mlamp/meta-skills"}
 TOOL_NAME = "submit_evaluation"
 CLAUDE_STRUCTURED_TOOL = "StructuredOutput"
 LEXICAL = re.compile(r"\b[\w'-]+\b", re.UNICODE)
@@ -126,6 +127,13 @@ class FormatError(HarnessError):
 def load_json(path: Path):
     with path.open(encoding="utf-8") as handle:
         return json.load(handle)
+
+
+def load_artifact_spec():
+    spec = load_json(DATA_FILES["artifact-spec.json"])
+    if spec.get("repository") != E09_REPOSITORY:
+        raise HarnessError("artifact spec differs from the canonical E-09 repository")
+    return spec
 
 
 def canonical(value) -> str:
@@ -842,9 +850,8 @@ def validate_inputs(check_freeze=True):
     artifact_spec = load_json(DATA_FILES["artifact-spec.json"])
     if artifact_spec.get("schema_version") != 1:
         errors.append("artifact spec schema must be 1")
-    repository = artifact_spec.get("repository", {})
-    if not isinstance(repository.get("id"), int) or not repository.get("name"):
-        errors.append("artifact spec must pin repository id and name")
+    if artifact_spec.get("repository") != E09_REPOSITORY:
+        errors.append("artifact spec must pin the canonical E-09 repository id and name")
     required_credentials = {
         profile.get("credential_env") for profile in models["profiles"].values()
         if profile.get("credential_env")
@@ -2016,13 +2023,43 @@ def validate_attempt_protocol(record, relative: str):
         raise HarnessError(f"failed provider record requires an error: {relative}")
 
 
+def validate_success_schema(record, schema, relative: str):
+    if record.get("status") != "ok":
+        return
+    errors = validate_schema(record.get("result"), schema)
+    if errors:
+        raise HarnessError(f"successful raw payload violates its frozen schema {relative}: {'; '.join(errors)}")
+
+
+def validate_interview_derived_fields(record, arm: str, relative: str):
+    if record.get("status") != "ok":
+        return
+    expected_tokens = count_lexical(record["result"]["contract"])
+    expected_violations = contract_violations(arm, record["result"])
+    if record.get("contract_lexical_tokens") != expected_tokens \
+            or record.get("over_cap") != (expected_tokens > 60) \
+            or record.get("contract_violations") != expected_violations:
+        raise HarnessError(f"interview derived fields differ from its successful payload: {relative}")
+
+
+def successful_task_for_blind(tasks, blind: str):
+    task = next((row for row in tasks if row.get("status") == "ok"
+                 and digest({"text": row["result"], "task": row["task_id"]}) == blind), None)
+    if task is None:
+        raise HarnessError(f"substitute blind has no matching successful task: {blind}")
+    return task
+
+
 def validate_artifact_record_identities(namespace: Path, tasks):
+    task_definitions = {row["id"]: row for row in load_json(DATA_FILES["tasks.json"])["tasks"]}
     for job in measured_schedule():
         relative = f"interviews/{job['family']}/{job['arm']}/rep-{job['rep']}.json"
         record = load_artifact_record(namespace, relative)
         validate_record_identity(record, {"kind": "interview", **job}, relative)
         validate_attempt_protocol(record, relative)
-    task_ids = [row["id"] for row in load_json(DATA_FILES["tasks.json"])["tasks"]]
+        validate_success_schema(record, contract_schema(job["arm"]), relative)
+        validate_interview_derived_fields(record, job["arm"], relative)
+    task_ids = list(task_definitions)
     for job in measured_schedule():
         conditions = ("suppression", "no_suppression") if job["arm"] == "treatment" else ("suppression",)
         for condition in conditions:
@@ -2034,6 +2071,7 @@ def validate_artifact_record_identities(namespace: Path, tasks):
                     "condition": condition, "task_id": task_id,
                 }, relative)
                 validate_attempt_protocol(record, relative)
+                validate_success_schema(record, {"type": "string", "minLength": 1}, relative)
     blind_task_ids = {}
     substitute_blinds = set()
     for task in tasks:
@@ -2052,7 +2090,16 @@ def validate_artifact_record_identities(namespace: Path, tasks):
             record, {"kind": "task_judgment", "blind_id": blind, "task_id": task_id}, relative
         )
         validate_attempt_protocol(record, relative)
+        task = task_definitions[task_id]
+        validate_success_schema(
+            record,
+            task_judge_schema(task_id, len(task["rubric"]["required"]), len(task["rubric"]["fatal"])),
+            relative,
+        )
     for blind in sorted(substitute_blinds):
+        task = successful_task_for_blind(tasks, blind)
+        candidates = matcher_hits(task["result"], "substitute")
+        candidate_ids = [digest({"blind": blind, **item}, 12) for item in candidates]
         for adjudication_pass in (1, 2):
             relative = f"judgments/substitute/{blind}/pass-{adjudication_pass}.json"
             record = load_artifact_record(namespace, relative)
@@ -2060,6 +2107,12 @@ def validate_artifact_record_identities(namespace: Path, tasks):
                 "kind": "substitute_judgment", "blind_id": blind, "pass": adjudication_pass,
             }, relative)
             validate_attempt_protocol(record, relative)
+            validate_success_schema(record, substitute_judge_schema(candidate_ids), relative)
+            if record.get("status") == "ok":
+                try:
+                    validate_substitute_payload(record["result"], candidate_ids)
+                except FormatError as exc:
+                    raise HarnessError(f"successful substitute payload is invalid: {relative}: {exc}") from exc
 
 
 def artifact_execution_summary(namespace: Path, interviews, tasks):
@@ -2103,17 +2156,43 @@ def validate_artifact_schedules(metadata, interviews, tasks):
         raise HarnessError("measured judge schedule differs from frozen records and seed")
 
 
+def validate_artifact_namespace(namespace: Path):
+    if namespace.is_symlink():
+        raise HarnessError("measured artifact namespace must not be a symlink")
+    try:
+        resolved = namespace.resolve(strict=True)
+        relative = resolved.relative_to(ROOT.resolve(strict=True))
+        lexical_relative = namespace.relative_to(ROOT)
+    except (OSError, ValueError) as exc:
+        raise HarnessError("measured artifact namespace must exist beneath the repository") from exc
+    if relative.as_posix() != lexical_relative.as_posix():
+        raise HarnessError("measured artifact namespace resolves through a redirected parent")
+    try:
+        artifact_store.actual_regular_files(resolved)
+    except artifact_store.ArtifactError as exc:
+        raise HarnessError(str(exc)) from exc
+
+
+def validate_artifact_metadata(metadata, head: str):
+    if metadata.get("experiment") != "E-09":
+        raise HarnessError("measured metadata experiment differs from E-09")
+    if metadata.get("freeze_sha256") != sha256(E09 / "freeze.json"):
+        raise HarnessError("measured metadata freeze_sha256 differs from the current freeze")
+    if metadata.get("base_commit") != head:
+        raise HarnessError("measured metadata base_commit differs from HEAD")
+    if metadata.get("schedule") != measured_schedule():
+        raise HarnessError("measured interview schedule differs from the frozen seed")
+
+
 def artifact_plan(namespace: Path, head: str, supersedes=None):
+    validate_artifact_namespace(namespace)
     verify_measured_manifest(namespace)
     require_exact_frozen_head(head, "artifact packaging")
     metadata_path = namespace / "metadata.json"
     if not metadata_path.exists():
         raise HarnessError("measured metadata is absent")
     metadata = load_json(metadata_path)
-    if metadata.get("base_commit") != head:
-        raise HarnessError("measured metadata base_commit differs from HEAD")
-    if metadata.get("schedule") != measured_schedule():
-        raise HarnessError("measured interview schedule differs from the frozen seed")
+    validate_artifact_metadata(metadata, head)
     interviews = iter_records(namespace / "interviews")
     tasks = iter_records(namespace / "tasks")
     if len(interviews) != 20 or len(tasks) != 120:
@@ -2131,7 +2210,7 @@ def artifact_plan(namespace: Path, head: str, supersedes=None):
     expected = artifact_expected_paths(namespace, tasks)
     verify_complete_call_manifest(namespace, expected)
     execution, exclusions = artifact_execution_summary(namespace, interviews, tasks)
-    spec = load_json(DATA_FILES["artifact-spec.json"])
+    spec = load_artifact_spec()
     batch_id = measured_id()
     tag = f"{spec['release_tag_prefix']}-{batch_id}"
     archive_name = batch_id + spec["archive_asset_suffix"]
@@ -2153,6 +2232,8 @@ def artifact_plan(namespace: Path, head: str, supersedes=None):
         "freeze_sha256": sha256(E09 / "freeze.json"),
         "packager_commit": head,
         "provenance": {**frozen["files"], "experiments/e09/freeze.json": sha256(E09 / "freeze.json")},
+        "provenance_index": "experiments/e09/freeze.json",
+        "sanitization_policy_source": "experiments/e09/artifact-spec.json",
         "schedule": {
             "interviews_sha256": sha256_value(metadata["schedule"]),
             "judgments_sha256": sha256_value(metadata["judge_schedule"]),
@@ -2175,7 +2256,7 @@ def artifact_plan(namespace: Path, head: str, supersedes=None):
 
 def artifact_paths():
     batch_id = measured_id()
-    spec = load_json(DATA_FILES["artifact-spec.json"])
+    spec = load_artifact_spec()
     return (
         ARTIFACT_STAGING / (batch_id + spec["archive_asset_suffix"]),
         ARTIFACT_STAGING / (batch_id + spec["manifest_asset_suffix"]),
@@ -2191,6 +2272,7 @@ def cmd_artifact_pack(args):
     archive_path, manifest_path, plan_path, committed_path = artifact_paths()
     try:
         manifest = artifact_store.pack(plan, namespace, archive_path, manifest_path, ROOT)
+        artifact_store.require_local_frozen_source(ROOT, manifest)
         artifact_store.verify_source(manifest_path, plan, namespace, ROOT)
         artifact_store.write_json_idempotent(plan_path, plan)
     except artifact_store.ArtifactError as exc:
@@ -2210,7 +2292,9 @@ def cmd_artifact_pack(args):
 
 def verify_published_artifact(manifest_path: Path):
     try:
-        return artifact_store.download_and_verify(load_json(manifest_path), manifest_path)
+        return artifact_store.download_and_verify(
+            load_json(manifest_path), manifest_path, expected_repository=E09_REPOSITORY["name"]
+        )
     except artifact_store.ArtifactError as exc:
         raise HarnessError(str(exc)) from exc
 
@@ -2221,7 +2305,7 @@ def validate_artifact_binding(namespace: Path, manifest_path: Path, head: str):
     if not metadata_path.exists():
         raise HarnessError("measured metadata is absent")
     metadata = load_json(metadata_path)
-    spec = load_json(DATA_FILES["artifact-spec.json"])
+    spec = load_artifact_spec()
     frozen = load_json(E09 / "freeze.json")
     batch_id = measured_id()
     expected = {
@@ -2233,6 +2317,8 @@ def validate_artifact_binding(namespace: Path, manifest_path: Path, head: str):
         "freeze_sha256": sha256(E09 / "freeze.json"),
         "packager_commit": head,
         "provenance": {**frozen["files"], "experiments/e09/freeze.json": sha256(E09 / "freeze.json")},
+        "provenance_index": "experiments/e09/freeze.json",
+        "sanitization_policy_source": "experiments/e09/artifact-spec.json",
         "release": {
             "tag": f"{spec['release_tag_prefix']}-{batch_id}",
             "archive_asset_name": batch_id + spec["archive_asset_suffix"],
@@ -2244,12 +2330,48 @@ def validate_artifact_binding(namespace: Path, manifest_path: Path, head: str):
             raise HarnessError(f"artifact manifest does not bind current {field}")
     if metadata.get("base_commit") != head:
         raise HarnessError("measured metadata base_commit differs from HEAD")
+    if metadata.get("experiment") != "E-09" \
+            or metadata.get("freeze_sha256") != sha256(E09 / "freeze.json"):
+        raise HarnessError("measured metadata differs from the current E-09 freeze")
     return manifest
+
+
+def load_existing_compact_result(results_path: Path):
+    if not results_path.exists():
+        return None, None
+    saved = load_json(results_path)
+    if not isinstance(saved, dict) or set(saved) != {"schema_version", "lines"} \
+            or saved.get("schema_version") != 2 or not isinstance(saved.get("lines"), list):
+        raise HarnessError("existing compact result has the wrong envelope")
+    if any(not isinstance(row, dict) for row in saved["lines"]):
+        raise HarnessError("existing compact result lines must be objects")
+    completed_values = {row.get("completed_at") for row in saved["lines"]}
+    if len(saved["lines"]) != 2 or len(completed_values) != 1 \
+            or not isinstance(next(iter(completed_values)), str):
+        raise HarnessError("existing compact result has no single valid completion time")
+    completed_at = next(iter(completed_values))
+    try:
+        parsed = datetime.fromisoformat(completed_at)
+    except ValueError as exc:
+        raise HarnessError("existing compact result completion time is not ISO 8601") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() != timezone.utc.utcoffset(parsed) \
+            or parsed.isoformat(timespec="seconds") != completed_at:
+        raise HarnessError("existing compact result completion time is not canonical UTC")
+    return saved, completed_at
+
+
+def write_or_verify_compact_result(results_path: Path, saved, existing_saved):
+    if existing_saved is not None:
+        if existing_saved != saved:
+            raise HarnessError("existing compact result differs from recomputed raw metrics and artifact receipt")
+    else:
+        write_json_exclusive(results_path, saved)
 
 
 def cmd_finalize(args):
     head = ensure_measured_gate()
     namespace = RAW / "measured" / measured_id()
+    validate_artifact_namespace(namespace)
     verify_measured_manifest(namespace)
     manifest_path = ARTIFACT_MANIFESTS / f"{measured_id()}.json"
     if not manifest_path.exists():
@@ -2257,16 +2379,13 @@ def cmd_finalize(args):
     manifest = validate_artifact_binding(namespace, manifest_path, head)
     current_plan = artifact_plan(namespace, head, manifest.get("supersedes"))
     try:
+        artifact_store.require_local_frozen_source(ROOT, manifest)
         artifact_store.verify_source(manifest_path, current_plan, namespace, ROOT)
     except artifact_store.ArtifactError as exc:
         raise HarnessError(str(exc)) from exc
     artifact_receipt = verify_published_artifact(manifest_path)
     results_path = RESULTS / f"{measured_id()}.json"
-    if results_path.exists():
-        saved = load_json(results_path)
-        ensure_ledger_lines(saved["lines"])
-        print(json.dumps(saved, indent=2))
-        return
+    existing_saved, existing_completed_at = load_existing_compact_result(results_path)
     interviews = iter_records(namespace / "interviews")
     tasks = iter_records(namespace / "tasks")
     if len(interviews) != 20 or len(tasks) != 120:
@@ -2423,7 +2542,7 @@ def cmd_finalize(args):
                 "interview_error_count": sum(row["interview_status"] != "ok" for row in per_run),
             }
     lines = []
-    completed_at = utc_now()
+    completed_at = existing_completed_at or utc_now()
     for family, family_results in results.items():
         control = family_results["control"]
         treatment = family_results["treatment"]
@@ -2500,10 +2619,11 @@ def cmd_finalize(args):
             "completed_at": completed_at,
         }
         stable_payload = {key: value for key, value in payload.items() if key != "completed_at"}
-        run_id = "r-" + datetime.now(timezone.utc).strftime("%Y%m%d") + "-" + digest(stable_payload, 10)
+        run_date = completed_at[:10].replace("-", "")
+        run_id = "r-" + run_date + "-" + digest(stable_payload, 10)
         lines.append({"run_id": run_id, "date": completed_at, **payload})
     saved = {"schema_version": 2, "lines": lines}
-    write_json_exclusive(results_path, saved)
+    write_or_verify_compact_result(results_path, saved, existing_saved)
     ensure_ledger_lines(lines)
     print(json.dumps(saved, indent=2))
 
