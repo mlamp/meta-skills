@@ -1075,6 +1075,7 @@ def adapter_smoke_namespace():
         "harness_sha256": sha256(E09 / "harness.py"),
         "models_sha256": sha256(DATA_FILES["models.json"]),
         "prompts_sha256": sha256(DATA_FILES["prompts.json"]),
+        "suite_sha256": sha256(DATA_FILES["cold_reader_cases.json"]),
     }
     return RAW / "smoke" / "adapters" / ("as-" + digest(key)), key
 
@@ -1409,7 +1410,9 @@ def cmd_cold_reader(args):
             raise HarnessError(f"{name} is not a cold-reader profile")
         base_namespace, key = cold_reader_namespace(args.tier, name)
         if args.tier == "smoke":
+            ensure_local_namespace(base_namespace, "reader smoke base")
             namespace = next_smoke_attempt(base_namespace)
+            ensure_local_namespace(namespace, "reader smoke attempt")
         else:
             smoke_base, _ = cold_reader_namespace("smoke", name)
             smoke_namespace = latest_smoke_attempt(smoke_base)
@@ -1463,7 +1466,9 @@ def cmd_cold_reader(args):
 
 def cmd_adapter_smoke(args):
     base_namespace, key = adapter_smoke_namespace()
+    ensure_local_namespace(base_namespace, "adapter smoke base")
     namespace = next_smoke_attempt(base_namespace)
+    ensure_local_namespace(namespace, "adapter smoke attempt")
     profiles = profile_map()
     suite = load_json(DATA_FILES["cold_reader_cases.json"])
     case = suite["smoke"]["case"]
@@ -1698,6 +1703,24 @@ def require_exact_frozen_head(head: str, purpose: str):
         raise HarnessError(f"{purpose} requires HEAD to equal the exact frozen commit")
 
 
+def require_worktree_matches_frozen_commit(head: str, purpose: str):
+    for path in (*FREEZE_INPUTS, E09 / "freeze.json"):
+        try:
+            relative = path.relative_to(ROOT).as_posix()
+            working_path = artifact_store.repo_file(ROOT, relative)
+            process = subprocess.run(
+                ["git", "show", f"{head}:{relative}"], cwd=ROOT,
+                capture_output=True, timeout=60,
+            )
+            working_bytes = working_path.read_bytes()
+        except (artifact_store.ArtifactError, OSError, ValueError, subprocess.TimeoutExpired) as exc:
+            raise HarnessError(f"{purpose} cannot validate frozen working source: {path}") from exc
+        if process.returncode:
+            raise HarnessError(f"{purpose} frozen commit is missing source: {relative}")
+        if working_bytes != process.stdout:
+            raise HarnessError(f"{purpose} working source differs from the frozen commit: {relative}")
+
+
 def ledger_diff_contains_only(run_ids, required_run_ids=()):
     proc = subprocess.run(["git", "diff", "HEAD", "--unified=0", "--", str(LEDGER.relative_to(ROOT))],
                           cwd=ROOT, text=True, capture_output=True, timeout=60)
@@ -1741,11 +1764,12 @@ def ensure_qualification_start_gate():
     freeze_path = E09 / "freeze.json"
     if not freeze_path.exists():
         raise HarnessError("qualification requires freeze.json from the reviewed design PR")
+    head = git("rev-parse", "HEAD")
+    require_exact_frozen_head(head, "qualification")
+    require_worktree_matches_frozen_commit(head, "qualification")
     errors = validate_inputs()
     if errors:
         raise HarnessError("qualification freeze validation failed: " + "; ".join(errors))
-    head = git("rev-parse", "HEAD")
-    require_exact_frozen_head(head, "qualification")
     proc = subprocess.run(["git", "merge-base", "--is-ancestor", head, "origin/main"], cwd=ROOT)
     if proc.returncode:
         raise HarnessError("qualification requires the frozen commit to be contained in origin/main")
@@ -1803,6 +1827,9 @@ def ensure_measured_namespace(namespace: Path):
 def ensure_measured_gate():
     if not (E09 / "freeze.json").exists():
         raise HarnessError("freeze.json is required for measured mode")
+    head = git("rev-parse", "HEAD")
+    require_exact_frozen_head(head, "measured mode")
+    require_worktree_matches_frozen_commit(head, "measured mode")
     errors = validate_inputs()
     if errors:
         raise HarnessError("frozen-input validation failed: " + "; ".join(errors))
@@ -1860,8 +1887,6 @@ def ensure_measured_gate():
     status = remaining
     if status:
         raise HarnessError("measured mode found unrelated changes: " + " | ".join(status))
-    head = git("rev-parse", "HEAD")
-    require_exact_frozen_head(head, "measured mode")
     proc = subprocess.run(["git", "merge-base", "--is-ancestor", head, "origin/main"], cwd=ROOT)
     if proc.returncode:
         raise HarnessError("measured mode requires the exact frozen commit to be contained in origin/main")

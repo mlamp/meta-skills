@@ -81,6 +81,78 @@ class FrozenInputsTest(unittest.TestCase):
         expected = {str(path.relative_to(H.ROOT)) for path in H.FREEZE_INPUTS}
         self.assertEqual(set(payload["files"]), expected)
 
+    def test_adapter_smoke_key_binds_case_suite(self):
+        first = H.adapter_smoke_namespace()[1]
+        with mock.patch.object(H, "sha256", side_effect=lambda path: (
+            "changed" if path == H.DATA_FILES["cold_reader_cases.json"] else H.sha256_value(str(path))
+        )):
+            second = H.adapter_smoke_namespace()[1]
+        self.assertNotEqual(first["suite_sha256"], second["suite_sha256"])
+
+    def test_frozen_gate_compares_every_working_byte_with_head(self):
+        old_root, old_e09, old_inputs = H.ROOT, H.E09, H.FREEZE_INPUTS
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                root = Path(tmp)
+                H.ROOT = root
+                H.E09 = root / "experiments" / "e09"
+                source = H.E09 / "design.md"
+                freeze = H.E09 / "freeze.json"
+                source.parent.mkdir(parents=True)
+                source.write_bytes(b"design\n")
+                freeze.write_bytes(b"freeze\n")
+                H.FREEZE_INPUTS = (source,)
+
+                def committed(command, **kwargs):
+                    relative = command[-1].split(":", 1)[1]
+                    data = b"design\n" if relative.endswith("design.md") else b"freeze\n"
+                    return mock.Mock(returncode=0, stdout=data)
+
+                with mock.patch.object(H.subprocess, "run", side_effect=committed):
+                    H.require_worktree_matches_frozen_commit("a" * 40, "gate")
+                    source.write_bytes(b"changed\n")
+                    with self.assertRaisesRegex(H.HarnessError, "differs from the frozen commit"):
+                        H.require_worktree_matches_frozen_commit("a" * 40, "gate")
+            finally:
+                H.ROOT, H.E09, H.FREEZE_INPUTS = old_root, old_e09, old_inputs
+
+    def test_provider_gates_bind_working_source_before_input_reads(self):
+        for gate in (H.ensure_qualification_start_gate, H.ensure_measured_gate):
+            with self.subTest(gate=gate.__name__), \
+                 mock.patch.object(H, "git", return_value="a" * 40), \
+                 mock.patch.object(H, "require_exact_frozen_head"), \
+                 mock.patch.object(
+                     H, "require_worktree_matches_frozen_commit",
+                     side_effect=H.HarnessError("source sentinel"),
+                 ) as source, mock.patch.object(H, "validate_inputs") as inputs, \
+                 self.assertRaisesRegex(H.HarnessError, "source sentinel"):
+                gate()
+            source.assert_called_once()
+            inputs.assert_not_called()
+
+    def test_smoke_commands_secure_namespace_before_provider_call(self):
+        cases = (
+            (
+                H.cmd_cold_reader,
+                mock.Mock(tier="smoke", profiles=["haiku-reader"]),
+                "run_with_transport_retry",
+            ),
+            (H.cmd_adapter_smoke, mock.Mock(), "call_tool"),
+        )
+        for command, args, provider_name in cases:
+            attempt = H.RAW / "smoke" / "test-attempt"
+            with self.subTest(command=command.__name__), \
+                 mock.patch.object(H, "next_smoke_attempt", return_value=attempt), \
+                 mock.patch.object(
+                     H, "ensure_local_namespace",
+                     side_effect=[None, H.HarnessError("namespace sentinel")],
+                 ) as namespace, mock.patch.object(H, provider_name) as provider, \
+                 self.assertRaisesRegex(H.HarnessError, "namespace sentinel"):
+                command(args)
+            self.assertEqual(namespace.call_count, 2)
+            self.assertEqual(namespace.call_args_list[-1].args[0], attempt)
+            provider.assert_not_called()
+
     def test_artifact_spec_covers_provider_credentials_and_repository_identity(self):
         spec = H.load_json(H.DATA_FILES["artifact-spec.json"])
         models = H.load_json(H.DATA_FILES["models.json"])
