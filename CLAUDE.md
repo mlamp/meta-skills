@@ -21,5 +21,5 @@ Skills that review and improve other skills and agentic tools.
 - research/notes/ — one distilled note per paper. Read these, not the PDFs.
 - research/CLAIMS.md — every borrowed idea: status, the test that moves it, the evidence.
 - ledger/ — append-only run records: runs.jsonl, one JSON line per run.
-- experiments/ — one dir per E-xx: frozen design, harness, raw outputs (D-023).
+- experiments/ — one dir per E-xx: frozen design and harness in Git; measured raw bundles in immutable releases; manifests and results in Git (D-032).
 - docs/ — session prompts and design docs.

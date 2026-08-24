@@ -1,0 +1,39 @@
+name: verify experiment artifacts
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/verify-experiment-artifacts.yml"
+      - "experiments/**"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-experiment-artifacts.yml"
+      - "experiments/**"
+
+permissions:
+  attestations: read
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test packager and E-09 harness
+        run: |
+          python3 -m unittest experiments.test_artifacts -v
+          python3 experiments/e09/test_harness.py
+          python3 experiments/e09/harness.py validate
+      - name: Verify every committed release manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          artifact_status=0
+          while IFS= read -r -d '' manifest; do
+            python3 experiments/artifacts.py verify-release --manifest "$manifest" || artifact_status=1
+          done < <(find experiments -path "*/artifacts/*.json" -type f -print0)
+          exit "$artifact_status"

@@ -66,6 +66,18 @@ class FrozenInputsTest(unittest.TestCase):
         expected = {str(path.relative_to(H.ROOT)) for path in H.FREEZE_INPUTS}
         self.assertEqual(set(payload["files"]), expected)
 
+    def test_artifact_spec_covers_provider_credentials_and_repository_identity(self):
+        spec = H.load_json(H.DATA_FILES["artifact-spec.json"])
+        models = H.load_json(H.DATA_FILES["models.json"])
+        credentials = {
+            row.get("credential_env") for row in models["profiles"].values()
+            if row.get("credential_env")
+        }
+        self.assertLessEqual(credentials, set(spec["credential_env_names"]))
+        self.assertEqual(spec["repository"], {"id": 1337622598, "name": "mlamp/meta-skills"})
+        pattern_ids = {row["id"] for row in spec["forbidden_patterns"]}
+        self.assertTrue({"host_windows_path", "host_uuid", "host_project_id"} <= pattern_ids)
+
 
 class ArmIsolationTest(unittest.TestCase):
     def test_treatment_is_one_insertion_replacement(self):
@@ -488,6 +500,99 @@ class RunnerSafetyTest(unittest.TestCase):
         self.assertTrue(frozen)
         self.assertFalse(any("/raw/" in path for path in frozen))
         self.assertNotIn("ledger/runs.jsonl", frozen)
+
+    def test_artifact_inventory_derives_all_planned_interviews_and_tasks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            expected = H.artifact_expected_paths(Path(tmp), [{"status": "excluded"}] * 120)
+        interviews = [path for path in expected if path.startswith("interviews/")]
+        tasks = [path for path in expected if path.startswith("tasks/")]
+        self.assertEqual(len(interviews), 20)
+        self.assertEqual(len(tasks), 120)
+        self.assertIn("metadata.json", expected)
+        self.assertIn("record-manifest.jsonl", expected)
+
+    def test_artifact_call_manifest_requires_exact_provider_path_set(self):
+        old_rows = H.measured_manifest_rows
+        with tempfile.TemporaryDirectory() as tmp:
+            namespace = Path(tmp)
+            try:
+                H.write_json_atomic(namespace / "tasks" / "excluded.json", {"status": "excluded"})
+                H.measured_manifest_rows = lambda current: [
+                    {"event": "started", "path": "interviews/one.json"},
+                    {"event": "completed", "path": "interviews/one.json"},
+                ]
+                H.verify_complete_call_manifest(namespace, {
+                    "interviews/one.json", "tasks/excluded.json", "metadata.json", "record-manifest.jsonl"
+                })
+                H.measured_manifest_rows = lambda current: [
+                    {"event": "started", "path": "interviews/one.json"}
+                ]
+                with self.assertRaisesRegex(H.HarnessError, "paths differ"):
+                    H.verify_complete_call_manifest(namespace, {
+                        "interviews/one.json", "metadata.json", "record-manifest.jsonl"
+                    })
+            finally:
+                H.measured_manifest_rows = old_rows
+
+    def test_finalize_requires_published_artifact_manifest_before_evidence(self):
+        old_raw = H.RAW
+        old_manifests = H.ARTIFACT_MANIFESTS
+        old_gate = H.ensure_measured_gate
+        old_verify = H.verify_measured_manifest
+        old_id = H.measured_id
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                H.RAW = Path(tmp) / "raw"
+                H.ARTIFACT_MANIFESTS = Path(tmp) / "manifests"
+                H.ensure_measured_gate = lambda: "a" * 40
+                H.verify_measured_manifest = lambda namespace: None
+                H.measured_id = lambda: "m-test"
+                with self.assertRaisesRegex(H.HarnessError, "published raw-artifact manifest is absent"):
+                    H.cmd_finalize(None)
+            finally:
+                H.RAW = old_raw
+                H.ARTIFACT_MANIFESTS = old_manifests
+                H.ensure_measured_gate = old_gate
+                H.verify_measured_manifest = old_verify
+                H.measured_id = old_id
+
+    def test_finalize_manifest_must_bind_current_batch_freeze_and_commit(self):
+        old_id = H.measured_id
+        head = "a" * 40
+        with tempfile.TemporaryDirectory() as tmp:
+            namespace = Path(tmp) / "raw" / "m-test"
+            manifest_path = Path(tmp) / "manifest.json"
+            H.write_json_atomic(namespace / "metadata.json", {"base_commit": head})
+            spec = H.load_json(H.DATA_FILES["artifact-spec.json"])
+            frozen = H.load_json(H.E09 / "freeze.json")
+            try:
+                H.measured_id = lambda: "m-test"
+                manifest = {
+                    "schema_version": 1,
+                    "repository": spec["repository"],
+                    "experiment": "E-09",
+                    "batch_id": "m-test",
+                    "frozen_commit": head,
+                    "freeze_sha256": H.sha256(H.E09 / "freeze.json"),
+                    "packager_commit": head,
+                    "provenance": {
+                        **frozen["files"],
+                        "experiments/e09/freeze.json": H.sha256(H.E09 / "freeze.json"),
+                    },
+                    "release": {
+                        "tag": "evidence-e09-m-test",
+                        "archive_asset_name": "m-test.raw.tar.gz",
+                        "manifest_asset_name": "m-test.manifest.json",
+                    },
+                }
+                H.write_json_atomic(manifest_path, manifest)
+                self.assertEqual(H.validate_artifact_binding(namespace, manifest_path, head), manifest)
+                manifest["batch_id"] = "m-other"
+                H.write_json_atomic(manifest_path, manifest)
+                with self.assertRaisesRegex(H.HarnessError, "current batch_id"):
+                    H.validate_artifact_binding(namespace, manifest_path, head)
+            finally:
+                H.measured_id = old_id
 
     def test_unselected_or_rejected_rule_sources_invalidate_contract(self):
         payload = {

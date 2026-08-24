@@ -12,6 +12,7 @@ Commands:
   interviews                      run the gated measured interview batch
   tasks                           run gated downstream task calls
   judge                           run blinded task and substitute judgments
+  artifact-pack                   package a complete raw batch for draft release staging
   finalize                        compute metrics and append ledger records
 
 Claude-family calls use the CLI's provider-enforced `StructuredOutput` tool.
@@ -40,11 +41,21 @@ from pathlib import Path
 
 E09 = Path(__file__).resolve().parent
 ROOT = E09.parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from experiments import artifacts as artifact_store
+
+
 LEDGER = ROOT / "ledger" / "runs.jsonl"
 RAW = E09 / "raw"
+ARTIFACT_STAGING = E09 / ".artifacts"
+ARTIFACT_MANIFESTS = E09 / "artifacts"
+RESULTS = E09 / "results"
 DATA_FILES = {
     name: E09 / name
     for name in (
+        "artifact-spec.json",
         "catalog.json",
         "cold_reader_cases.json",
         "models.json",
@@ -55,7 +66,15 @@ DATA_FILES = {
         "tasks.json",
     )
 }
-FREEZE_INPUTS = tuple(DATA_FILES.values()) + (E09 / "design.md", E09 / "harness.py", E09 / "reviews.md", E09 / "test_harness.py")
+FREEZE_INPUTS = tuple(DATA_FILES.values()) + (
+    ROOT / ".github" / "workflows" / "verify-experiment-artifacts.yml",
+    ROOT / "experiments" / "artifacts.py",
+    ROOT / "experiments" / "test_artifacts.py",
+    E09 / "design.md",
+    E09 / "harness.py",
+    E09 / "reviews.md",
+    E09 / "test_harness.py",
+)
 REPS = 5
 SEED = 20260821
 JUDGE_SEED = 20260822
@@ -819,6 +838,23 @@ def validate_inputs(check_freeze=True):
     models = load_json(DATA_FILES["models.json"])
     if models["qualification_profiles"] != ["haiku-reader", "deepseek-reader"]:
         errors.append("required reader profiles changed")
+    artifact_spec = load_json(DATA_FILES["artifact-spec.json"])
+    if artifact_spec.get("schema_version") != 1:
+        errors.append("artifact spec schema must be 1")
+    repository = artifact_spec.get("repository", {})
+    if not isinstance(repository.get("id"), int) or not repository.get("name"):
+        errors.append("artifact spec must pin repository id and name")
+    required_credentials = {
+        profile.get("credential_env") for profile in models["profiles"].values()
+        if profile.get("credential_env")
+    }
+    if not required_credentials <= set(artifact_spec.get("credential_env_names", [])):
+        errors.append("artifact spec omits a configured provider credential")
+    for row in artifact_spec.get("forbidden_patterns", []):
+        try:
+            re.compile(row["regex"])
+        except (KeyError, TypeError, re.error) as exc:
+            errors.append(f"invalid artifact sanitization pattern: {exc}")
     if check_freeze and (E09 / "freeze.json").exists():
         frozen = load_json(E09 / "freeze.json")["files"]
         for path in FREEZE_INPUTS:
@@ -1156,7 +1192,7 @@ def cmd_schedule(args):
 def freeze_payload():
     return {
         "schema_version": 1,
-        "frozen_at": "2026-08-21",
+        "frozen_at": "2026-08-24",
         "files": {str(path.relative_to(ROOT)): sha256(path) for path in FREEZE_INPUTS},
     }
 
@@ -1290,14 +1326,20 @@ def ensure_measured_gate():
     if namespace.exists():
         allowed_prefixes.append(str(namespace.relative_to(ROOT)) + "/")
     allowed_ledger_ids = list(qualification_run_ids)
-    results_path = namespace / "results.json"
+    results_path = RESULTS / f"{measured_id()}.json"
     if results_path.exists():
         allowed_ledger_ids.extend(line["run_id"] for line in load_json(results_path).get("lines", []))
+    allowed_exact_paths = {
+        str((ARTIFACT_MANIFESTS / f"{measured_id()}.json").relative_to(ROOT)),
+        str(results_path.relative_to(ROOT)),
+    }
     remaining = []
     ledger_path = str(LEDGER.relative_to(ROOT))
     for line in status:
         path = line[3:].strip('"')
         if any(path.startswith(prefix) for prefix in allowed_prefixes):
+            continue
+        if path in allowed_exact_paths:
             continue
         if path == ledger_path and ledger_diff_contains_only(allowed_ledger_ids):
             continue
@@ -1793,11 +1835,269 @@ def load_substitute_verdicts(namespace: Path, task_records):
                     "judge_error_blind_ids": sorted(judge_errors), "human_resolutions": len(disagreements)}
 
 
+def artifact_kind(relative: str) -> str:
+    if relative == "metadata.json":
+        return "batch_metadata"
+    if relative == "record-manifest.jsonl":
+        return "call_manifest"
+    if relative.startswith("interviews/"):
+        return "interview"
+    if relative.startswith("tasks/"):
+        return "task"
+    if relative.startswith("judgments/task/"):
+        return "task_judgment"
+    if relative.startswith("judgments/substitute/"):
+        return "substitute_judgment"
+    if relative == "adjudication-pending.json":
+        return "adjudication_pending"
+    if relative == "adjudication-resolved.json":
+        return "adjudication_resolved"
+    raise HarnessError(f"raw artifact has no inventory kind: {relative}")
+
+
+def artifact_expected_paths(namespace: Path, tasks):
+    expected = {"metadata.json", "record-manifest.jsonl"}
+    for job in measured_schedule():
+        expected.add(f"interviews/{job['family']}/{job['arm']}/rep-{job['rep']}.json")
+    task_ids = [row["id"] for row in load_json(DATA_FILES["tasks.json"])["tasks"]]
+    for job in measured_schedule():
+        conditions = ("suppression", "no_suppression") if job["arm"] == "treatment" else ("suppression",)
+        for condition in conditions:
+            for task_id in task_ids:
+                expected.add(
+                    f"tasks/{job['family']}/{job['arm']}/rep-{job['rep']}/{condition}/{task_id}.json"
+                )
+    ok_tasks = [row for row in tasks if row.get("status") == "ok"]
+    task_blinds = {
+        digest({"text": row["result"], "task": row["task_id"]})
+        for row in ok_tasks
+    }
+    expected.update(f"judgments/task/{blind}.json" for blind in task_blinds)
+    substitute_blinds = {
+        digest({"text": row["result"], "task": row["task_id"]})
+        for row in ok_tasks if matcher_hits(row["result"], "substitute")
+    }
+    for blind in substitute_blinds:
+        expected.add(f"judgments/substitute/{blind}/pass-1.json")
+        expected.add(f"judgments/substitute/{blind}/pass-2.json")
+    pending = namespace / "adjudication-pending.json"
+    resolved = namespace / "adjudication-resolved.json"
+    if pending.exists() != resolved.exists():
+        raise HarnessError("adjudication pending and resolved records must either both exist or both be absent")
+    if pending.exists():
+        expected.update((pending.name, resolved.name))
+    return expected
+
+
+def verify_complete_call_manifest(namespace: Path, expected_paths):
+    call_paths = set()
+    for relative in expected_paths:
+        kind = artifact_kind(relative)
+        if kind in ("interview", "task_judgment", "substitute_judgment"):
+            call_paths.add(relative)
+        elif kind == "task":
+            path = namespace / relative
+            if not path.exists():
+                raise HarnessError(f"expected task record is absent: {relative}")
+            if load_json(path).get("status") != "excluded":
+                call_paths.add(relative)
+    rows = measured_manifest_rows(namespace)
+    starts = [row.get("path") for row in rows if row.get("event") == "started"]
+    completions = [row.get("path") for row in rows if row.get("event") == "completed"]
+    unknown_events = [row.get("event") for row in rows if row.get("event") not in ("started", "completed")]
+    if unknown_events or len(starts) != len(set(starts)) or len(completions) != len(set(completions)):
+        raise HarnessError("measured call manifest has unknown or duplicate events")
+    if set(starts) != call_paths or set(completions) != call_paths:
+        raise HarnessError("measured call manifest paths differ from the expected provider calls")
+
+
+def artifact_execution_summary(namespace: Path, interviews, tasks):
+    record_rows = measured_manifest_rows(namespace)
+    provider_records = interviews + tasks
+    provider_records += iter_records(namespace / "judgments" / "task")
+    provider_records += iter_records(namespace / "judgments" / "substitute")
+    status_counts = {}
+    retry_attempts = 0
+    for row in provider_records:
+        status = row.get("status", "missing")
+        status_counts[status] = status_counts.get(status, 0) + 1
+        retry_attempts += max(0, len(row.get("attempts", [])) - 1)
+    exclusions = []
+    for path in sorted((namespace / "tasks").rglob("*.json")):
+        row = load_json(path)
+        if row.get("status") == "excluded":
+            exclusions.append({"path": str(path.relative_to(namespace)), "reason": row.get("reason")})
+    return {
+        "call_manifest": {
+            "completed": sum(row.get("event") == "completed" for row in record_rows),
+            "started": sum(row.get("event") == "started" for row in record_rows),
+        },
+        "record_status_counts": status_counts,
+        "retry_attempts": retry_attempts,
+        "exclusion_count": len(exclusions),
+    }, sorted(exclusions, key=lambda row: row["path"])
+
+
+def artifact_plan(namespace: Path, head: str, supersedes=None):
+    verify_measured_manifest(namespace)
+    metadata_path = namespace / "metadata.json"
+    if not metadata_path.exists():
+        raise HarnessError("measured metadata is absent")
+    metadata = load_json(metadata_path)
+    if metadata.get("base_commit") != head:
+        raise HarnessError("measured metadata base_commit differs from HEAD")
+    if metadata.get("schedule") != measured_schedule():
+        raise HarnessError("measured interview schedule differs from the frozen seed")
+    for name in ("task_schedule", "judge_schedule"):
+        if not isinstance(metadata.get(name), list) or not metadata[name]:
+            raise HarnessError(f"measured metadata is missing {name}")
+    interviews = iter_records(namespace / "interviews")
+    tasks = iter_records(namespace / "tasks")
+    if len(interviews) != 20 or len(tasks) != 120:
+        raise HarnessError("artifact packaging requires 20 interviews and 120 task records")
+    judgments = {record["blind_id"]: record for record in iter_records(namespace / "judgments" / "task")}
+    for task in tasks:
+        if task.get("status") != "ok":
+            continue
+        blind = digest({"text": task["result"], "task": task["task_id"]})
+        if blind not in judgments:
+            raise HarnessError(f"missing task judgment for {blind}")
+    load_substitute_verdicts(namespace, tasks)
+    expected = artifact_expected_paths(namespace, tasks)
+    verify_complete_call_manifest(namespace, expected)
+    execution, exclusions = artifact_execution_summary(namespace, interviews, tasks)
+    spec = load_json(DATA_FILES["artifact-spec.json"])
+    batch_id = measured_id()
+    tag = f"{spec['release_tag_prefix']}-{batch_id}"
+    archive_name = batch_id + spec["archive_asset_suffix"]
+    manifest_name = batch_id + spec["manifest_asset_suffix"]
+    counts = {}
+    members = []
+    for path in sorted(expected):
+        kind = artifact_kind(path)
+        members.append({"path": path, "kind": kind})
+        counts[kind] = counts.get(kind, 0) + 1
+    frozen = load_json(E09 / "freeze.json")
+    return {
+        "schema_version": 1,
+        "repository": spec["repository"],
+        "experiment": "E-09",
+        "batch_id": batch_id,
+        "raw_root": str(namespace.relative_to(ROOT)),
+        "frozen_commit": head,
+        "freeze_sha256": sha256(E09 / "freeze.json"),
+        "packager_commit": head,
+        "provenance": {**frozen["files"], "experiments/e09/freeze.json": sha256(E09 / "freeze.json")},
+        "schedule": {
+            "interviews_sha256": sha256_value(metadata["schedule"]),
+            "judgments_sha256": sha256_value(metadata["judge_schedule"]),
+            "tasks_sha256": sha256_value(metadata["task_schedule"]),
+        },
+        "expected_members": members,
+        "expected_counts": counts,
+        "credential_env_names": spec["credential_env_names"],
+        "forbidden_patterns": spec["forbidden_patterns"],
+        "execution": execution,
+        "exclusions": exclusions,
+        "release": {
+            "tag": tag,
+            "archive_asset_name": archive_name,
+            "manifest_asset_name": manifest_name,
+        },
+        "supersedes": supersedes,
+    }
+
+
+def artifact_paths():
+    batch_id = measured_id()
+    spec = load_json(DATA_FILES["artifact-spec.json"])
+    return (
+        ARTIFACT_STAGING / (batch_id + spec["archive_asset_suffix"]),
+        ARTIFACT_STAGING / (batch_id + spec["manifest_asset_suffix"]),
+        ARTIFACT_MANIFESTS / f"{batch_id}.json",
+    )
+
+
+def cmd_artifact_pack(args):
+    head = ensure_measured_gate()
+    namespace = RAW / "measured" / measured_id()
+    plan = artifact_plan(namespace, head, args.supersedes)
+    archive_path, manifest_path, committed_path = artifact_paths()
+    try:
+        if archive_path.exists() or manifest_path.exists():
+            if not archive_path.exists() or not manifest_path.exists():
+                raise artifact_store.ArtifactError("artifact staging pair is incomplete")
+            artifact_store.verify_local(manifest_path, archive_path)
+            manifest = artifact_store.verify_source(manifest_path, plan, namespace, ROOT)
+        else:
+            manifest = artifact_store.pack(plan, namespace, archive_path, manifest_path, ROOT)
+    except artifact_store.ArtifactError as exc:
+        raise HarnessError(str(exc)) from exc
+    print(json.dumps({
+        "archive": str(archive_path.relative_to(ROOT)),
+        "archive_sha256": manifest["archive"]["sha256"],
+        "batch_id": plan["batch_id"],
+        "committed_manifest_after_publication": str(committed_path.relative_to(ROOT)),
+        "manifest": str(manifest_path.relative_to(ROOT)),
+        "next": "inspect both files, then stage a draft with experiments/artifacts.py stage-release",
+        "release_tag": plan["release"]["tag"],
+    }, indent=2))
+
+
+def verify_published_artifact(manifest_path: Path):
+    try:
+        return artifact_store.download_and_verify(load_json(manifest_path), manifest_path)
+    except artifact_store.ArtifactError as exc:
+        raise HarnessError(str(exc)) from exc
+
+
+def validate_artifact_binding(namespace: Path, manifest_path: Path, head: str):
+    manifest = load_json(manifest_path)
+    metadata_path = namespace / "metadata.json"
+    if not metadata_path.exists():
+        raise HarnessError("measured metadata is absent")
+    metadata = load_json(metadata_path)
+    spec = load_json(DATA_FILES["artifact-spec.json"])
+    frozen = load_json(E09 / "freeze.json")
+    batch_id = measured_id()
+    expected = {
+        "schema_version": 1,
+        "repository": spec["repository"],
+        "experiment": "E-09",
+        "batch_id": batch_id,
+        "frozen_commit": head,
+        "freeze_sha256": sha256(E09 / "freeze.json"),
+        "packager_commit": head,
+        "provenance": {**frozen["files"], "experiments/e09/freeze.json": sha256(E09 / "freeze.json")},
+        "release": {
+            "tag": f"{spec['release_tag_prefix']}-{batch_id}",
+            "archive_asset_name": batch_id + spec["archive_asset_suffix"],
+            "manifest_asset_name": batch_id + spec["manifest_asset_suffix"],
+        },
+    }
+    for field, value in expected.items():
+        if manifest.get(field) != value:
+            raise HarnessError(f"artifact manifest does not bind current {field}")
+    if metadata.get("base_commit") != head:
+        raise HarnessError("measured metadata base_commit differs from HEAD")
+    return manifest
+
+
 def cmd_finalize(args):
-    ensure_measured_gate()
+    head = ensure_measured_gate()
     namespace = RAW / "measured" / measured_id()
     verify_measured_manifest(namespace)
-    results_path = namespace / "results.json"
+    manifest_path = ARTIFACT_MANIFESTS / f"{measured_id()}.json"
+    if not manifest_path.exists():
+        raise HarnessError("published raw-artifact manifest is absent; package, inspect, stage, and publish first")
+    manifest = validate_artifact_binding(namespace, manifest_path, head)
+    current_plan = artifact_plan(namespace, head, manifest.get("supersedes"))
+    try:
+        artifact_store.verify_source(manifest_path, current_plan, namespace, ROOT)
+    except artifact_store.ArtifactError as exc:
+        raise HarnessError(str(exc)) from exc
+    artifact_receipt = verify_published_artifact(manifest_path)
+    results_path = RESULTS / f"{measured_id()}.json"
     if results_path.exists():
         saved = load_json(results_path)
         ensure_ledger_lines(saved["lines"])
@@ -2026,7 +2326,11 @@ def cmd_finalize(args):
             "sample_variance": "n-1",
             "seed": SEED,
             "judge_seed": JUDGE_SEED,
-            "raw_dir": str(namespace.relative_to(ROOT)),
+            "artifact": {
+                **artifact_receipt,
+                "manifest_path": str(manifest_path.relative_to(ROOT)),
+            },
+            "results_path": str(results_path.relative_to(ROOT)),
             "freeze_sha256": sha256(E09 / "freeze.json"),
             "completed_at": completed_at,
         }
@@ -2059,6 +2363,9 @@ def build_parser():
     sub.add_parser("interviews").set_defaults(func=cmd_interviews)
     sub.add_parser("tasks").set_defaults(func=cmd_tasks)
     sub.add_parser("judge").set_defaults(func=cmd_judge)
+    artifact_pack = sub.add_parser("artifact-pack")
+    artifact_pack.add_argument("--supersedes")
+    artifact_pack.set_defaults(func=cmd_artifact_pack)
     sub.add_parser("finalize").set_defaults(func=cmd_finalize)
     return parser
 

@@ -1,18 +1,22 @@
 {
   "files": {
+    ".github/workflows/verify-experiment-artifacts.yml": "6302f52042b6d71493d4b7434e5cd65433b8b2eb44ff543dfdd8946976b0add6",
+    "experiments/artifacts.py": "e2a6358c3a8fda30f74d8c9a049a063f06b89d0ce6b0d1ea2e6f37d37900feb3",
+    "experiments/e09/artifact-spec.json": "4d9d0b48bfd355ee39fd60e71d5a0aa45dd3747372a70ffb504572dade3693b5",
     "experiments/e09/catalog.json": "0751e6455395c20d155c409d67419615b10f8386f4b206e7d824fd7ca1a0d3d8",
     "experiments/e09/cold_reader_cases.json": "0fe710b17eea0d9302cce550ecd37a84f5a7bb1f8ca678c99968e97ed6886b6a",
-    "experiments/e09/design.md": "c14ad1c1c29c49c528501604ae05032269f194bde31ebb0e3c4d9816bccf2e15",
-    "experiments/e09/harness.py": "ba1f90856583c31af06b1bc585aeb51f4189a8dfb264f3ffcd86a10ac856ed84",
+    "experiments/e09/design.md": "ce7e7c16e54727ef03b52afc9f357f465718e8a0b40c8a40ed75b9a5739e13d4",
+    "experiments/e09/harness.py": "9fcdddc7dcef84a31788a8b344213f004f71dc4edf8bf9a4c535d7e7e795a10f",
     "experiments/e09/models.json": "2060f8ca6ceea1e0f70608fdaa9dcea5d7d1d0e9e5556cb2aaad5bd78f522519",
     "experiments/e09/persona-stage1.json": "7a66bfdd679ffe570df14008b11fc81a6f79c51c0f76ba38a0d79e783693409e",
     "experiments/e09/persona.json": "b59a171398d31053e933af37ad4dc6d3e5c95b78060b6474881adc330fe20930",
     "experiments/e09/prompts.json": "c66517e76e32d5451ce7213c5bd84ebc20bf43d0ea508e858a6d6c628223dfa2",
-    "experiments/e09/reviews.md": "f60661625cdbb640d5273e7f0a2fbdbeff514943fbe5681b1cfcc094e889a774",
+    "experiments/e09/reviews.md": "46dd1fdb48e0b428f15e989699424c62ba17b77508982211ab48c5c7b040c2fb",
     "experiments/e09/substitutes.json": "9290f5ee3c0d7a03099f99d7cd8fa44c13e90ad31eb8245e90805b1efd0d4890",
     "experiments/e09/tasks.json": "c54b7dcdf992f4d32f4e22defaa9b57729e2dda21420552a1180331f45f014ee",
-    "experiments/e09/test_harness.py": "1ebd2c3c9ffad23e772275cdae51f7e6c99a89a6bd2d39e75edc77a875962936"
+    "experiments/e09/test_harness.py": "2c9c098127952950422c741b99603037b92fda0e1ca41f7a4cbd3df3017948a4",
+    "experiments/test_artifacts.py": "06ca6dd8e86fe1fe711361420549415121b8938e93088f6233af4efcedb53b10"
   },
-  "frozen_at": "2026-08-21",
+  "frozen_at": "2026-08-24",
   "schema_version": 1
 }

@@ -18,8 +18,13 @@ E-09 screens C19–C22. Five runs are a screening batch, not a significance test
 - `substitutes.json` owns listed matchers, substitute matchers, precedence, and judge buckets.
 - `cold_reader_cases.json` owns the qualification and disjoint smoke cases.
 - `models.json` owns model roles and provider controls.
+- `artifact-spec.json` owns the repository identity, release names, credential names, and pack-time sanitizer patterns.
+- `../artifacts.py` owns deterministic packing and local, draft, published-release, digest, member, tag, and attestation verification.
+- `../test_artifacts.py` owns the generic artifact regression tests.
 - `harness.py` owns prompts, calls, retries, arithmetic, timestamps, hashes, IDs, and ledger serialization.
 - `test_harness.py` owns the deterministic regression tests.
+- `reviews.md` records independent design, implementation, and cold-reader reviews as context.
+- `../../.github/workflows/verify-experiment-artifacts.yml` owns the read-only CI verification path.
 - `freeze.json` pins every file above and this design. It does not hash itself.
 
 No execution-time choice may change these bytes. A change creates a new freeze and invalidates prior qualification.
@@ -154,7 +159,7 @@ Before measured execution, `adapter-smoke` must also pass for every measured pat
 
 ## Metrics
 
-The harness reports every per-run value, mean, sample variance with denominator `n-1`, and sample standard deviation. It does not pool model families. Finalization writes immutable `results.json` before idempotently ensuring its two stable run IDs in the ledger; a rerun can finish an interrupted append but cannot create different or duplicate results.
+The harness reports every per-run value, mean, sample variance with denominator `n-1`, and sample standard deviation. It does not pool model families. Finalization first verifies the published immutable raw bundle from a fresh download. It then writes `results/<measured-id>.json` before idempotently ensuring its two stable run IDs in the ledger. A rerun can finish an interrupted append but cannot create different or duplicate results.
 
 ### Interview metrics
 
@@ -227,19 +232,26 @@ experiments/e09/raw/
     judgments/task/<blind-id>.json
     judgments/substitute/<blind-id>/pass-<n>.json
     adjudication-pending.json
-    results.json
 ```
 
-Every provider call records its requested and reported identity, timing, attempts, usage, result, and error. An append-only measured manifest records each call start and completed record hash; finalization verifies it. The harness owns all paths and timestamps. Prompts are reconstructed from frozen inputs; the hash of every input is in `freeze.json`.
+Every provider call records its requested and reported identity, timing, attempts, usage, result, and error. An append-only measured call manifest records each call start and completed record hash. The packager verifies it. The harness owns all paths and timestamps. Prompts are reconstructed from frozen inputs; the hash of every input is in `freeze.json`.
 
 Task and substitute judges receive only blind IDs, rubrics, candidate text, and needed response context. The key from blind ID to arm and family stays in the task raw path and is joined only during finalization.
+
+## Raw artifact publication
+
+After all judgments and any blind human adjudication, `artifact-pack` derives the expected inventory from the frozen schedule and actual valid-task blind ids. It requires exactly 20 interviews and 120 task records. It also requires every corresponding task judgment, both substitute-judgment passes, and both adjudication files when disagreements exist. Missing and extra files both stop packaging.
+
+The measured directory and local `.artifacts/` directory are ignored by Git. The deterministic archive and manifest remain local until `experiments/artifacts.py stage-release` uploads both to a draft release. The operator inspects that draft before running the separate publish command. Inventory includes every planned record, including failures and exclusions; separate status counts preserve those outcomes. Before publication, expected and actual inventory must match, sanitization and digests must pass, and every error, retry, and exclusion must agree with the frozen protocol and raw records. Any unexplained outcome or sanitization match blocks. There is no waiver; correct the frozen input and start a new batch. The publish command requires the exact tag as confirmation. Publication copies the released manifest bytes unchanged to `artifacts/<measured-id>.json`. It does not delete the raw directory.
+
+`stage-release` checks the repository immutable-release setting through the GitHub API and refuses to create or resume a draft when it is disabled. `publish-release` publishes, waits for immutability, performs the first fresh-download and attestation verification, then copies the released manifest bytes into `artifacts/<measured-id>.json`. `finalize` independently repeats the fresh-download, tag, member, and attestation checks against that tracked manifest before it writes `results/<measured-id>.json` or ledger lines. A wrong published bundle requires a new frozen batch and a new release whose manifest names the old tag in `supersedes`. Unpublished or abandoned work does not use `supersedes`.
 
 ## Measured gate
 
 `interviews` refuses to start unless all conditions hold:
 
 1. `freeze.json` matches every frozen file.
-2. The worktree has no unrelated changes. The only allowed changes are smoke history, the current passing qualification namespaces, their exact harness-written ledger appends, the current adapter-smoke namespace, and this freeze's own resumable measured namespace.
+2. The worktree has no unrelated changes. The only allowed changes are smoke history, the current passing qualification namespaces, their exact harness-written ledger appends, the current adapter-smoke namespace, this freeze's own resumable measured namespace, and this batch's exact committed artifact manifest and result paths.
 3. `HEAD` is contained in `origin/main`.
 4. Both required reader profiles passed qualification for the exact current freeze, catalog, suite, reader-profile, and harness hashes.
 5. Every measured adapter passed its current disjoint smoke path.
