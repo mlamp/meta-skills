@@ -253,7 +253,7 @@ class ArtifactPackTest(unittest.TestCase):
                 A.pack(plan(), raw, root / "a.tar.gz", root / "a.json", root)
 
     def test_path_traversal_in_expected_inventory_is_rejected(self):
-        for path in ("../secret.json", r"..\secret.json", "C:/secret.json"):
+        for path in (".", "../secret.json", r"..\secret.json", "C:/secret.json"):
             bad = plan()
             bad["expected_members"] = [{"path": path, "kind": "raw"}]
             with self.assertRaisesRegex(A.ArtifactError, "unsafe"):

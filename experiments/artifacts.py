@@ -205,7 +205,8 @@ def safe_relative(value: str) -> PurePosixPath:
     if "\\" in value or ":" in value:
         raise ArtifactError(f"unsafe artifact member path: {value!r}")
     path = PurePosixPath(value)
-    if path.is_absolute() or value != path.as_posix() or any(part in ("", ".", "..") for part in path.parts):
+    if not path.parts or path.is_absolute() or value != path.as_posix() \
+            or any(part in ("", ".", "..") for part in path.parts):
         raise ArtifactError(f"unsafe artifact member path: {value!r}")
     return path
 

@@ -146,6 +146,10 @@ def canonical(value) -> str:
         raise HarnessError("value is not canonical strict JSON") from exc
 
 
+def same_json(left, right) -> bool:
+    return canonical(left) == canonical(right)
+
+
 def reject_json_constant(value):
     raise StrictJSONError(f"non-finite JSON number is forbidden: {value}")
 
@@ -749,10 +753,16 @@ def call_tool(profile, prompt, schema):
     required = profile.get("reported_identity_required")
     allowed = {required, *profile.get("allowed_auxiliary_models", [])} if required else set()
     reported = set(meta.get("reported_models", []))
-    if required and (required not in reported or not reported <= allowed):
+    if not reported <= allowed or (required and required not in reported):
         raise FormatError(f"reported model {meta.get('reported_models')} does not match required identity {required}", meta)
     provider = profile.get("reported_provider_required")
-    if provider and provider not in meta.get("reported_providers", []):
+    allowed_providers = (
+        {provider, *profile.get("allowed_auxiliary_providers", [])}
+        if provider else set(profile.get("allowed_auxiliary_providers", []))
+    )
+    reported_providers = set(meta.get("reported_providers", []))
+    if not reported_providers <= allowed_providers \
+            or (provider and provider not in reported_providers):
         raise FormatError(f"reported provider {meta.get('reported_providers')} does not match {provider}", meta)
     return payload, meta
 
@@ -808,10 +818,16 @@ def call_text(profile, prompt: str, system_text: str):
         required = profile.get("reported_identity_required")
         allowed = {required, *profile.get("allowed_auxiliary_models", [])} if required else set()
         reported = set(meta["reported_models"])
-        if required and (required not in reported or not reported <= allowed):
+        if not reported <= allowed or (required and required not in reported):
             raise FormatError(f"reported model {meta['reported_models']} does not match required identity {required}", meta)
         provider = profile.get("reported_provider_required")
-        if provider and provider not in meta["reported_providers"]:
+        allowed_providers = (
+            {provider, *profile.get("allowed_auxiliary_providers", [])}
+            if provider else set(profile.get("allowed_auxiliary_providers", []))
+        )
+        reported_providers = set(meta["reported_providers"])
+        if not reported_providers <= allowed_providers \
+                or (provider and provider not in reported_providers):
             raise FormatError(f"reported provider {meta['reported_providers']} does not match {provider}", meta)
         return payload["result"], meta
 
@@ -860,6 +876,40 @@ def grade_case(case, payload):
 
 def profile_map():
     return load_json(DATA_FILES["models.json"])["profiles"]
+
+
+def validate_model_metadata(record, profile, relative: str):
+    if record.get("status") != "ok" and record.get("status") != "pass":
+        return
+    metadata = record.get("model")
+    if not isinstance(metadata, dict) or sanitize_host_metadata(metadata) != metadata:
+        raise HarnessError(f"provider model metadata is invalid: {relative}")
+    if metadata.get("requested_model") != profile.get("model"):
+        raise HarnessError(f"provider requested model differs from its frozen profile: {relative}")
+    reported = metadata.get("reported_models")
+    if not isinstance(reported, list) or any(not isinstance(value, str) for value in reported):
+        raise HarnessError(f"provider reported model metadata is invalid: {relative}")
+    required = profile.get("reported_identity_required")
+    allowed = {required, *profile.get("allowed_auxiliary_models", [])} if required else set()
+    if not set(reported) <= allowed or (required and required not in reported):
+        raise HarnessError(f"provider reported model differs from its frozen profile: {relative}")
+    required_provider = profile.get("reported_provider_required")
+    allowed_providers = (
+        {required_provider, *profile.get("allowed_auxiliary_providers", [])}
+        if required_provider else set(profile.get("allowed_auxiliary_providers", []))
+    )
+    reported_providers = metadata.get("reported_providers", [])
+    if not isinstance(reported_providers, list) \
+            or any(not isinstance(value, str) for value in reported_providers):
+        raise HarnessError(f"provider reported-provider metadata is invalid: {relative}")
+    if not set(reported_providers) <= allowed_providers \
+            or (required_provider and required_provider not in reported_providers):
+        raise HarnessError(f"provider reported provider differs from its frozen profile: {relative}")
+    if profile.get("adapter") == "codex_cli":
+        if metadata.get("identity_evidence") != profile.get("identity_evidence"):
+            raise HarnessError(f"provider identity evidence differs from its frozen profile: {relative}")
+        if not isinstance(metadata.get("cli_version"), str) or not metadata["cli_version"].strip():
+            raise HarnessError(f"provider CLI identity evidence is absent: {relative}")
 
 
 def validate_inputs(check_freeze=True):
@@ -920,14 +970,10 @@ def validate_inputs(check_freeze=True):
         except (KeyError, TypeError, re.error) as exc:
             errors.append(f"invalid artifact sanitization pattern: {exc}")
     if check_freeze and (E09 / "freeze.json").exists():
-        frozen = load_json(E09 / "freeze.json")["files"]
-        for path in FREEZE_INPUTS:
-            rel = str(path.relative_to(ROOT))
-            if frozen.get(rel) != sha256(path):
-                errors.append(f"freeze mismatch: {rel}")
-        extras = set(frozen) - {str(path.relative_to(ROOT)) for path in FREEZE_INPUTS}
-        if extras:
-            errors.append("freeze lists unexpected files: " + ", ".join(sorted(extras)))
+        try:
+            validate_freeze_payload(load_json(E09 / "freeze.json"))
+        except HarnessError as exc:
+            errors.append(str(exc))
     return errors
 
 
@@ -1088,7 +1134,9 @@ def ensure_qualification_summary_ledger(summary_path, summary, namespace):
 def validate_qualification_evidence(
     summary, namespace: Path, profile_name: str, require_pass=False
 ):
+    validate_local_namespace(namespace, "qualification evidence")
     suite = load_json(DATA_FILES["cold_reader_cases.json"])
+    profile = profile_map()[profile_name]
     _, expected_key = cold_reader_namespace("qualification", profile_name)
     repetitions = suite["qualification"]["repetitions_per_profile"]
     cases = suite["qualification"]["cases"]
@@ -1106,7 +1154,7 @@ def validate_qualification_evidence(
         raise HarnessError("qualification evidence inventory differs from the frozen suite")
     marker = load_json(namespace / "attempt.json")
     if not isinstance(marker, dict) or set(marker) != {"status", "started_at", "key"} \
-            or marker["status"] != "started" or marker["key"] != expected_key:
+            or marker["status"] != "started" or not same_json(marker["key"], expected_key):
         raise HarnessError("qualification start marker differs from the current key")
     marker_time = parse_canonical_utc(marker["started_at"], "qualification marker started_at")
     expected_summary_fields = {
@@ -1128,8 +1176,8 @@ def validate_qualification_evidence(
             identity_fields = {"profile", "tier", "rep", "case_id", "started_at", "key", "status"}
             if not isinstance(record, dict) or not identity_fields <= set(record) \
                     or record["profile"] != profile_name or record["tier"] != "qualification" \
-                    or record["rep"] != rep or record["case_id"] != case["id"] \
-                    or record["key"] != expected_key \
+                    or not same_json(record["rep"], rep) or record["case_id"] != case["id"] \
+                    or not same_json(record["key"], expected_key) \
                     or record["status"] not in ("pass", "fail", "error"):
                 raise HarnessError(f"qualification case record identity differs: {path}")
             started_time = parse_canonical_utc(
@@ -1146,11 +1194,13 @@ def validate_qualification_evidence(
                     raise HarnessError(f"qualification case payload violates its schema: {path}")
                 assertions = grade_case(case, record["payload"])
                 expected_status = "pass" if all(item["pass"] for item in assertions) else "fail"
-                if record["assertions"] != assertions or record["status"] != expected_status:
+                if not same_json(record["assertions"], assertions) \
+                        or record["status"] != expected_status:
                     raise HarnessError(f"qualification case assertions differ from regrading: {path}")
                 if not isinstance(record["model"], dict) \
                         or sanitize_host_metadata(record["model"]) != record["model"]:
                     raise HarnessError(f"qualification case model metadata is invalid: {path}")
+                validate_model_metadata(record, profile, str(path.relative_to(namespace)))
                 attempts = record["attempts"]
                 if not isinstance(attempts, list) or len(attempts) not in (1, 2):
                     raise HarnessError(f"qualification case retry record is invalid: {path}")
@@ -1195,7 +1245,7 @@ def validate_qualification_evidence(
         "completed_at": summary["completed_at"],
     }
     expected_line = cold_reader_ledger_line(expected_summary, namespace)
-    if summary != {**expected_summary, "ledger_run_id": expected_line["run_id"]}:
+    if not same_json(summary, {**expected_summary, "ledger_run_id": expected_line["run_id"]}):
         raise HarnessError("qualification summary differs from regraded case records")
     if require_pass and not passed:
         raise HarnessError(f"current cold-reader qualification has not passed for {profile_name}")
@@ -1363,6 +1413,95 @@ def cmd_adapter_smoke(args):
         raise SystemExit(1)
 
 
+def validate_adapter_smoke_evidence(namespace: Path):
+    validate_local_namespace(namespace, "adapter smoke")
+    _, expected_key = adapter_smoke_namespace()
+    models = load_json(DATA_FILES["models.json"])
+    profiles = models["profiles"]
+    judge_name = models["judge_profile"]
+    expected = {
+        "fable-subject/tool.json",
+        "fable-subject/text.json",
+        "kimi-subject/tool.json",
+        "kimi-subject/text.json",
+        f"{judge_name}/task-schema.json",
+        f"{judge_name}/substitute-schema.json",
+        "summary.json",
+    }
+    try:
+        actual = set(artifact_store.actual_regular_files(namespace))
+    except artifact_store.ArtifactError as exc:
+        raise HarnessError(str(exc)) from exc
+    if actual != expected:
+        raise HarnessError("adapter smoke inventory differs from the frozen probe")
+    suite = load_json(DATA_FILES["cold_reader_cases.json"])
+    case = suite["smoke"]["case"]
+    records = []
+    for name in ("fable-subject", "kimi-subject"):
+        for probe in ("tool", "text"):
+            relative = f"{name}/{probe}.json"
+            record = load_artifact_record(namespace, relative)
+            validate_record_identity(
+                record,
+                {"kind": "adapter_smoke", "profile": name, "path": probe},
+                relative,
+            )
+            validate_attempt_protocol(record, relative)
+            if record.get("status") != "ok":
+                raise HarnessError(f"adapter smoke provider record did not pass: {relative}")
+            validate_model_metadata(record, profiles[name], relative)
+            if probe == "tool":
+                result = record.get("result")
+                if not isinstance(result, dict) or set(result) != {"payload", "assertions"}:
+                    raise HarnessError(f"adapter smoke tool result is invalid: {relative}")
+                schema_errors = validate_schema(result["payload"], case_schema(case))
+                assertions = grade_case(case, result["payload"])
+                if schema_errors or not same_json(result["assertions"], assertions) \
+                        or not all(item["pass"] for item in assertions):
+                    raise HarnessError(f"adapter smoke tool result fails regrading: {relative}")
+            elif not isinstance(record.get("result"), str) \
+                    or record["result"].strip() != "SMOKE_OK":
+                raise HarnessError(f"adapter smoke text result is invalid: {relative}")
+            records.append(record)
+    judge_probes = {
+        "task-schema": task_judge_schema("SMOKE", 2, 1),
+        "substitute-schema": substitute_judge_schema(["c1", "c2"]),
+    }
+    for probe, schema in judge_probes.items():
+        relative = f"{judge_name}/{probe}.json"
+        record = load_artifact_record(namespace, relative)
+        validate_record_identity(
+            record,
+            {"kind": "adapter_smoke", "profile": judge_name,
+             "path": probe.replace("-", "_")},
+            relative,
+        )
+        validate_attempt_protocol(record, relative)
+        if record.get("status") != "ok":
+            raise HarnessError(f"adapter smoke provider record did not pass: {relative}")
+        validate_model_metadata(record, profiles[judge_name], relative)
+        validate_success_schema(record, schema, relative)
+        if probe == "substitute-schema":
+            try:
+                validate_substitute_payload(record["result"], ["c1", "c2"])
+            except FormatError as exc:
+                raise HarnessError(f"adapter smoke substitute result is invalid: {relative}") from exc
+        records.append(record)
+    summary = load_json(namespace / "summary.json")
+    expected_summary = {
+        "type": "adapter_smoke",
+        "key": expected_key,
+        "passed": True,
+        "calls": len(records),
+        "errors": 0,
+        "completed_at": summary.get("completed_at") if isinstance(summary, dict) else None,
+    }
+    parse_canonical_utc(expected_summary["completed_at"], "adapter smoke completed_at")
+    if not same_json(summary, expected_summary):
+        raise HarnessError("adapter smoke summary differs from revalidated records")
+    return summary
+
+
 def measured_schedule():
     jobs = [
         {"family": family, "arm": arm, "rep": rep}
@@ -1381,9 +1520,29 @@ def cmd_schedule(args):
 def freeze_payload():
     return {
         "schema_version": 1,
-        "frozen_at": "2026-08-24",
+        "frozen_at": utc_now()[:10],
         "files": {str(path.relative_to(ROOT)): sha256(path) for path in FREEZE_INPUTS},
     }
+
+
+def validate_freeze_payload(frozen):
+    if not isinstance(frozen, dict) or set(frozen) != {"schema_version", "frozen_at", "files"} \
+            or not isinstance(frozen.get("schema_version"), int) \
+            or isinstance(frozen["schema_version"], bool) or frozen["schema_version"] != 1:
+        raise HarnessError("freeze.json has an invalid schema")
+    frozen_at = frozen.get("frozen_at")
+    try:
+        datetime.strptime(frozen_at, "%Y-%m-%d")
+    except (TypeError, ValueError) as exc:
+        raise HarnessError("freeze.json frozen_at must be a calendar date") from exc
+    files = frozen.get("files")
+    expected = {str(path.relative_to(ROOT)): sha256(path) for path in FREEZE_INPUTS}
+    if not isinstance(files, dict) or set(files) != set(expected):
+        raise HarnessError("freeze.json file inventory differs from frozen inputs")
+    for relative, expected_sha256 in expected.items():
+        if files.get(relative) != expected_sha256:
+            raise HarnessError(f"freeze mismatch: {relative}")
+    return frozen
 
 
 def cmd_freeze(args):
@@ -1399,8 +1558,8 @@ def measured_id():
     path = E09 / "freeze.json"
     if not path.exists():
         raise HarnessError("freeze.json is absent; freeze the reviewed design before measured execution")
-    frozen = load_json(path)
-    return "m-" + digest(frozen["files"], 16)
+    frozen = validate_freeze_payload(load_json(path))
+    return "m-" + digest(frozen, 16)
 
 
 def git(*args):
@@ -1544,9 +1703,7 @@ def ensure_measured_gate():
     adapter_namespace = passed_smoke_attempt(adapter_base)
     if adapter_namespace is None:
         raise HarnessError("current measured-adapter smoke has not passed")
-    adapter_summary = adapter_namespace / "summary.json"
-    if not adapter_summary.exists() or not load_json(adapter_summary).get("passed"):
-        raise HarnessError("current measured-adapter smoke has not passed")
+    validate_adapter_smoke_evidence(adapter_namespace)
     status = git("status", "--porcelain=v1", "--untracked-files=all").splitlines()
     namespace = RAW / "measured" / measured_id()
     ensure_measured_namespace(namespace)
@@ -1588,6 +1745,7 @@ def ensure_measured_gate():
     proc = subprocess.run(["git", "merge-base", "--is-ancestor", head, "origin/main"], cwd=ROOT)
     if proc.returncode:
         raise HarnessError("measured mode requires the exact frozen commit to be contained in origin/main")
+    validate_existing_measured_metadata(namespace, head)
     return head
 
 
@@ -1654,6 +1812,32 @@ def complete_measured_record(path: Path):
     })
 
 
+def validate_measured_manifest_row(namespace: Path, row):
+    if not isinstance(row, dict) or row.get("event") not in ("started", "completed"):
+        raise HarnessError("measured call manifest has an invalid event")
+    relative = row.get("path")
+    try:
+        artifact_store.safe_relative(relative)
+    except artifact_store.ArtifactError as exc:
+        raise HarnessError(f"measured call manifest contains an unsafe path: {exc}") from exc
+    if row["event"] == "started":
+        if set(row) != {"run_id", "event", "path", "started_at"}:
+            raise HarnessError(f"measured start event has an invalid schema: {relative}")
+        parse_canonical_utc(row["started_at"], f"measured start event: {relative}")
+        payload = {"event": "started", "path": relative, "started_at": row["started_at"]}
+        expected_id = "record-start-" + digest({"namespace": namespace.name, **payload}, 20)
+    else:
+        if set(row) != {"run_id", "event", "path", "sha256"} \
+                or not isinstance(row.get("sha256"), str) \
+                or re.fullmatch(r"[0-9a-f]{64}", row["sha256"]) is None:
+            raise HarnessError(f"measured completion event has an invalid schema: {relative}")
+        payload = {"event": "completed", "path": relative, "sha256": row["sha256"]}
+        expected_id = "record-complete-" + digest({"namespace": namespace.name, **payload}, 20)
+    if row.get("run_id") != expected_id:
+        raise HarnessError(f"measured call manifest run_id differs from its namespace: {relative}")
+    return row
+
+
 def verify_measured_record(path: Path):
     namespace = measured_record_namespace(path)
     if namespace is None:
@@ -1664,6 +1848,8 @@ def verify_measured_record(path: Path):
     completions = [row for row in rows if row.get("event") == "completed"]
     if len(starts) != 1 or len(completions) != 1:
         raise HarnessError(f"measured call manifest is incomplete for {relative}")
+    validate_measured_manifest_row(namespace, starts[0])
+    validate_measured_manifest_row(namespace, completions[0])
     if not path.exists() or completions[0].get("sha256") != sha256(path):
         raise HarnessError(f"measured call record differs from its manifest: {relative}")
 
@@ -1748,7 +1934,7 @@ def cmd_interviews(args):
     head = ensure_measured_gate()
     namespace = RAW / "measured" / measured_id()
     metadata = namespace / "metadata.json"
-    if not metadata.exists():
+    if validate_existing_measured_metadata(namespace, head) is None:
         write_json_atomic(metadata, {"experiment": "E-09", "base_commit": head, "started_at": utc_now(),
                                      "freeze_sha256": sha256(E09 / "freeze.json"), "schedule": measured_schedule()})
     profiles = profile_map()
@@ -1849,7 +2035,7 @@ def measured_judge_schedule(task_records):
 
 
 def cmd_tasks(args):
-    ensure_measured_gate()
+    head = ensure_measured_gate()
     namespace = RAW / "measured" / measured_id()
     interviews = iter_records(namespace / "interviews")
     if len(interviews) != 20:
@@ -1857,9 +2043,11 @@ def cmd_tasks(args):
     profiles = profile_map()
     jobs = measured_task_jobs(interviews)
     metadata_path = namespace / "metadata.json"
-    metadata = load_json(metadata_path)
+    metadata = validate_existing_measured_metadata(namespace, head)
+    if metadata is None:
+        raise HarnessError("tasks require measured metadata from the interview phase")
     schedule = measured_task_schedule(interviews)
-    if "task_schedule" in metadata and metadata["task_schedule"] != schedule:
+    if "task_schedule" in metadata and not same_json(metadata["task_schedule"], schedule):
         raise HarnessError("stored task schedule differs from the frozen seed")
     metadata["task_schedule"] = schedule
     write_json_atomic(metadata_path, metadata)
@@ -1943,7 +2131,7 @@ def call_codex_schema(profile, prompt, schema):
 
 
 def cmd_judge(args):
-    ensure_measured_gate()
+    head = ensure_measured_gate()
     namespace = RAW / "measured" / measured_id()
     tasks_by_id = {task["id"]: task for task in load_json(DATA_FILES["tasks.json"])["tasks"]}
     profile = profile_map()[load_json(DATA_FILES["models.json"])["judge_profile"]]
@@ -1952,9 +2140,11 @@ def cmd_judge(args):
         raise HarnessError(f"judge requires all 120 task records; found {len(all_task_records)}")
     task_records = measured_judge_records(all_task_records)
     metadata_path = namespace / "metadata.json"
-    metadata = load_json(metadata_path)
+    metadata = validate_existing_measured_metadata(namespace, head)
+    if metadata is None:
+        raise HarnessError("judge requires measured metadata from the interview phase")
     schedule = measured_judge_schedule(all_task_records)
-    if "judge_schedule" in metadata and metadata["judge_schedule"] != schedule:
+    if "judge_schedule" in metadata and not same_json(metadata["judge_schedule"], schedule):
         raise HarnessError("stored judge schedule differs from the frozen seed")
     metadata["judge_schedule"] = schedule
     write_json_atomic(metadata_path, metadata)
@@ -2214,6 +2404,8 @@ def verify_complete_call_manifest(namespace: Path, expected_paths):
             if load_json(path).get("status") != "excluded":
                 call_paths.add(relative)
     rows = measured_manifest_rows(namespace)
+    for row in rows:
+        validate_measured_manifest_row(namespace, row)
     starts = [row.get("path") for row in rows if row.get("event") == "started"]
     completions = [row.get("path") for row in rows if row.get("event") == "completed"]
     unknown_events = [row.get("event") for row in rows if row.get("event") not in ("started", "completed")]
@@ -2225,7 +2417,7 @@ def verify_complete_call_manifest(namespace: Path, expected_paths):
 
 def validate_record_identity(record, expected, relative: str):
     for field, value in expected.items():
-        if record.get(field) != value:
+        if field not in record or not same_json(record[field], value):
             raise HarnessError(f"raw record identity differs from path {relative}: {field}")
 
 
@@ -2311,11 +2503,15 @@ def successful_task_for_blind(tasks, blind: str):
 
 def validate_artifact_record_identities(namespace: Path, tasks):
     task_definitions = {row["id"]: row for row in load_json(DATA_FILES["tasks.json"])["tasks"]}
+    models = load_json(DATA_FILES["models.json"])
+    profiles = models["profiles"]
+    judge_profile = profiles[models["judge_profile"]]
     for job in measured_schedule():
         relative = f"interviews/{job['family']}/{job['arm']}/rep-{job['rep']}.json"
         record = load_artifact_record(namespace, relative)
         validate_record_identity(record, {"kind": "interview", **job}, relative)
         validate_attempt_protocol(record, relative)
+        validate_model_metadata(record, profiles[job["family"]], relative)
         validate_success_schema(record, contract_schema(job["arm"]), relative)
         validate_interview_derived_fields(record, job["arm"], relative)
     task_ids = list(task_definitions)
@@ -2330,6 +2526,7 @@ def validate_artifact_record_identities(namespace: Path, tasks):
                     "condition": condition, "task_id": task_id,
                 }, relative)
                 validate_attempt_protocol(record, relative)
+                validate_model_metadata(record, profiles[job["family"]], relative)
                 validate_success_schema(record, {"type": "string", "minLength": 1}, relative)
     blind_task_ids = {}
     substitute_blinds = set()
@@ -2349,6 +2546,7 @@ def validate_artifact_record_identities(namespace: Path, tasks):
             record, {"kind": "task_judgment", "blind_id": blind, "task_id": task_id}, relative
         )
         validate_attempt_protocol(record, relative)
+        validate_model_metadata(record, judge_profile, relative)
         task = task_definitions[task_id]
         validate_success_schema(
             record,
@@ -2366,6 +2564,7 @@ def validate_artifact_record_identities(namespace: Path, tasks):
                 "kind": "substitute_judgment", "blind_id": blind, "pass": adjudication_pass,
             }, relative)
             validate_attempt_protocol(record, relative)
+            validate_model_metadata(record, judge_profile, relative)
             validate_success_schema(record, substitute_judge_schema(candidate_ids), relative)
             if record.get("status") == "ok":
                 try:
@@ -2409,38 +2608,63 @@ def artifact_execution_summary(namespace: Path, interviews, tasks):
 def validate_artifact_schedules(metadata, interviews, tasks):
     expected_task_schedule = measured_task_schedule(interviews)
     expected_judge_schedule = measured_judge_schedule(tasks)
-    if metadata.get("task_schedule") != expected_task_schedule:
+    if not same_json(metadata.get("task_schedule"), expected_task_schedule):
         raise HarnessError("measured task schedule differs from frozen records and seed")
-    if metadata.get("judge_schedule") != expected_judge_schedule:
+    if not same_json(metadata.get("judge_schedule"), expected_judge_schedule):
         raise HarnessError("measured judge schedule differs from frozen records and seed")
 
 
-def validate_artifact_namespace(namespace: Path):
+def validate_local_namespace(namespace: Path, label: str):
     if namespace.is_symlink():
-        raise HarnessError("measured artifact namespace must not be a symlink")
+        raise HarnessError(f"{label} namespace must not be a symlink")
     try:
         resolved = namespace.resolve(strict=True)
         relative = resolved.relative_to(ROOT.resolve(strict=True))
         lexical_relative = namespace.relative_to(ROOT)
     except (OSError, ValueError) as exc:
-        raise HarnessError("measured artifact namespace must exist beneath the repository") from exc
+        raise HarnessError(f"{label} namespace must exist beneath the repository") from exc
     if relative.as_posix() != lexical_relative.as_posix():
-        raise HarnessError("measured artifact namespace resolves through a redirected parent")
+        raise HarnessError(f"{label} namespace resolves through a redirected parent")
     try:
         artifact_store.actual_regular_files(resolved)
     except artifact_store.ArtifactError as exc:
         raise HarnessError(str(exc)) from exc
 
 
+def validate_artifact_namespace(namespace: Path):
+    validate_local_namespace(namespace, "measured artifact")
+
+
 def validate_artifact_metadata(metadata, head: str):
+    required = {"experiment", "base_commit", "started_at", "freeze_sha256", "schedule"}
+    allowed = required | {"task_schedule", "judge_schedule"}
+    if not isinstance(metadata, dict) or not required <= set(metadata) or not set(metadata) <= allowed:
+        raise HarnessError("measured metadata has an invalid schema")
     if metadata.get("experiment") != "E-09":
         raise HarnessError("measured metadata experiment differs from E-09")
     if metadata.get("freeze_sha256") != sha256(E09 / "freeze.json"):
         raise HarnessError("measured metadata freeze_sha256 differs from the current freeze")
     if metadata.get("base_commit") != head:
         raise HarnessError("measured metadata base_commit differs from HEAD")
-    if metadata.get("schedule") != measured_schedule():
+    if not same_json(metadata.get("schedule"), measured_schedule()):
         raise HarnessError("measured interview schedule differs from the frozen seed")
+    parse_canonical_utc(metadata.get("started_at"), "measured metadata started_at")
+
+
+def validate_existing_measured_metadata(namespace: Path, head: str):
+    validate_artifact_namespace(namespace)
+    metadata_path = namespace / "metadata.json"
+    if not metadata_path.exists():
+        if any(namespace.iterdir()):
+            raise HarnessError("non-empty measured namespace is missing metadata.json")
+        return None
+    try:
+        artifact_store.require_regular_file(metadata_path, "measured metadata")
+    except artifact_store.ArtifactError as exc:
+        raise HarnessError(str(exc)) from exc
+    metadata = load_json(metadata_path)
+    validate_artifact_metadata(metadata, head)
+    return metadata
 
 
 def artifact_plan(namespace: Path, head: str, supersedes=None):

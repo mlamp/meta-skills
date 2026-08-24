@@ -84,7 +84,7 @@ The measured interviewer and downstream generator families are:
 - `fable-subject`: `claude-fable-5`, high effort.
 - `kimi-subject`: requested and reported `k3[1m]`, high effort.
 
-Each call records the requested model, every provider-reported model, usage, start time, completion time, and any cache counters the provider supplies. Claude, Kimi, Haiku, and DeepSeek must include the required primary identity; a mismatch or missing echo is an error. Claude CLI may also report the exact pinned Haiku model used for auxiliary session metadata, which is recorded but not treated as the routed response model. Any other auxiliary identity fails. Codex JSONL does not echo the routed model, so GPT judge identity evidence is the requested model plus the recorded CLI version. There is no automatic model fallback.
+Each call records the requested model, every provider-reported model, usage, start time, completion time, and any cache counters the provider supplies. Claude, Kimi, Haiku, and DeepSeek must include the required primary identity; a mismatch or missing echo is an error. Claude CLI may also report the exact pinned Haiku model used for auxiliary session metadata, which is recorded but not treated as the routed response model. Any other auxiliary identity fails. Codex JSONL does not echo the routed model, so GPT judge identity evidence is the requested model plus the recorded CLI version. The qualification gate, adapter-smoke gate, and packager revalidate the persisted identity metadata against the frozen profile. There is no automatic model fallback.
 
 Before any raw record is written, the harness sanitizes recognized secret and host metadata. It removes credential-bearing fields, redacts API-key assignments and bearer values, and removes or redacts host paths and session identifiers. No smoke artifact may be committed unless a second sanitizer pass makes no change and an exact-value scan finds none of the locally configured credentials. The exact-value scan compares stored text against nonempty credential values loaded from the ignored `.env` file and current environment; it never records those values. This catches secrets whose surrounding text has no recognized pattern. If either check fails, keep the artifact local, extend the sanitizer, produce a new smoke attempt, and rerun both checks. If that cannot be done safely, stop and leave the artifact uncommitted.
 
@@ -106,7 +106,7 @@ There are five independent runs per arm and family:
 
 Seed `20260821` fixes one interleaved family × arm × repetition interview order. The same seed fixes downstream job order. Seed `20260822` fixes judge order. The harness prints the schedule before execution and records actual timestamps. It never groups one arm first.
 
-All planned calls are started even when earlier calls fail. Before each measured provider call, the harness appends its path to the measured record manifest. After the immutable record is written, it appends the record hash. An operator interruption resumes the same content-addressed namespace and skips only records whose hashes still match. A started, missing, changed, or incompletely recorded call blocks the freeze instead of being rerun. There is no result-based early stop, extra repetition, silent restart, or optional continuation.
+All planned calls are started even when earlier calls fail. Before each measured provider call, the harness appends its path to the measured record manifest. After the immutable record is written, it appends the record hash. Each event has an exact schema and a run id derived from the measured namespace and full event payload. An operator interruption resumes the same content-addressed namespace and skips only records whose hashes, event identities, and batch metadata still match. A started, missing, changed, or incompletely recorded call blocks the freeze instead of being rerun. There is no result-based early stop, extra repetition, silent restart, or optional continuation.
 
 ## Downstream tasks
 
@@ -144,7 +144,7 @@ Tool arrays are graded as sets unless order carries meaning. Precedence is grade
 
 Qualification is five repetitions per required profile. Every assertion must pass in all five repetitions in both families. There is one batch attempt per exact freeze, catalog, case-suite, reader-profile, and harness hash set. An exclusive start marker consumes the attempt before the first call, so an interruption cannot restart or overwrite it. A completed failed batch is immutable and ledgered. Summary finalization derives one stable run ID from the exact row fields, counts, raw path, key, and canonical `completed_at`; it excludes only `run_id` and `date` from that content digest. It writes that ID into the summary, then ensures the exact ledger row: create it if missing, accept an existing row only when its canonical JSON matches, and reject the same ID with different content. The qualification and measured gates use the same field set to rederive the ID and restore whichever side of an interrupted finalization is missing. They never repeat provider calls during that repair. For a new row, the trusted verifier independently derives the same exact row shape, counts, current input hashes, path, timestamp, pass state, and run id. The append-only trusted baseline preserves older qualification rows after those input bytes change; the verifier checks their self-consistent shape and identity without treating them as current. A rerun requires a real byte change to an input bound by that attempt key. Formatting failure blocks the gate deliberately.
 
-Qualification can start only when `freeze.json` matches, `HEAD` equals the commit that last changed it, that commit is contained in `origin/main`, and the tree is clean apart from current immutable qualification records. The attempt key also binds the freeze hash. Its pass is context for binding-text comprehension, not evidence for C19–C22.
+Qualification can start only when `freeze.json` matches, `HEAD` equals the commit that last changed it, that commit is contained in `origin/main`, and the tree is clean apart from current immutable qualification records. Before a qualification can authorize measured calls, its namespace must resolve to its lexical path beneath the repository and every passing record must retain provider identity metadata that matches its frozen reader profile. The attempt key also binds the freeze hash. Its pass is context for binding-text comprehension, not evidence for C19–C22.
 
 `cold_reader_cases.json` also contains a disjoint M01–M02 smoke catalog. Smoke runs prove only the adapters, tool schema, raw isolation, and grading path. They never see U01–U06 cases and never count as evidence.
 
@@ -155,7 +155,7 @@ Smoke history has two formats:
 
 The smoke schemas must exercise every structured-output keyword used later, including fixed array sizes, `uniqueItems`, nullable enums, and `minLength`.
 
-Before measured execution, `adapter-smoke` must also pass for every measured path: Fable tool and text, Kimi tool and text, and GPT structured judgment. It uses only M01–M02 and `SMOKE_OK`, records exact reported identities or the documented Codex CLI limitation, and is keyed by the harness, model registry, and prompt hashes.
+Before measured execution, `adapter-smoke` must also pass for every measured path: Fable tool and text, Kimi tool and text, and both GPT structured judgment schemas. It uses only M01–M02 and `SMOKE_OK`, records exact reported identities or the documented Codex CLI limitation, and is keyed by the harness, model registry, and prompt hashes. The gate revalidates the latest attempt's exact seven-file inventory, six successful records, attempt protocol, schemas, semantic grading, provider identities, current key, counts, and summary.
 
 ## Metrics
 
@@ -218,7 +218,7 @@ Error and exclusion counts are reported by arm and family. The planned denominat
 
 ## Raw records and blinding
 
-Raw paths are content-addressed by the frozen files.
+Raw paths are content-addressed by the complete validated freeze object. That object has an exact schema, a UTC creation date, and the complete frozen file map. A date-only correction therefore creates a new measured id.
 
 ```text
 experiments/e09/raw/
@@ -234,7 +234,7 @@ experiments/e09/raw/
     adjudication-pending.json
 ```
 
-Every provider call records its requested and reported identity, timing, attempts, usage, result, and error. An append-only measured call manifest records each call start and completed record hash. The packager verifies it. The harness owns all paths and timestamps. Prompts are reconstructed from frozen inputs; the hash of every input is in `freeze.json`.
+Every provider call records its requested and reported identity, timing, attempts, usage, result, and error. An append-only measured call manifest records each call start and completed record hash. The packager verifies each event schema, namespace-derived run id, record hash, and persisted provider identity. The harness owns all paths and timestamps. Prompts are reconstructed from frozen inputs; the hash of every input is in `freeze.json`.
 
 Task and substitute judges receive only blind IDs, rubrics, candidate text, and needed response context. The key from blind ID to arm and family stays in the task raw path and is joined only during finalization.
 
@@ -257,7 +257,7 @@ The measured directory and local `.artifacts/` directory are ignored by Git. `ar
 3. `HEAD` equals the commit that last changed `freeze.json`, and that exact commit is contained in `origin/main`.
 4. Both required reader profiles passed qualification for the exact current freeze, catalog, suite, reader-profile, and harness hashes.
 5. Every measured adapter passed its current disjoint smoke path.
-6. Before each measured phase can call a provider, the harness creates the exact measured namespace beneath the repository and rejects redirected parents, links, non-directory path components, or existing linked children. The namespace then either has no records or matches the same freeze metadata.
+6. Before each measured phase can call a provider, the harness creates the exact measured namespace beneath the repository and rejects redirected parents, links, non-directory path components, or existing linked children. An empty namespace may receive new metadata. A non-empty namespace must already have regular metadata that matches the current freeze, commit, and interview schedule. Tasks and judgments also require their stored schedules to match recomputation before calls begin.
 
 This issue and PR cannot produce measured evidence.
 

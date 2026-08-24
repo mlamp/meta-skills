@@ -28,6 +28,7 @@
       "timeout_seconds": 180,
       "role": "cold_reader",
       "reported_identity_required": "claude-haiku-4-5-20251001",
+      "reported_provider_required": "firstParty",
       "required": true
     },
     "deepseek-reader": {
@@ -50,6 +51,7 @@
       "timeout_seconds": 600,
       "role": "interviewer_generator",
       "reported_identity_required": "claude-fable-5",
+      "reported_provider_required": "firstParty",
       "allowed_auxiliary_models": ["claude-haiku-4-5-20251001"]
     },
     "kimi-subject": {

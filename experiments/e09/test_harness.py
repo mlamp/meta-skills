@@ -20,6 +20,20 @@ class FrozenInputsTest(unittest.TestCase):
         for path in H.DATA_FILES.values():
             self.assertIsInstance(H.load_json(path), dict, path.name)
 
+    def test_measured_id_hashes_complete_validated_freeze(self):
+        first = H.freeze_payload()
+        first["frozen_at"] = "2026-08-24"
+        second = {**first, "frozen_at": "2026-08-25"}
+        with mock.patch.object(H, "load_json", return_value=first):
+            first_id = H.measured_id()
+        with mock.patch.object(H, "load_json", return_value=second):
+            second_id = H.measured_id()
+        self.assertNotEqual(first_id, second_id)
+        with self.assertRaisesRegex(H.HarnessError, "invalid schema"):
+            H.validate_freeze_payload({**first, "unexpected": True})
+        with self.assertRaisesRegex(H.HarnessError, "invalid schema"):
+            H.validate_freeze_payload({**first, "schema_version": True})
+
     def test_source_hashes_match(self):
         persona = H.load_json(H.DATA_FILES["persona.json"])
         for source in persona["source_artifacts"]:
@@ -325,6 +339,68 @@ class MatcherAndMetricTest(unittest.TestCase):
 
 
 class RunnerSafetyTest(unittest.TestCase):
+    def write_valid_adapter_smoke(self, namespace):
+        profiles = H.profile_map()
+        case = H.load_json(H.DATA_FILES["cold_reader_cases.json"])["smoke"]["case"]
+        payload = {
+            "case_id": case["id"],
+            "answers": [{**row, "sublabel": None} for row in case["expected"]],
+        }
+
+        def metadata(name):
+            profile = profiles[name]
+            value = {
+                "requested_model": profile["model"],
+                "reported_models": ([profile["reported_identity_required"]]
+                                    if profile.get("reported_identity_required") else []),
+                "reported_providers": ([profile["reported_provider_required"]]
+                                       if profile.get("reported_provider_required") else []),
+            }
+            if profile["adapter"] == "codex_cli":
+                value.update({
+                    "identity_evidence": profile["identity_evidence"],
+                    "cli_version": "codex-cli test",
+                })
+            return value
+
+        def record(name, probe, result):
+            return {
+                "kind": "adapter_smoke",
+                "profile": name,
+                "path": probe,
+                "status": "ok",
+                "result": result,
+                "model": metadata(name),
+                "attempts": [{"attempt": 1, "status": "ok", "elapsed_seconds": 0}],
+            }
+
+        for name in ("fable-subject", "kimi-subject"):
+            H.write_json_atomic(namespace / name / "tool.json", record(
+                name, "tool", {"payload": payload, "assertions": H.grade_case(case, payload)}
+            ))
+            H.write_json_atomic(namespace / name / "text.json", record(name, "text", "SMOKE_OK"))
+        judge = H.load_json(H.DATA_FILES["models.json"])["judge_profile"]
+        H.write_json_atomic(namespace / judge / "task-schema.json", record(
+            judge, "task_schema",
+            {"task_id": "SMOKE", "required_pass": [True, True], "fatal_hits": [False]},
+        ))
+        H.write_json_atomic(namespace / judge / "substitute-schema.json", record(
+            judge, "substitute_schema",
+            {"verdicts": [
+                {"candidate_id": "c1", "pattern_id": None},
+                {"candidate_id": "c2", "pattern_id": "U01"},
+            ]},
+        ))
+        _, key = H.adapter_smoke_namespace()
+        H.write_json_atomic(namespace / "summary.json", {
+            "type": "adapter_smoke",
+            "key": key,
+            "passed": True,
+            "calls": 6,
+            "errors": 0,
+            "completed_at": "2026-08-24T00:00:00+00:00",
+        })
+
     def test_strict_json_rejects_duplicate_keys_and_nonfinite_numbers(self):
         with self.assertRaisesRegex(H.HarnessError, "duplicate JSON object key"):
             H.strict_json_loads('{"value":1,"value":2}')
@@ -423,7 +499,11 @@ class RunnerSafetyTest(unittest.TestCase):
                             "status": "pass",
                             "payload": payload,
                             "assertions": assertions,
-                            "model": {},
+                            "model": {
+                                "requested_model": "claude-haiku-4-5-20251001",
+                                "reported_models": ["claude-haiku-4-5-20251001"],
+                                "reported_providers": ["firstParty"],
+                            },
                             "attempts": [{"attempt": 1, "status": "ok", "elapsed_seconds": 0}],
                         }
                         H.write_json_atomic(
@@ -509,6 +589,34 @@ class RunnerSafetyTest(unittest.TestCase):
             third.mkdir()
             H.write_json_atomic(third / "summary.json", {"passed": False})
             self.assertIsNone(H.passed_smoke_attempt(base))
+
+    def test_adapter_smoke_gate_revalidates_records_not_summary_claims(self):
+        with tempfile.TemporaryDirectory(dir=H.ROOT) as tmp:
+            namespace = Path(tmp) / "attempt-001"
+            self.write_valid_adapter_smoke(namespace)
+            self.assertTrue(H.validate_adapter_smoke_evidence(namespace)["passed"])
+            summary = H.load_json(namespace / "summary.json")
+            summary["calls"] = 1
+            H.write_json_atomic(namespace / "summary.json", summary)
+            with self.assertRaisesRegex(H.HarnessError, "summary differs"):
+                H.validate_adapter_smoke_evidence(namespace)
+            summary["calls"] = 6.0
+            H.write_json_atomic(namespace / "summary.json", summary)
+            with self.assertRaisesRegex(H.HarnessError, "summary differs"):
+                H.validate_adapter_smoke_evidence(namespace)
+
+    def test_qualification_namespace_rejects_redirected_parent(self):
+        with tempfile.TemporaryDirectory(dir=H.ROOT) as tmp:
+            base = Path(tmp)
+            real = base / "real"
+            namespace = real / "qualification"
+            namespace.mkdir(parents=True)
+            linked_parent = base / "redirected"
+            linked_parent.symlink_to(real, target_is_directory=True)
+            with self.assertRaisesRegex(H.HarnessError, "redirected parent"):
+                H.validate_qualification_evidence(
+                    {}, linked_parent / "qualification", "haiku-reader"
+                )
 
     def test_dotenv_parser_never_evaluates_shell_text(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -810,6 +918,8 @@ class RunnerSafetyTest(unittest.TestCase):
         H.validate_record_identity(record, record.copy(), "tasks/example.json")
         with self.assertRaisesRegex(H.HarnessError, "identity differs from path"):
             H.validate_record_identity(record, {**record, "rep": 2}, "tasks/example.json")
+        with self.assertRaisesRegex(H.HarnessError, "identity differs from path"):
+            H.validate_record_identity({**record, "rep": True}, record, "tasks/example.json")
         job = H.measured_schedule()[0]
         interview = {"kind": "interview", **job}
         H.validate_record_identity(interview, {"kind": "interview", **job}, "interviews/example.json")
@@ -905,6 +1015,7 @@ class RunnerSafetyTest(unittest.TestCase):
             "experiment": "E-09",
             "freeze_sha256": H.sha256(H.E09 / "freeze.json"),
             "base_commit": head,
+            "started_at": "2026-08-24T00:00:00+00:00",
             "schedule": H.measured_schedule(),
         }
         H.validate_artifact_metadata(metadata, head)
@@ -912,6 +1023,30 @@ class RunnerSafetyTest(unittest.TestCase):
             changed = {**metadata, field: value}
             with self.assertRaises(H.HarnessError):
                 H.validate_artifact_metadata(changed, head)
+
+    def test_measured_namespace_rejects_missing_or_stale_metadata_before_reuse(self):
+        head = "a" * 40
+        with tempfile.TemporaryDirectory(dir=H.ROOT) as tmp:
+            namespace = Path(tmp) / "measured"
+            namespace.mkdir()
+            self.assertIsNone(H.validate_existing_measured_metadata(namespace, head))
+            H.write_json_atomic(namespace / "record-manifest.jsonl", {})
+            with self.assertRaisesRegex(H.HarnessError, "missing metadata"):
+                H.validate_existing_measured_metadata(namespace, head)
+            (namespace / "record-manifest.jsonl").unlink()
+            metadata = {
+                "experiment": "E-09",
+                "freeze_sha256": H.sha256(H.E09 / "freeze.json"),
+                "base_commit": head,
+                "started_at": "2026-08-24T00:00:00+00:00",
+                "schedule": H.measured_schedule(),
+            }
+            H.write_json_atomic(namespace / "metadata.json", metadata)
+            self.assertEqual(H.validate_existing_measured_metadata(namespace, head), metadata)
+            metadata["base_commit"] = "b" * 40
+            H.write_json_atomic(namespace / "metadata.json", metadata)
+            with self.assertRaisesRegex(H.HarnessError, "differs from HEAD"):
+                H.validate_existing_measured_metadata(namespace, head)
 
     def test_artifact_namespace_rejects_root_or_child_symlinks_before_reads(self):
         old_root = H.ROOT
@@ -1009,15 +1144,22 @@ class RunnerSafetyTest(unittest.TestCase):
             namespace = Path(tmp)
             try:
                 H.write_json_atomic(namespace / "tasks" / "excluded.json", {"status": "excluded"})
+                started = {"event": "started", "path": "interviews/one.json",
+                           "started_at": "2026-08-24T00:00:00+00:00"}
+                completed = {"event": "completed", "path": "interviews/one.json",
+                             "sha256": "a" * 64}
                 H.measured_manifest_rows = lambda current: [
-                    {"event": "started", "path": "interviews/one.json"},
-                    {"event": "completed", "path": "interviews/one.json"},
+                    {"run_id": "record-start-" + H.digest({"namespace": namespace.name, **started}, 20),
+                     **started},
+                    {"run_id": "record-complete-" + H.digest({"namespace": namespace.name, **completed}, 20),
+                     **completed},
                 ]
                 H.verify_complete_call_manifest(namespace, {
                     "interviews/one.json", "tasks/excluded.json", "metadata.json", "record-manifest.jsonl"
                 })
                 H.measured_manifest_rows = lambda current: [
-                    {"event": "started", "path": "interviews/one.json"}
+                    {"run_id": "record-start-" + H.digest({"namespace": namespace.name, **started}, 20),
+                     **started}
                 ]
                 with self.assertRaisesRegex(H.HarnessError, "paths differ"):
                     H.verify_complete_call_manifest(namespace, {
@@ -1025,6 +1167,59 @@ class RunnerSafetyTest(unittest.TestCase):
                     })
             finally:
                 H.measured_manifest_rows = old_rows
+
+    def test_measured_manifest_run_ids_bind_the_namespace(self):
+        started = {"event": "started", "path": "interviews/one.json",
+                   "started_at": "2026-08-24T00:00:00+00:00"}
+        old_namespace = Path("m-old")
+        new_namespace = Path("m-new")
+        row = {
+            "run_id": "record-start-" + H.digest(
+                {"namespace": old_namespace.name, **started}, 20
+            ),
+            **started,
+        }
+        H.validate_measured_manifest_row(old_namespace, row)
+        with self.assertRaisesRegex(H.HarnessError, "differs from its namespace"):
+            H.validate_measured_manifest_row(new_namespace, row)
+
+    def test_persisted_provider_identity_is_revalidated(self):
+        profile = H.profile_map()["fable-subject"]
+        record = {
+            "status": "ok",
+            "model": {
+                "requested_model": profile["model"],
+                "reported_models": [
+                    profile["reported_identity_required"],
+                    *profile["allowed_auxiliary_models"],
+                ],
+                "reported_providers": ["firstParty"],
+            },
+        }
+        H.validate_model_metadata(record, profile, "interviews/example.json")
+        record["model"]["requested_model"] = "substitute-model"
+        with self.assertRaisesRegex(H.HarnessError, "requested model differs"):
+            H.validate_model_metadata(record, profile, "interviews/example.json")
+        judge = H.profile_map()["gpt-judge"]
+        impossible = {
+            "status": "ok",
+            "model": {
+                "requested_model": judge["model"],
+                "reported_models": ["unreported-model"],
+                "reported_providers": [],
+                "identity_evidence": judge["identity_evidence"],
+                "cli_version": "codex-cli test",
+            },
+        }
+        with self.assertRaisesRegex(H.HarnessError, "reported model differs"):
+            H.validate_model_metadata(impossible, judge, "judgments/example.json")
+        record["model"] = {
+            "requested_model": profile["model"],
+            "reported_models": [profile["reported_identity_required"]],
+            "reported_providers": [profile["reported_provider_required"], "unapproved"],
+        }
+        with self.assertRaisesRegex(H.HarnessError, "reported provider differs"):
+            H.validate_model_metadata(record, profile, "interviews/example.json")
 
     def test_finalize_requires_published_artifact_manifest_before_evidence(self):
         old_raw = H.RAW
