@@ -102,6 +102,9 @@ class FrozenInputsTest(unittest.TestCase):
         self.assertIn("--verified-manifest-list", trusted)
         self.assertIn("manifest-list-contains", trusted)
         self.assertNotIn("grep -Fqx", trusted)
+        manifest_find = next(line for line in trusted.splitlines() if "find \"$candidate_root/experiments\"" in line)
+        self.assertIn("-print0", manifest_find)
+        self.assertNotIn("-type f", manifest_find)
         self.assertIn("GITHUB_EVENT_BEFORE: ${{ github.event.before }}", trusted)
         self.assertNotIn("< <(find", trusted)
 
@@ -210,6 +213,23 @@ class StructuredInterfaceTest(unittest.TestCase):
         self.assertEqual(payload, {"ok": True})
         with self.assertRaises(H.FormatError):
             H.parse_claude_stream(json.dumps(event) + "\n" + json.dumps(event), H.CLAUDE_STRUCTURED_TOOL)
+        with self.assertRaises(H.FormatError):
+            H.parse_claude_stream('{"type":"assistant","type":"result"}', H.CLAUDE_STRUCTURED_TOOL)
+
+    def test_deepinfra_strict_tool_argument_failure_uses_format_protocol(self):
+        raw = {"choices": [{"message": {"tool_calls": [{"function": {
+            "name": H.TOOL_NAME, "arguments": '{"value":1,"value":2}',
+        }}]}}]}
+        profile = {"model": "test", "temperature": 0, "provider": "test"}
+        with mock.patch.object(H, "deepinfra_request", return_value=raw), \
+             self.assertRaisesRegex(H.FormatError, "invalid tool arguments"):
+            H.call_deepinfra_tool(profile, "prompt", {"type": "object"})
+        with mock.patch.object(H, "deepinfra_request", return_value=[]), \
+             self.assertRaisesRegex(H.FormatError, "invalid response object"):
+            H.call_deepinfra_tool(profile, "prompt", {"type": "object"})
+        with mock.patch.object(H, "deepinfra_request", return_value={"choices": [None]}), \
+             self.assertRaisesRegex(H.FormatError, "exactly one required tool call"):
+            H.call_deepinfra_tool(profile, "prompt", {"type": "object"})
 
 
 class MatcherAndMetricTest(unittest.TestCase):
@@ -255,6 +275,18 @@ class MatcherAndMetricTest(unittest.TestCase):
         self.assertEqual(H.rendered_catalog_ids(interview), {"U03", "U05", "U06"})
         self.assertNotIn("U01", H.rendered_catalog_ids(interview))
 
+    def test_density_counts_only_selected_relevant_rules(self):
+        interview = {"result": {"rules": [
+            {"catalog_ids": ["U01", "U03"], "evidence_ids": []},
+        ]}}
+        relevant = {"U01", "U03", "U05", "U06"}
+        self.assertEqual(
+            H.rendered_selected_relevant(interview, {"U01"}, relevant, True), {"U01"}
+        )
+        self.assertEqual(
+            H.rendered_selected_relevant(interview, {"U01"}, relevant, False), set()
+        )
+
     def test_undefined_rates_stay_out_of_pooled_totals(self):
         records = [
             {"substitute_hits": None, "output_tokens": 10},
@@ -293,6 +325,14 @@ class MatcherAndMetricTest(unittest.TestCase):
 
 
 class RunnerSafetyTest(unittest.TestCase):
+    def test_strict_json_rejects_duplicate_keys_and_nonfinite_numbers(self):
+        with self.assertRaisesRegex(H.HarnessError, "duplicate JSON object key"):
+            H.strict_json_loads('{"value":1,"value":2}')
+        with self.assertRaisesRegex(H.HarnessError, "non-finite JSON number"):
+            H.strict_json_loads('{"value":NaN}')
+        with self.assertRaisesRegex(H.HarnessError, "non-finite JSON number"):
+            H.strict_json_loads('{"value":1e999}')
+
     def test_schedule_has_five_per_arm_and_family(self):
         schedule = H.measured_schedule()
         self.assertEqual(len(schedule), 20)
@@ -326,6 +366,132 @@ class RunnerSafetyTest(unittest.TestCase):
         _, qualification_key = H.cold_reader_namespace("qualification", "deepseek-reader")
         self.assertEqual(qualification_key["catalog_sha256"], H.sha256(H.DATA_FILES["catalog.json"]))
         self.assertTrue(namespace.name.startswith("cr-"))
+
+    def test_harness_qualification_row_round_trips_through_trusted_verifier(self):
+        suite = H.load_json(H.DATA_FILES["cold_reader_cases.json"])
+        namespace, key = H.cold_reader_namespace("qualification", "haiku-reader")
+        assertions_per_rep = 0
+        for case in suite["qualification"]["cases"]:
+            payload = {"case_id": case["id"]}
+            if case["kind"] == "semantics":
+                payload.update(case["expected"])
+            else:
+                payload["answers"] = case["expected"]
+            assertions_per_rep += len(H.grade_case(case, payload))
+        repetitions = suite["qualification"]["repetitions_per_profile"]
+        summary = {
+            "profile": "haiku-reader",
+            "tier": "qualification",
+            "passed": True,
+            "started_calls": len(suite["qualification"]["cases"]) * repetitions,
+            "assertions": assertions_per_rep * repetitions,
+            "failed_assertions": 0,
+            "errors": 0,
+            "key": key,
+            "completed_at": "2026-08-24T00:00:00+00:00",
+        }
+        row = H.cold_reader_ledger_line(summary, namespace)
+        H.artifact_store.validate_cold_reader_qualification_row(row, H.ROOT)
+
+    def test_measured_gate_regrades_complete_qualification_evidence(self):
+        old_raw = H.RAW
+        with tempfile.TemporaryDirectory(dir=H.ROOT) as name:
+            try:
+                H.RAW = Path(name) / "raw"
+                suite = H.load_json(H.DATA_FILES["cold_reader_cases.json"])
+                namespace, key = H.cold_reader_namespace("qualification", "haiku-reader")
+                timestamp = "2026-08-24T00:00:00+00:00"
+                H.write_json_atomic(namespace / "attempt.json", {
+                    "status": "started", "started_at": timestamp, "key": key,
+                })
+                records = []
+                for rep in range(1, suite["qualification"]["repetitions_per_profile"] + 1):
+                    for case in suite["qualification"]["cases"]:
+                        payload = {"case_id": case["id"]}
+                        if case["kind"] == "semantics":
+                            payload.update(case["expected"])
+                        else:
+                            payload["answers"] = case["expected"]
+                        assertions = H.grade_case(case, payload)
+                        record = {
+                            "profile": "haiku-reader",
+                            "tier": "qualification",
+                            "rep": rep,
+                            "case_id": case["id"],
+                            "started_at": timestamp,
+                            "key": key,
+                            "status": "pass",
+                            "payload": payload,
+                            "assertions": assertions,
+                            "model": {},
+                            "attempts": [{"attempt": 1, "status": "ok", "elapsed_seconds": 0}],
+                        }
+                        H.write_json_atomic(
+                            namespace / "haiku-reader" / f"rep-{rep}" / f"{case['id']}.json",
+                            record,
+                        )
+                        records.append(record)
+                summary = {
+                    "type": "cold_reader",
+                    "tier": "qualification",
+                    "profile": "haiku-reader",
+                    "key": key,
+                    "started_calls": len(records),
+                    "passed": True,
+                    "assertions": sum(len(record["assertions"]) for record in records),
+                    "failed_assertions": 0,
+                    "errors": 0,
+                    "completed_at": timestamp,
+                }
+                line = H.cold_reader_ledger_line(summary, namespace)
+                summary["ledger_run_id"] = line["run_id"]
+                H.write_json_atomic(namespace / "summary.json", summary)
+                self.assertEqual(
+                    H.validate_qualification_evidence(summary, namespace, "haiku-reader"), line
+                )
+                first = namespace / "haiku-reader" / "rep-1" / "C0.json"
+                changed = H.load_json(first)
+                changed["payload"]["automatic_bans"] = True
+                H.write_json_atomic(first, changed)
+                with self.assertRaisesRegex(H.HarnessError, "assertions differ"):
+                    H.validate_qualification_evidence(summary, namespace, "haiku-reader")
+                changed["assertions"] = H.grade_case(
+                    suite["qualification"]["cases"][0], changed["payload"]
+                )
+                changed["status"] = "fail"
+                H.write_json_atomic(first, changed)
+                failed_summary = {
+                    **summary,
+                    "passed": False,
+                    "failed_assertions": 1,
+                }
+                failed_payload = {
+                    key: value for key, value in failed_summary.items() if key != "ledger_run_id"
+                }
+                failed_line = H.cold_reader_ledger_line(failed_payload, namespace)
+                failed_summary["ledger_run_id"] = failed_line["run_id"]
+                H.write_json_atomic(namespace / "summary.json", failed_summary)
+                self.assertEqual(
+                    H.validate_qualification_evidence(
+                        failed_summary, namespace, "haiku-reader"
+                    ),
+                    failed_line,
+                )
+                with self.assertRaisesRegex(H.HarnessError, "has not passed"):
+                    H.validate_qualification_evidence(
+                        failed_summary, namespace, "haiku-reader", require_pass=True
+                    )
+            finally:
+                H.RAW = old_raw
+
+    def test_harness_result_identity_round_trips_through_trusted_verifier(self):
+        from experiments.test_artifacts import e09_manifest, e09_result_row
+
+        expected = e09_result_row()
+        payload = {key: value for key, value in expected.items() if key not in ("run_id", "date")}
+        row = H.measured_result_ledger_line(payload, expected["completed_at"])
+        self.assertEqual(row, expected)
+        H.artifact_store.validate_e09_result_row(row, e09_manifest())
 
     def test_smoke_attempts_are_repeatable_and_pass_lookup_is_explicit(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -379,6 +545,29 @@ class RunnerSafetyTest(unittest.TestCase):
             path.write_text('{"value": 1}\n', encoding="utf-8")
             with self.assertRaisesRegex(H.HarnessError, "non-empty string run_id"):
                 H.append_jsonl(path, {"run_id": "r-1"})
+
+    def test_measured_gate_requires_current_qualification_ledger_additions(self):
+        diff = "\n".join([
+            "diff --git a/ledger/runs.jsonl b/ledger/runs.jsonl",
+            "--- a/ledger/runs.jsonl",
+            "+++ b/ledger/runs.jsonl",
+            "@@ -1,0 +2 @@",
+            '+{"run_id":"qualification-one"}',
+        ])
+        completed = mock.Mock(returncode=0, stdout=diff)
+        with mock.patch.object(H.subprocess, "run", return_value=completed):
+            self.assertTrue(H.ledger_diff_contains_only(
+                ["qualification-one"], required_run_ids=["qualification-one"]
+            ))
+            self.assertFalse(H.ledger_diff_contains_only(
+                ["qualification-one", "qualification-two"],
+                required_run_ids=["qualification-one", "qualification-two"],
+            ))
+        committed_only = mock.Mock(returncode=0, stdout="")
+        with mock.patch.object(H.subprocess, "run", return_value=committed_only):
+            self.assertFalse(H.ledger_diff_contains_only(
+                ["qualification-one"], required_run_ids=["qualification-one"]
+            ))
 
     def test_host_metadata_sanitizer_removes_paths_and_session_identifiers(self):
         raw = {
@@ -742,6 +931,22 @@ class RunnerSafetyTest(unittest.TestCase):
                 os.symlink(target, namespace / "linked.json")
                 with self.assertRaisesRegex(H.HarnessError, "symlink"):
                     H.validate_artifact_namespace(namespace)
+            finally:
+                H.ROOT = old_root
+
+    def test_measured_namespace_is_created_and_rejects_redirected_children_before_calls(self):
+        old_root = H.ROOT
+        with tempfile.TemporaryDirectory() as name:
+            try:
+                H.ROOT = Path(name)
+                namespace = H.ROOT / "experiments" / "e09" / "raw" / "measured" / "m-test"
+                H.ensure_measured_namespace(namespace)
+                self.assertTrue(namespace.is_dir())
+                outside = H.ROOT / "outside"
+                outside.mkdir()
+                os.symlink(outside, namespace / "interviews")
+                with self.assertRaisesRegex(H.HarnessError, "symlink"):
+                    H.ensure_measured_namespace(namespace)
             finally:
                 H.ROOT = old_root
 

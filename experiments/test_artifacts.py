@@ -4,6 +4,7 @@ import io
 import gzip
 import json
 import os
+import statistics
 import tarfile
 import tempfile
 import unittest
@@ -57,7 +58,8 @@ def plan():
 def pinned_legacy_rows():
     ledger = Path(__file__).resolve().parent.parent / "ledger" / "runs.jsonl"
     rows = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines() if line.strip()]
-    return [row for row in rows if row.get("run_id") in A.LEGACY_ARTIFACTLESS_RUNS]
+    pinned = set(A.LEGACY_ARTIFACTLESS_RUNS) | set(A.LEGACY_COLD_READER_RUNS)
+    return [row for row in rows if row.get("run_id") in pinned]
 
 
 def retarget_manifest_experiment(payload, experiment):
@@ -76,6 +78,128 @@ def retarget_manifest_experiment(payload, experiment):
 def write_test_ledger(path: Path, rows):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("".join(A.canonical(row) + "\n" for row in [*pinned_legacy_rows(), *rows]), encoding="utf-8")
+
+
+def e09_stats(values=None):
+    values = [0, 0, 0, 0, 0] if values is None else values
+    return {
+        "n": len(values),
+        "values": values,
+        "mean": statistics.mean(values),
+        "sample_variance": statistics.variance(values) if len(values) > 1 else 0,
+        "sample_stdev": statistics.stdev(values) if len(values) > 1 else 0,
+    }
+
+
+def e09_condition():
+    return {
+        "task_successes": 0,
+        "task_failures": 4,
+        "task_judge_errors": 0,
+        "listed_hits": 0,
+        "output_tokens": 0,
+        "listed_rate_per_1000": None,
+        "substitute_hits": 0,
+        "substitute_rate_per_1000": None,
+        "substitute_buckets": {"unaided_only": 0, "catalog_mapped_only": 0, "both": 0},
+        "outside_selected_substitute_candidates": 0,
+        "substitute_judgment_complete": True,
+    }
+
+
+def e09_arm(treatment=False):
+    runs = []
+    for rep in range(1, 6):
+        conditions = {"suppression": e09_condition()}
+        if treatment:
+            conditions["no_suppression"] = e09_condition()
+        runs.append({
+            "rep": rep,
+            "selected_ids": [],
+            "automatic_bans": [],
+            "selected_relevant": 0,
+            "coverage": 0,
+            "selection_precision": 1,
+            "irrelevant_selections": 0,
+            "contract_tokens": 0,
+            "over_cap": False,
+            "contract_violations": [],
+            "interview_status": "ok",
+            "rendered_relevant": 0,
+            "coverage_per_100_contract_tokens": 0,
+            "catalog_rules_removed_in_no_suppression": 0,
+            "catalog_rule_tokens_removed_in_no_suppression": 0,
+            "conditions": conditions,
+        })
+    summary = {
+        "task_failures": e09_stats([4, 4, 4, 4, 4]),
+        "listed_hits": e09_stats(),
+        "listed_rate_per_1000": None,
+        "listed_pooled": {"hits": 0, "tokens": 0, "rate_per_1000": None},
+        "substitute_hits": e09_stats(),
+        "substitute_rate_per_1000": None,
+        "substitute_pooled": {"hits": 0, "tokens": 0, "rate_per_1000": None},
+    }
+    return {
+        "runs": runs,
+        "selected_relevant": e09_stats(),
+        "coverage": e09_stats(),
+        "selection_precision": e09_stats([1, 1, 1, 1, 1]),
+        "irrelevant_selections": e09_stats(),
+        "irrelevant_selection_median": 0,
+        "contract_tokens": e09_stats(),
+        "coverage_per_100_contract_tokens": e09_stats(),
+        "suppression": summary,
+        "no_suppression": summary if treatment else None,
+        "substitute_paired_raw_difference": e09_stats() if treatment else None,
+        "substitute_paired_rate_difference": None,
+        "over_cap_count": 0,
+        "contract_violation_count": 0,
+        "interview_error_count": 0,
+    }
+
+
+def e09_result_row():
+    completed_at = "2026-08-24T00:00:00+00:00"
+    row = {
+        "run_id": "pending",
+        "date": completed_at,
+        "schema_version": 2,
+        "type": "experiment",
+        "experiment": "E-09",
+        "batch_id": "m-test",
+        "family": "fable-subject",
+        "arms": {"control": e09_arm(), "treatment": e09_arm(treatment=True)},
+        "claim_checks": {
+            "C19": {"status": "fail", "mean_gain": 0, "ceiling_blocks_one_pattern_gain": False,
+                    "passes_screen": False},
+            "C20": {"status": "pass", "all_task_judgments_complete": True,
+                    "density_not_lower": True, "irrelevant_median_at_most_one": True,
+                    "task_failure_increase_at_most_one": True},
+            "C21": {"status": "incomplete", "all_five_rates": False,
+                    "all_five_pairs_remove_catalog_rules": False, "raw_higher": False,
+                    "rate_higher": False},
+            "C22": {"status": "incomplete", "all_five_rates": False,
+                    "treatment_rate_lower": False},
+        },
+        "judge_agreement": {"candidate_sets": 0, "judged_sets": 0, "agreement": None,
+                            "judge_error_blind_ids": [], "human_resolutions": 0},
+        "reps_per_arm": 5,
+        "sample_variance": "n-1",
+        "seed": 20260821,
+        "judge_seed": 20260822,
+        "artifact": {},
+        "results_path": "experiments/e09/results/m-test.json",
+        "freeze_sha256": "a" * 64,
+        "completed_at": completed_at,
+    }
+    payload = {key: value for key, value in row.items() if key not in ("run_id", "date")}
+    row["run_id"] = A.content_run_id(payload, completed_at)
+    return row
+
+
+def e09_manifest():
+    return {"experiment": "E-09", "batch_id": "m-test", "freeze_sha256": "a" * 64}
 
 
 class ArtifactPackTest(unittest.TestCase):
@@ -213,6 +337,41 @@ class ArtifactPackTest(unittest.TestCase):
             with self.assertRaisesRegex(A.ArtifactError, "resource limit"):
                 list(A.json_strings(["one", "two"]))
 
+    def test_strict_json_rejects_duplicate_keys_and_nonfinite_numbers_at_every_depth(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            duplicate = root / "duplicate.json"
+            duplicate.write_text('{"value":"first","value":"second"}\n', encoding="utf-8")
+            with self.assertRaisesRegex(A.ArtifactError, "duplicate JSON object key"):
+                A.load_json(duplicate)
+            nonfinite = root / "nonfinite.json"
+            nonfinite.write_text('{"value":NaN}\n', encoding="utf-8")
+            with self.assertRaisesRegex(A.ArtifactError, "non-finite JSON number"):
+                A.load_json(nonfinite)
+            overflow = root / "overflow.json"
+            overflow.write_text('{"value":1e999}\n', encoding="utf-8")
+            with self.assertRaisesRegex(A.ArtifactError, "non-finite JSON number"):
+                A.load_json(overflow)
+        with self.assertRaisesRegex(A.ArtifactError, "duplicate JSON object key"):
+            list(A.json_strings({"nested": '{"value":1,"value":2}'}))
+        with self.assertRaisesRegex(A.ArtifactError, "non-finite JSON number"):
+            list(A.json_strings({"nested": '{"value":Infinity}'}))
+        with self.assertRaisesRegex(A.ArtifactError, "non-finite JSON number"):
+            list(A.json_strings({"nested": '{"value":-1e999}'}))
+
+    def test_duplicate_key_cannot_hide_an_escaped_secret(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            raw = self.make_raw(root)
+            secret = "hidden-secret"
+            (root / ".env").write_text(f"TEST_ARTIFACT_API_KEY={secret}\n", encoding="utf-8")
+            escaped = "".join(f"\\u{ord(character):04x}" for character in secret)
+            (raw / "interviews" / "one.json").write_text(
+                f'{{"value":"{escaped}","value":"safe"}}\n', encoding="utf-8"
+            )
+            with self.assertRaisesRegex(A.ArtifactError, "duplicate JSON object key"):
+                A.pack(plan(), raw, root / "a.tar.gz", root / "a.json", root)
+
     def test_source_rebind_pins_complete_sanitization_policy(self):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
@@ -232,6 +391,12 @@ class ArtifactPackTest(unittest.TestCase):
             A.write_json_exclusive(manifest, payload)
             with self.assertRaisesRegex(A.ArtifactError, "requires supersedes"):
                 A.verify_local(manifest, archive)
+
+    def test_repository_boolean_is_not_a_numeric_identity(self):
+        bad = plan()
+        bad["repository"]["id"] = True
+        with self.assertRaisesRegex(A.ArtifactError, "positive immutable numeric id"):
+            A.validate_plan(bad)
 
     def test_raw_root_must_match_plan_and_must_not_be_a_symlink(self):
         with tempfile.TemporaryDirectory() as name:
@@ -658,6 +823,18 @@ class ReleaseGateTest(unittest.TestCase):
                     )
             github.assert_not_called()
 
+    def test_remote_verifier_rejects_nonregular_committed_manifest_before_network(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            target = root / "target.json"
+            target.write_text("{}\n", encoding="utf-8")
+            linked = root / "manifest.json"
+            os.symlink(target, linked)
+            with mock.patch.object(A, "verify_repository_identity") as remote:
+                with self.assertRaisesRegex(A.ArtifactError, "not an unlinked regular file"):
+                    A.download_and_verify(plan(), linked)
+            remote.assert_not_called()
+
     def test_remote_verifier_requires_frozen_commit_on_default_branch(self):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
@@ -764,6 +941,125 @@ class ReleaseGateTest(unittest.TestCase):
 
 
 class LedgerReferenceTest(unittest.TestCase):
+    def setUp(self):
+        A.EXPERIMENT_ROW_VALIDATORS["E-99"] = lambda row, manifest: None
+
+    def tearDown(self):
+        A.EXPERIMENT_ROW_VALIDATORS.pop("E-99", None)
+
+    def test_cold_reader_qualification_row_binds_shape_inputs_counts_and_identity(self):
+        root = Path(__file__).resolve().parent.parent
+        models = A.load_json(root / "experiments" / "e09" / "models.json")
+        family = models["qualification_profiles"][0]
+        profile = models["profiles"][family]
+        suite_path = root / "experiments" / "e09" / "cold_reader_cases.json"
+        suite = A.load_json(suite_path)
+        key = {
+            "tier": "qualification",
+            "profile": family,
+            "profile_sha256": A.sha256_bytes(A.canonical(profile).encode()),
+            "harness_sha256": A.sha256_file(root / "experiments" / "e09" / "harness.py"),
+            "catalog_sha256": A.sha256_file(root / "experiments" / "e09" / "catalog.json"),
+            "suite_sha256": A.sha256_file(suite_path),
+            "freeze_sha256": A.sha256_file(root / "experiments" / "e09" / "freeze.json"),
+        }
+        completed_at = "2026-08-24T00:00:00+00:00"
+        row = {
+            "run_id": "pending",
+            "date": completed_at,
+            "schema_version": 2,
+            "type": "experiment",
+            "experiment": "E-09-cold-reader",
+            "family": family,
+            "tier": "qualification",
+            "passed": True,
+            "started_calls": len(suite["qualification"]["cases"])
+            * suite["qualification"]["repetitions_per_profile"],
+            "assertions": A.qualification_assertion_count(suite),
+            "failed_assertions": 0,
+            "errors": 0,
+            "key": key,
+            "raw_dir": "experiments/e09/raw/qualification/cr-"
+            + A.sha256_bytes(A.canonical(key).encode())[:16],
+            "completed_at": completed_at,
+        }
+        payload = {key: value for key, value in row.items() if key not in ("run_id", "date")}
+        row["run_id"] = A.content_run_id(payload, completed_at)
+        A.validate_cold_reader_qualification_row(row, root)
+        changed = json.loads(json.dumps(row))
+        changed["assertions"] -= 1
+        with self.assertRaises(A.ArtifactError):
+            A.validate_cold_reader_qualification_row(changed, root)
+        changed = json.loads(json.dumps(row))
+        changed["unexpected"] = True
+        with self.assertRaisesRegex(A.ArtifactError, "wrong fields"):
+            A.validate_cold_reader_qualification_row(changed, root)
+        historical = json.loads(json.dumps(row))
+        historical["key"]["freeze_sha256"] = "0" * 64
+        historical["raw_dir"] = "experiments/e09/raw/qualification/cr-" \
+            + A.sha256_bytes(A.canonical(historical["key"]).encode())[:16]
+        payload = {
+            key: value for key, value in historical.items() if key not in ("run_id", "date")
+        }
+        historical["run_id"] = A.content_run_id(payload, completed_at)
+        A.validate_cold_reader_qualification_row(historical, root)
+        with self.assertRaisesRegex(A.ArtifactError, "current inputs"):
+            A.validate_cold_reader_qualification_row(
+                historical, root, require_current_inputs=True
+            )
+        old_harness = json.loads(json.dumps(row))
+        old_harness["key"]["harness_sha256"] = "0" * 64
+        old_harness["raw_dir"] = "experiments/e09/raw/qualification/cr-" \
+            + A.sha256_bytes(A.canonical(old_harness["key"]).encode())[:16]
+        payload = {
+            key: value for key, value in old_harness.items() if key not in ("run_id", "date")
+        }
+        old_harness["run_id"] = A.content_run_id(payload, completed_at)
+        A.validate_cold_reader_qualification_row(old_harness, root)
+        with self.assertRaisesRegex(A.ArtifactError, "current inputs"):
+            A.validate_cold_reader_qualification_row(
+                old_harness, root, require_current_inputs=True
+            )
+
+    def test_e09_result_row_requires_complete_typed_schema_and_content_identity(self):
+        row = e09_result_row()
+        A.validate_e09_result_row(row, e09_manifest())
+        changed = json.loads(json.dumps(row))
+        changed["arms"]["control"]["runs"][0]["task_successes"] = 1
+        with self.assertRaisesRegex(A.ArtifactError, "wrong fields"):
+            A.validate_e09_result_row(changed, e09_manifest())
+        changed = json.loads(json.dumps(row))
+        changed["arms"]["control"]["runs"][0]["coverage"] = "fabricated"
+        with self.assertRaisesRegex(A.ArtifactError, "finite number"):
+            A.validate_e09_result_row(changed, e09_manifest())
+        changed = json.loads(json.dumps(row))
+        changed["claim_checks"]["C19"]["mean_gain"] = 1
+        with self.assertRaisesRegex(A.ArtifactError, "claim checks differ"):
+            A.validate_e09_result_row(changed, e09_manifest())
+        changed = json.loads(json.dumps(row))
+        changed["arms"]["control"]["coverage"]["values"][0] = 1
+        with self.assertRaises(A.ArtifactError):
+            A.validate_e09_result_row(changed, e09_manifest())
+        changed = json.loads(json.dumps(row))
+        changed["arms"]["treatment"]["runs"][0]["coverage_per_100_contract_tokens"] = 999
+        with self.assertRaisesRegex(A.ArtifactError, "run metrics differ"):
+            A.validate_e09_result_row(changed, e09_manifest())
+        changed = json.loads(json.dumps(row))
+        changed["completed_at"] = "2026-08-24T00:00:01+00:00"
+        changed["date"] = changed["completed_at"]
+        with self.assertRaisesRegex(A.ArtifactError, "run_id differs"):
+            A.validate_e09_result_row(changed, e09_manifest())
+
+    def test_e09_compact_result_requires_exactly_one_row_per_family(self):
+        fable = e09_result_row()
+        kimi = json.loads(json.dumps(fable))
+        kimi["family"] = "kimi-subject"
+        payload = {key: value for key, value in kimi.items() if key not in ("run_id", "date")}
+        kimi["run_id"] = A.content_run_id(payload, kimi["completed_at"])
+        A.validate_compact_result_rows([fable, kimi], [fable, kimi], "result.json")
+        with self.assertRaisesRegex(A.ArtifactError, "exactly one row"):
+            A.validate_compact_result_rows([fable, kimi, fable], [fable, kimi, fable], "result.json")
+
     def test_ledger_receipt_must_match_manifest_attestations_and_results(self):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
@@ -816,6 +1112,12 @@ class LedgerReferenceTest(unittest.TestCase):
             ), {
                 "artifact_ledger_rows_verified": 1, "verified": True,
             })
+            A.EXPERIMENT_ROW_VALIDATORS.pop("E-99")
+            try:
+                with self.assertRaisesRegex(A.ArtifactError, "no trusted result-row validator"):
+                    A.verify_ledger_references(root, "mlamp/meta-skills")
+            finally:
+                A.EXPERIMENT_ROW_VALIDATORS["E-99"] = lambda row, manifest: None
             self.assertEqual(verified_list.read_bytes(), artifact["manifest_path"].encode() + b"\0")
             self.assertTrue(A.require_manifest_list_membership(
                 verified_list, artifact["manifest_path"]
@@ -883,6 +1185,20 @@ class LedgerReferenceTest(unittest.TestCase):
             legacy[0]["notes"] = "rewritten"
             ledger.write_text("".join(A.canonical(item) + "\n" for item in legacy), encoding="utf-8")
             with self.assertRaisesRegex(A.ArtifactError, "legacy artifactless row differs"):
+                A.verify_ledger_references(root)
+
+    def test_ledger_requires_every_pinned_legacy_cold_reader_row(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            rows = pinned_legacy_rows()
+            missing = next(iter(A.LEGACY_COLD_READER_RUNS))
+            rows = [row for row in rows if row["run_id"] != missing]
+            ledger = root / "ledger" / "runs.jsonl"
+            ledger.parent.mkdir(parents=True)
+            ledger.write_text(
+                "".join(A.canonical(row) + "\n" for row in rows), encoding="utf-8"
+            )
+            with self.assertRaisesRegex(A.ArtifactError, "missing pinned legacy cold-reader rows"):
                 A.verify_ledger_references(root)
 
     def test_ledger_must_extend_the_trusted_baseline_byte_for_byte(self):

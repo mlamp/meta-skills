@@ -1,21 +1,21 @@
 {
   "files": {
-    ".github/workflows/verify-experiment-artifacts.yml": "5b924f583034e98889f1e3bff34183a1e9ccb2e4cf9bb5bb60bffb2801bf9f61",
-    "experiments/artifacts.py": "f55b3b641b46d7d58a8efb332f31c1de06df75fd4c13f1574805c8fe7ac26cf2",
+    ".github/workflows/verify-experiment-artifacts.yml": "17cdcf96b0d1a25a36020cbc7415de3bd711b17acdcab506abd17a93f1e40f10",
+    "experiments/artifacts.py": "046d74a24c6dbc4cab0f70dfca20eb673c339808c45ecee5bd3e0abd5e383874",
     "experiments/e09/artifact-spec.json": "4d9d0b48bfd355ee39fd60e71d5a0aa45dd3747372a70ffb504572dade3693b5",
     "experiments/e09/catalog.json": "0751e6455395c20d155c409d67419615b10f8386f4b206e7d824fd7ca1a0d3d8",
     "experiments/e09/cold_reader_cases.json": "0fe710b17eea0d9302cce550ecd37a84f5a7bb1f8ca678c99968e97ed6886b6a",
-    "experiments/e09/design.md": "3e34275184d3ed66da7ab598c58364c4a91cd442211a83b5419b2bef09b00981",
-    "experiments/e09/harness.py": "4f4126845de1d5af5b2d93e841dd1bc2b71cce6ed83c62ca380d9cfccdedc719",
+    "experiments/e09/design.md": "84d8a06935ee3e00f86948a628e337f5e99debaa64cd36f5abd7120599be39bb",
+    "experiments/e09/harness.py": "3cecf7fa9d42e34363ca4c42a85fab816f9dc7d93596b23267d4e50243762e8f",
     "experiments/e09/models.json": "2060f8ca6ceea1e0f70608fdaa9dcea5d7d1d0e9e5556cb2aaad5bd78f522519",
     "experiments/e09/persona-stage1.json": "7a66bfdd679ffe570df14008b11fc81a6f79c51c0f76ba38a0d79e783693409e",
     "experiments/e09/persona.json": "b59a171398d31053e933af37ad4dc6d3e5c95b78060b6474881adc330fe20930",
     "experiments/e09/prompts.json": "c66517e76e32d5451ce7213c5bd84ebc20bf43d0ea508e858a6d6c628223dfa2",
-    "experiments/e09/reviews.md": "d16b409a7083d69b33c8f65f9da5383e973e6c30fc485ff4f16e1f3a860e5cc3",
+    "experiments/e09/reviews.md": "451bd6a48c02dd3c0451d11354c8ea0e2d9e3e8ff0c7cb1a5fcef9562562caa0",
     "experiments/e09/substitutes.json": "9290f5ee3c0d7a03099f99d7cd8fa44c13e90ad31eb8245e90805b1efd0d4890",
     "experiments/e09/tasks.json": "c54b7dcdf992f4d32f4e22defaa9b57729e2dda21420552a1180331f45f014ee",
-    "experiments/e09/test_harness.py": "09594fbcba388b6d7deaf1add9dc03556bd48c81f543a96178d6667e2348d6d2",
-    "experiments/test_artifacts.py": "1d9af26aae6a8884b369fd0c20f01dc7d47ded2b4bb6ca88201c61923da7e763"
+    "experiments/e09/test_harness.py": "4e6a41068da3361a5dd5cf0982721844789f7c4185067c94b06b936b96d7375b",
+    "experiments/test_artifacts.py": "d8f004373e583b978db1ec744126ded29a62160ae8637ba5ea8fbaf35080f71f"
   },
   "frozen_at": "2026-08-24",
   "schema_version": 1

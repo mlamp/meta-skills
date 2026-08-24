@@ -124,9 +124,12 @@ class FormatError(HarnessError):
     pass
 
 
+class StrictJSONError(HarnessError):
+    pass
+
+
 def load_json(path: Path):
-    with path.open(encoding="utf-8") as handle:
-        return json.load(handle)
+    return strict_json_loads(path.read_text(encoding="utf-8"))
 
 
 def load_artifact_spec():
@@ -137,7 +140,37 @@ def load_artifact_spec():
 
 
 def canonical(value) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    try:
+        return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+    except (TypeError, ValueError) as exc:
+        raise HarnessError("value is not canonical strict JSON") from exc
+
+
+def reject_json_constant(value):
+    raise StrictJSONError(f"non-finite JSON number is forbidden: {value}")
+
+
+def strict_json_float(value):
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise StrictJSONError(f"non-finite JSON number is forbidden: {value}")
+    return parsed
+
+
+def unique_json_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise StrictJSONError(f"duplicate JSON object key is forbidden: {key}")
+        result[key] = value
+    return result
+
+
+def strict_json_loads(text: str):
+    return json.loads(
+        text, parse_constant=reject_json_constant, parse_float=strict_json_float,
+        object_pairs_hook=unique_json_object,
+    )
 
 
 def sanitize_host_metadata(value):
@@ -183,6 +216,19 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def parse_canonical_utc(value, label: str):
+    if not isinstance(value, str):
+        raise HarnessError(f"{label} must be canonical UTC")
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise HarnessError(f"{label} must be canonical UTC") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() != timezone.utc.utcoffset(parsed) \
+            or parsed.isoformat(timespec="seconds") != value:
+        raise HarnessError(f"{label} must be canonical UTC")
+    return parsed
+
+
 def write_json_atomic(path: Path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
@@ -215,7 +261,7 @@ def jsonl_run_ids(path: Path):
     run_ids = set()
     for number, raw in enumerate(data.splitlines(), 1):
         try:
-            row = json.loads(raw)
+            row = strict_json_loads(raw)
         except (json.JSONDecodeError, UnicodeDecodeError) as exc:
             raise HarnessError(f"{path}:{number} is not valid JSON") from exc
         if not isinstance(row, dict):
@@ -541,8 +587,8 @@ def parse_claude_stream(stdout: str, expected_tool: str):
         if not line.startswith("{"):
             continue
         try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
+            event = strict_json_loads(line)
+        except (json.JSONDecodeError, StrictJSONError):
             continue
         events.append(event)
         if event.get("type") == "assistant":
@@ -588,8 +634,8 @@ def call_claude_tool(profile, prompt, schema):
             result_events = []
             for line in proc.stdout.splitlines():
                 try:
-                    event = json.loads(line)
-                except json.JSONDecodeError:
+                    event = strict_json_loads(line)
+                except (json.JSONDecodeError, StrictJSONError):
                     continue
                 if event.get("type") == "result":
                     result_events.append(event)
@@ -633,7 +679,11 @@ def deepinfra_request(profile, body, method="POST", path="/chat/completions"):
     )
     try:
         with urllib.request.urlopen(request, timeout=profile["timeout_seconds"]) as response:
-            return json.loads(response.read())
+            response_bytes = response.read()
+        try:
+            return strict_json_loads(response_bytes)
+        except (json.JSONDecodeError, StrictJSONError) as exc:
+            raise TransportError("DeepInfra returned invalid strict JSON") from exc
     except urllib.error.HTTPError as exc:
         if exc.code in (401, 403):
             raise RequestError(f"DeepInfra HTTP {exc.code}: authentication failed") from exc
@@ -659,14 +709,20 @@ def call_deepinfra_tool(profile, prompt, schema):
         "stream": False,
     }
     raw = deepinfra_request(profile, body)
+    if not isinstance(raw, dict):
+        raise FormatError("DeepInfra returned an invalid response object", {"raw": raw})
     choices = raw.get("choices", [])
-    calls = choices[0].get("message", {}).get("tool_calls", []) if len(choices) == 1 else []
-    if len(calls) != 1 or calls[0].get("function", {}).get("name") != TOOL_NAME:
+    choice = choices[0] if isinstance(choices, list) and len(choices) == 1 else None
+    message = choice.get("message") if isinstance(choice, dict) else None
+    calls = message.get("tool_calls", []) if isinstance(message, dict) else []
+    function = calls[0].get("function") \
+        if isinstance(calls, list) and len(calls) == 1 and isinstance(calls[0], dict) else None
+    if not isinstance(function, dict) or function.get("name") != TOOL_NAME:
         raise FormatError("DeepInfra model did not make exactly one required tool call", {"raw": raw})
-    arguments = calls[0]["function"].get("arguments")
+    arguments = function.get("arguments")
     try:
-        payload = json.loads(arguments) if isinstance(arguments, str) else arguments
-    except json.JSONDecodeError as exc:
+        payload = strict_json_loads(arguments) if isinstance(arguments, str) else arguments
+    except (json.JSONDecodeError, StrictJSONError) as exc:
         raise FormatError("DeepInfra model returned invalid tool arguments", {"raw": raw}) from exc
     errors = validate_schema(payload, schema)
     if errors:
@@ -731,8 +787,8 @@ def call_text(profile, prompt: str, system_text: str):
         for line in proc.stdout.splitlines():
             if line.lstrip().startswith("{"):
                 try:
-                    payload = json.loads(line)
-                except json.JSONDecodeError:
+                    payload = strict_json_loads(line)
+                except (json.JSONDecodeError, StrictJSONError):
                     continue
         if not payload or not isinstance(payload.get("result"), str):
             raise FormatError(f"unparseable {executable} text result", {"stdout": proc.stdout, "stderr_tail": proc.stderr[-1000:]})
@@ -1007,6 +1063,14 @@ def cold_reader_ledger_line(summary, namespace):
     return {"run_id": run_id, "date": summary["completed_at"], **payload}
 
 
+def measured_result_ledger_line(payload, completed_at):
+    run_day = completed_at[:10]
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", run_day):
+        raise HarnessError("measured result requires an ISO completed_at timestamp")
+    run_id = "r-" + run_day.replace("-", "") + "-" + digest(payload, 10)
+    return {"run_id": run_id, "date": completed_at, **payload}
+
+
 def ensure_qualification_summary_ledger(summary_path, summary, namespace):
     if summary.get("tier") != "qualification":
         raise HarnessError("only qualification summaries are ledgered")
@@ -1019,6 +1083,123 @@ def ensure_qualification_summary_ledger(summary_path, summary, namespace):
         write_json_atomic(summary_path, summary)
     ensure_ledger_lines([line])
     return summary
+
+
+def validate_qualification_evidence(
+    summary, namespace: Path, profile_name: str, require_pass=False
+):
+    suite = load_json(DATA_FILES["cold_reader_cases.json"])
+    _, expected_key = cold_reader_namespace("qualification", profile_name)
+    repetitions = suite["qualification"]["repetitions_per_profile"]
+    cases = suite["qualification"]["cases"]
+    expected_paths = {"attempt.json", "summary.json"}
+    expected_paths.update(
+        f"{profile_name}/rep-{rep}/{case['id']}.json"
+        for rep in range(1, repetitions + 1)
+        for case in cases
+    )
+    try:
+        actual_paths = set(artifact_store.actual_regular_files(namespace))
+    except artifact_store.ArtifactError as exc:
+        raise HarnessError(str(exc)) from exc
+    if actual_paths != expected_paths:
+        raise HarnessError("qualification evidence inventory differs from the frozen suite")
+    marker = load_json(namespace / "attempt.json")
+    if not isinstance(marker, dict) or set(marker) != {"status", "started_at", "key"} \
+            or marker["status"] != "started" or marker["key"] != expected_key:
+        raise HarnessError("qualification start marker differs from the current key")
+    marker_time = parse_canonical_utc(marker["started_at"], "qualification marker started_at")
+    expected_summary_fields = {
+        "type", "tier", "profile", "key", "started_calls", "passed", "assertions",
+        "failed_assertions", "errors", "completed_at", "ledger_run_id",
+    }
+    if not isinstance(summary, dict) or set(summary) != expected_summary_fields \
+            or summary["type"] != "cold_reader" or summary["tier"] != "qualification" \
+            or summary["profile"] != profile_name or summary["key"] != expected_key:
+        raise HarnessError("qualification summary differs from the current key")
+    completed_time = parse_canonical_utc(
+        summary["completed_at"], "qualification summary completed_at"
+    )
+    records = []
+    for rep in range(1, repetitions + 1):
+        for case in cases:
+            path = namespace / profile_name / f"rep-{rep}" / f"{case['id']}.json"
+            record = load_json(path)
+            identity_fields = {"profile", "tier", "rep", "case_id", "started_at", "key", "status"}
+            if not isinstance(record, dict) or not identity_fields <= set(record) \
+                    or record["profile"] != profile_name or record["tier"] != "qualification" \
+                    or record["rep"] != rep or record["case_id"] != case["id"] \
+                    or record["key"] != expected_key \
+                    or record["status"] not in ("pass", "fail", "error"):
+                raise HarnessError(f"qualification case record identity differs: {path}")
+            started_time = parse_canonical_utc(
+                record["started_at"], f"qualification case started_at: {path}"
+            )
+            if started_time < marker_time or started_time > completed_time:
+                raise HarnessError(f"qualification case timestamp is outside its attempt: {path}")
+            if record["status"] in ("pass", "fail"):
+                required = identity_fields | {"payload", "assertions", "model", "attempts"}
+                if set(record) != required:
+                    raise HarnessError(f"qualification case record fields differ: {path}")
+                schema_errors = validate_schema(record["payload"], case_schema(case))
+                if schema_errors:
+                    raise HarnessError(f"qualification case payload violates its schema: {path}")
+                assertions = grade_case(case, record["payload"])
+                expected_status = "pass" if all(item["pass"] for item in assertions) else "fail"
+                if record["assertions"] != assertions or record["status"] != expected_status:
+                    raise HarnessError(f"qualification case assertions differ from regrading: {path}")
+                if not isinstance(record["model"], dict) \
+                        or sanitize_host_metadata(record["model"]) != record["model"]:
+                    raise HarnessError(f"qualification case model metadata is invalid: {path}")
+                attempts = record["attempts"]
+                if not isinstance(attempts, list) or len(attempts) not in (1, 2):
+                    raise HarnessError(f"qualification case retry record is invalid: {path}")
+                for index, attempt in enumerate(attempts, 1):
+                    if not isinstance(attempt, dict):
+                        raise HarnessError(f"qualification case retry record is invalid: {path}")
+                    expected_fields = {"attempt", "status", "elapsed_seconds"}
+                    if attempt.get("status") != "ok":
+                        expected_fields.add("error")
+                    if set(attempt) != expected_fields \
+                            or attempt.get("attempt") != index \
+                            or not isinstance(attempt.get("elapsed_seconds"), (int, float)) \
+                            or isinstance(attempt.get("elapsed_seconds"), bool) \
+                            or not math.isfinite(attempt["elapsed_seconds"]) \
+                            or attempt["elapsed_seconds"] < 0:
+                        raise HarnessError(f"qualification case retry record is invalid: {path}")
+                if attempts[-1]["status"] != "ok" \
+                        or (len(attempts) == 2 and attempts[0]["status"] != "transport_error"):
+                    raise HarnessError(f"qualification case retry record is invalid: {path}")
+            else:
+                required = identity_fields | {"error_type", "error", "error_evidence"}
+                if set(record) != required or not isinstance(record["error_type"], str) \
+                        or not isinstance(record["error"], str) \
+                        or sanitize_host_metadata(record["error_evidence"]) != record["error_evidence"]:
+                    raise HarnessError(f"qualification error record fields differ: {path}")
+            records.append(record)
+    failed_assertions = sum(
+        1 for record in records for assertion in record.get("assertions", [])
+        if not assertion["pass"]
+    )
+    passed = all(record["status"] == "pass" for record in records)
+    expected_summary = {
+        "type": "cold_reader",
+        "tier": "qualification",
+        "profile": profile_name,
+        "key": expected_key,
+        "started_calls": len(records),
+        "passed": passed,
+        "assertions": sum(len(record.get("assertions", [])) for record in records),
+        "failed_assertions": failed_assertions,
+        "errors": sum(record["status"] == "error" for record in records),
+        "completed_at": summary["completed_at"],
+    }
+    expected_line = cold_reader_ledger_line(expected_summary, namespace)
+    if summary != {**expected_summary, "ledger_run_id": expected_line["run_id"]}:
+        raise HarnessError("qualification summary differs from regraded case records")
+    if require_pass and not passed:
+        raise HarnessError(f"current cold-reader qualification has not passed for {profile_name}")
+    return expected_line
 
 
 def run_with_transport_retry(profile, prompt, schema):
@@ -1241,7 +1422,7 @@ def require_exact_frozen_head(head: str, purpose: str):
         raise HarnessError(f"{purpose} requires HEAD to equal the exact frozen commit")
 
 
-def ledger_diff_contains_only(run_ids):
+def ledger_diff_contains_only(run_ids, required_run_ids=()):
     proc = subprocess.run(["git", "diff", "HEAD", "--unified=0", "--", str(LEDGER.relative_to(ROOT))],
                           cwd=ROOT, text=True, capture_output=True, timeout=60)
     if proc.returncode:
@@ -1254,10 +1435,12 @@ def ledger_diff_contains_only(run_ids):
             return False
         if line.startswith("+"):
             try:
-                added.append(json.loads(line[1:])["run_id"])
+                added.append(strict_json_loads(line[1:])["run_id"])
             except (json.JSONDecodeError, KeyError):
                 return False
-    return len(added) == len(set(added)) and set(added) <= set(run_ids)
+    added_ids = set(added)
+    return len(added) == len(added_ids) and added_ids <= set(run_ids) \
+        and set(required_run_ids) <= added_ids
 
 
 def ensure_ledger_lines(lines):
@@ -1266,7 +1449,7 @@ def ensure_ledger_lines(lines):
     for raw in raw_lines:
         if not raw.strip():
             continue
-        row = json.loads(raw)
+        row = strict_json_loads(raw)
         existing[row["run_id"]] = row
     for line in lines:
         prior = existing.get(line["run_id"])
@@ -1298,7 +1481,11 @@ def ensure_qualification_start_gate():
             allowed_prefixes.append(str(namespace.relative_to(ROOT)) + "/")
             summary = namespace / "summary.json"
             if summary.exists():
-                payload = ensure_qualification_summary_ledger(summary, load_json(summary), namespace)
+                summary_payload = load_json(summary)
+                validate_qualification_evidence(summary_payload, namespace, name)
+                payload = ensure_qualification_summary_ledger(
+                    summary, summary_payload, namespace
+                )
                 allowed_run_ids.append(payload["ledger_run_id"])
     remaining = []
     ledger_path = str(LEDGER.relative_to(ROOT))
@@ -1311,6 +1498,24 @@ def ensure_qualification_start_gate():
         remaining.append(line)
     if remaining:
         raise HarnessError("qualification found unrelated changes: " + " | ".join(remaining))
+
+
+def ensure_measured_namespace(namespace: Path):
+    try:
+        relative = namespace.relative_to(ROOT)
+    except ValueError as exc:
+        raise HarnessError("measured namespace must be beneath the repository") from exc
+    current = ROOT
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            raise HarnessError(f"measured namespace path contains a symlink: {current}")
+        if current.exists():
+            if not current.is_dir():
+                raise HarnessError(f"measured namespace path is not a directory: {current}")
+        else:
+            current.mkdir(mode=0o755)
+    validate_artifact_namespace(namespace)
 
 
 def ensure_measured_gate():
@@ -1326,8 +1531,12 @@ def ensure_measured_gate():
         summary_path = qualification_namespace / "summary.json"
         if not summary_path.exists() or not load_json(summary_path).get("passed"):
             raise HarnessError(f"current cold-reader qualification has not passed for {name}")
+        summary_payload = load_json(summary_path)
+        validate_qualification_evidence(
+            summary_payload, qualification_namespace, name, require_pass=True
+        )
         summary = ensure_qualification_summary_ledger(
-            summary_path, load_json(summary_path), qualification_namespace
+            summary_path, summary_payload, qualification_namespace
         )
         qualification_prefixes.append(str(qualification_namespace.relative_to(ROOT)) + "/")
         qualification_run_ids.append(summary["ledger_run_id"])
@@ -1340,6 +1549,7 @@ def ensure_measured_gate():
         raise HarnessError("current measured-adapter smoke has not passed")
     status = git("status", "--porcelain=v1", "--untracked-files=all").splitlines()
     namespace = RAW / "measured" / measured_id()
+    ensure_measured_namespace(namespace)
     allowed_prefixes = qualification_prefixes + [
         str((RAW / "smoke").relative_to(ROOT)) + "/",
         str(adapter_namespace.relative_to(ROOT)) + "/",
@@ -1356,15 +1566,20 @@ def ensure_measured_gate():
     }
     remaining = []
     ledger_path = str(LEDGER.relative_to(ROOT))
+    qualification_ledger_is_fresh = ledger_diff_contains_only(
+        allowed_ledger_ids, required_run_ids=qualification_run_ids
+    )
     for line in status:
         path = line[3:].strip('"')
         if any(path.startswith(prefix) for prefix in allowed_prefixes):
             continue
         if path in allowed_exact_paths:
             continue
-        if path == ledger_path and ledger_diff_contains_only(allowed_ledger_ids):
+        if path == ledger_path and qualification_ledger_is_fresh:
             continue
         remaining.append(line)
+    if not qualification_ledger_is_fresh:
+        remaining.append("required qualification rows are not current ledger additions")
     status = remaining
     if status:
         raise HarnessError("measured mode found unrelated changes: " + " | ".join(status))
@@ -1410,7 +1625,7 @@ def measured_manifest_rows(namespace: Path):
     path = namespace / "record-manifest.jsonl"
     if not path.exists():
         return []
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return [strict_json_loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 def start_measured_record(path: Path):
@@ -1576,6 +1791,10 @@ def rendered_catalog_ids(interview):
     return rendered
 
 
+def rendered_selected_relevant(interview, user_selected, relevant, usable):
+    return rendered_catalog_ids(interview) & relevant & user_selected if usable else set()
+
+
 def suppression_contract(interview, condition):
     prompts = load_json(DATA_FILES["prompts.json"])["downstream"]
     kept = []
@@ -1701,7 +1920,7 @@ def call_codex_schema(profile, prompt, schema):
             raise TransportError(f"codex exited {proc.returncode}: {proc.stderr[-500:]}")
         try:
             payload = load_json(output_path)
-        except (OSError, json.JSONDecodeError) as exc:
+        except (OSError, json.JSONDecodeError, StrictJSONError) as exc:
             raise FormatError("codex structured output was not valid JSON",
                               {"stdout": proc.stdout, "stderr_tail": proc.stderr[-1000:]}) from exc
         errors = validate_schema(payload, schema)
@@ -1710,8 +1929,8 @@ def call_codex_schema(profile, prompt, schema):
         events = []
         for line in proc.stdout.splitlines():
             try:
-                events.append(json.loads(line))
-            except json.JSONDecodeError:
+                events.append(strict_json_loads(line))
+            except (json.JSONDecodeError, StrictJSONError):
                 continue
         completed = [event for event in events if event.get("type") == "turn.completed"]
         version = subprocess.run([binary, "--version"], text=True, capture_output=True, timeout=30)
@@ -2486,7 +2705,9 @@ def cmd_finalize(args):
                 relevant = set(persona["relevant_catalog_ids"])
                 usable = (interview.get("status") == "ok" and not interview.get("over_cap")
                           and not interview.get("contract_violations"))
-                rendered_relevant = rendered_catalog_ids(interview) & relevant if usable else set()
+                rendered_relevant = rendered_selected_relevant(
+                    interview, user_selected, relevant, usable
+                )
                 normalized_tokens = interview.get("contract_lexical_tokens", 0)
                 run = {
                     "rep": interview["rep"],
@@ -2500,6 +2721,7 @@ def cmd_finalize(args):
                     "over_cap": interview.get("over_cap", False),
                     "contract_violations": interview.get("contract_violations", []),
                     "interview_status": interview.get("status"),
+                    "rendered_relevant": len(rendered_relevant),
                     "coverage_per_100_contract_tokens": coverage_per_100_contract_tokens(
                         rendered_relevant, normalized_tokens
                     ),
@@ -2610,7 +2832,11 @@ def cmd_finalize(args):
     for family, family_results in results.items():
         control = family_results["control"]
         treatment = family_results["treatment"]
-        all_interviews_ok = control["interview_error_count"] == 0 and treatment["interview_error_count"] == 0
+        all_interviews_ok = all(
+            arm["interview_error_count"] == 0 and arm["over_cap_count"] == 0
+            and arm["contract_violation_count"] == 0
+            for arm in (control, treatment)
+        )
         c19_gain = treatment["selected_relevant"]["mean"] - control["selected_relevant"]["mean"]
         c19_ceiling_blocked = len(persona["relevant_catalog_ids"]) - control["selected_relevant"]["mean"] < 1
         c20_passes = (
@@ -2682,10 +2908,7 @@ def cmd_finalize(args):
             "freeze_sha256": sha256(E09 / "freeze.json"),
             "completed_at": completed_at,
         }
-        stable_payload = {key: value for key, value in payload.items() if key != "completed_at"}
-        run_date = completed_at[:10].replace("-", "")
-        run_id = "r-" + run_date + "-" + digest(stable_payload, 10)
-        lines.append({"run_id": run_id, "date": completed_at, **payload})
+        lines.append(measured_result_ledger_line(payload, completed_at))
     saved = {"schema_version": 2, "lines": lines}
     persist_verified_compact_result(
         namespace, manifest_path, current_plan, manifest,

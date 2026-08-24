@@ -114,7 +114,7 @@ jobs:
             --verified-manifest-list "$ledger_manifests"
           artifact_status=0
           manifest_list="$RUNNER_TEMP/experiment-manifests"
-          find "$candidate_root/experiments" -path "*/artifacts/*.json" -type f -print0 > "$manifest_list"
+          find "$candidate_root/experiments" -path "*/artifacts/*.json" -print0 > "$manifest_list"
           while IFS= read -r -d '' manifest; do
             relative="${manifest#"$candidate_root"/}"
             if python3 "$verifier_root/experiments/artifacts.py" manifest-list-contains \
