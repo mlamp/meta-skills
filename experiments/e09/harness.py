@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import random
 import re
@@ -1221,6 +1222,18 @@ def git(*args):
     return proc.stdout.strip()
 
 
+def frozen_commit():
+    commit = git("log", "-1", "--format=%H", "--", str((E09 / "freeze.json").relative_to(ROOT)))
+    if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
+        raise HarnessError("freeze.json is not committed")
+    return commit
+
+
+def require_exact_frozen_head(head: str, purpose: str):
+    if head != frozen_commit():
+        raise HarnessError(f"{purpose} requires HEAD to equal the exact frozen commit")
+
+
 def ledger_diff_contains_only(run_ids):
     proc = subprocess.run(["git", "diff", "HEAD", "--unified=0", "--", str(LEDGER.relative_to(ROOT))],
                           cwd=ROOT, text=True, capture_output=True, timeout=60)
@@ -1266,6 +1279,7 @@ def ensure_qualification_start_gate():
     if errors:
         raise HarnessError("qualification freeze validation failed: " + "; ".join(errors))
     head = git("rev-parse", "HEAD")
+    require_exact_frozen_head(head, "qualification")
     proc = subprocess.run(["git", "merge-base", "--is-ancestor", head, "origin/main"], cwd=ROOT)
     if proc.returncode:
         raise HarnessError("qualification requires the frozen commit to be contained in origin/main")
@@ -1348,9 +1362,10 @@ def ensure_measured_gate():
     if status:
         raise HarnessError("measured mode found unrelated changes: " + " | ".join(status))
     head = git("rev-parse", "HEAD")
+    require_exact_frozen_head(head, "measured mode")
     proc = subprocess.run(["git", "merge-base", "--is-ancestor", head, "origin/main"], cwd=ROOT)
     if proc.returncode:
-        raise HarnessError("measured mode requires the frozen commit to be contained in origin/main")
+        raise HarnessError("measured mode requires the exact frozen commit to be contained in origin/main")
     return head
 
 
@@ -1548,6 +1563,49 @@ def suppression_contract(interview, condition):
     return prompts["system_boilerplate"] + ("\n\n" + body if body else "") + "\n"
 
 
+def measured_task_jobs(interviews):
+    tasks = load_json(DATA_FILES["tasks.json"])["tasks"]
+    jobs = [
+        (interview, condition, task)
+        for interview in interviews
+        for condition in (("suppression", "no_suppression") if interview["arm"] == "treatment" else ("suppression",))
+        for task in tasks
+    ]
+    random.Random(SEED).shuffle(jobs)
+    return jobs
+
+
+def measured_task_schedule(interviews):
+    return [
+        {
+            "order": index,
+            "family": interview["family"],
+            "arm": interview["arm"],
+            "rep": interview["rep"],
+            "condition": condition,
+            "task_id": task["id"],
+        }
+        for index, (interview, condition, task) in enumerate(measured_task_jobs(interviews), 1)
+    ]
+
+
+def measured_judge_records(task_records):
+    records = [record for record in task_records if record.get("status") == "ok"]
+    random.Random(JUDGE_SEED).shuffle(records)
+    return records
+
+
+def measured_judge_schedule(task_records):
+    return [
+        {
+            "order": index,
+            "blind_id": digest({"text": row["result"], "task": row["task_id"]}),
+            "task_id": row["task_id"],
+        }
+        for index, row in enumerate(measured_judge_records(task_records), 1)
+    ]
+
+
 def cmd_tasks(args):
     ensure_measured_gate()
     namespace = RAW / "measured" / measured_id()
@@ -1555,16 +1613,10 @@ def cmd_tasks(args):
     if len(interviews) != 20:
         raise HarnessError(f"expected 20 started interviews, found {len(interviews)}")
     profiles = profile_map()
-    tasks = load_json(DATA_FILES["tasks.json"])["tasks"]
-    jobs = [(interview, condition, task) for interview in interviews
-            for condition in (("suppression", "no_suppression") if interview["arm"] == "treatment" else ("suppression",))
-            for task in tasks]
-    random.Random(SEED).shuffle(jobs)
+    jobs = measured_task_jobs(interviews)
     metadata_path = namespace / "metadata.json"
     metadata = load_json(metadata_path)
-    schedule = [{"order": index, "family": interview["family"], "arm": interview["arm"],
-                 "rep": interview["rep"], "condition": condition, "task_id": task["id"]}
-                for index, (interview, condition, task) in enumerate(jobs, 1)]
+    schedule = measured_task_schedule(interviews)
     if "task_schedule" in metadata and metadata["task_schedule"] != schedule:
         raise HarnessError("stored task schedule differs from the frozen seed")
     metadata["task_schedule"] = schedule
@@ -1656,12 +1708,10 @@ def cmd_judge(args):
     all_task_records = iter_records(namespace / "tasks")
     if len(all_task_records) != 120:
         raise HarnessError(f"judge requires all 120 task records; found {len(all_task_records)}")
-    task_records = [record for record in all_task_records if record.get("status") == "ok"]
-    random.Random(JUDGE_SEED).shuffle(task_records)
+    task_records = measured_judge_records(all_task_records)
     metadata_path = namespace / "metadata.json"
     metadata = load_json(metadata_path)
-    schedule = [{"order": index, "blind_id": digest({"text": row["result"], "task": row["task_id"]}),
-                 "task_id": row["task_id"]} for index, row in enumerate(task_records, 1)]
+    schedule = measured_judge_schedule(all_task_records)
     if "judge_schedule" in metadata and metadata["judge_schedule"] != schedule:
         raise HarnessError("stored judge schedule differs from the frozen seed")
     metadata["judge_schedule"] = schedule
@@ -1911,6 +1961,107 @@ def verify_complete_call_manifest(namespace: Path, expected_paths):
         raise HarnessError("measured call manifest paths differ from the expected provider calls")
 
 
+def validate_record_identity(record, expected, relative: str):
+    for field, value in expected.items():
+        if record.get(field) != value:
+            raise HarnessError(f"raw record identity differs from path {relative}: {field}")
+
+
+def load_artifact_record(namespace: Path, relative: str):
+    path = namespace / relative
+    if not path.is_file() or path.is_symlink():
+        raise HarnessError(f"expected regular raw record is absent: {relative}")
+    return load_json(path)
+
+
+def validate_attempt_protocol(record, relative: str):
+    status = record.get("status")
+    if status == "excluded":
+        if record.get("kind") != "task":
+            raise HarnessError(f"only task records may be excluded: {relative}")
+        if not isinstance(record.get("reason"), str) or not record["reason"].strip():
+            raise HarnessError(f"excluded task requires a non-empty reason: {relative}")
+        if "attempts" in record:
+            raise HarnessError(f"excluded task must not carry provider attempts: {relative}")
+        return
+    allowed_sequences = {
+        ("ok",),
+        ("format_error",),
+        ("request_error",),
+        ("transport_error", "ok"),
+        ("transport_error", "format_error"),
+        ("transport_error", "request_error"),
+        ("transport_error", "transport_error"),
+    }
+    attempts = record.get("attempts")
+    if not isinstance(attempts, list) or not attempts:
+        raise HarnessError(f"provider record requires attempts: {relative}")
+    sequence = tuple(attempt.get("status") for attempt in attempts if isinstance(attempt, dict))
+    if len(sequence) != len(attempts) or sequence not in allowed_sequences:
+        raise HarnessError(f"provider attempts violate the frozen retry protocol: {relative}")
+    for index, attempt in enumerate(attempts, 1):
+        if attempt.get("attempt") != index:
+            raise HarnessError(f"provider attempt sequence is not consecutive: {relative}")
+        elapsed = attempt.get("elapsed_seconds")
+        if not isinstance(elapsed, (int, float)) or isinstance(elapsed, bool) \
+                or not math.isfinite(elapsed) or elapsed < 0:
+            raise HarnessError(f"provider attempt has invalid elapsed_seconds: {relative}")
+        if attempt["status"] != "ok" and (not isinstance(attempt.get("error"), str) or not attempt["error"]):
+            raise HarnessError(f"failed provider attempt requires an error: {relative}")
+    if status != sequence[-1]:
+        raise HarnessError(f"provider record status differs from its final attempt: {relative}")
+    if status == "ok" and "result" not in record:
+        raise HarnessError(f"successful provider record requires result: {relative}")
+    if status != "ok" and (not isinstance(record.get("error"), str) or not record["error"]):
+        raise HarnessError(f"failed provider record requires an error: {relative}")
+
+
+def validate_artifact_record_identities(namespace: Path, tasks):
+    for job in measured_schedule():
+        relative = f"interviews/{job['family']}/{job['arm']}/rep-{job['rep']}.json"
+        record = load_artifact_record(namespace, relative)
+        validate_record_identity(record, {"kind": "interview", **job}, relative)
+        validate_attempt_protocol(record, relative)
+    task_ids = [row["id"] for row in load_json(DATA_FILES["tasks.json"])["tasks"]]
+    for job in measured_schedule():
+        conditions = ("suppression", "no_suppression") if job["arm"] == "treatment" else ("suppression",)
+        for condition in conditions:
+            for task_id in task_ids:
+                relative = f"tasks/{job['family']}/{job['arm']}/rep-{job['rep']}/{condition}/{task_id}.json"
+                record = load_artifact_record(namespace, relative)
+                validate_record_identity(record, {
+                    "kind": "task", "family": job["family"], "arm": job["arm"], "rep": job["rep"],
+                    "condition": condition, "task_id": task_id,
+                }, relative)
+                validate_attempt_protocol(record, relative)
+    blind_task_ids = {}
+    substitute_blinds = set()
+    for task in tasks:
+        if task.get("status") != "ok":
+            continue
+        blind = digest({"text": task["result"], "task": task["task_id"]})
+        prior = blind_task_ids.setdefault(blind, task["task_id"])
+        if prior != task["task_id"]:
+            raise HarnessError(f"blind task identity collision: {blind}")
+        if matcher_hits(task["result"], "substitute"):
+            substitute_blinds.add(blind)
+    for blind, task_id in sorted(blind_task_ids.items()):
+        relative = f"judgments/task/{blind}.json"
+        record = load_artifact_record(namespace, relative)
+        validate_record_identity(
+            record, {"kind": "task_judgment", "blind_id": blind, "task_id": task_id}, relative
+        )
+        validate_attempt_protocol(record, relative)
+    for blind in sorted(substitute_blinds):
+        for adjudication_pass in (1, 2):
+            relative = f"judgments/substitute/{blind}/pass-{adjudication_pass}.json"
+            record = load_artifact_record(namespace, relative)
+            validate_record_identity(record, {
+                "kind": "substitute_judgment", "blind_id": blind, "pass": adjudication_pass,
+            }, relative)
+            validate_attempt_protocol(record, relative)
+
+
 def artifact_execution_summary(namespace: Path, interviews, tasks):
     record_rows = measured_manifest_rows(namespace)
     provider_records = interviews + tasks
@@ -1919,14 +2070,19 @@ def artifact_execution_summary(namespace: Path, interviews, tasks):
     status_counts = {}
     retry_attempts = 0
     for row in provider_records:
-        status = row.get("status", "missing")
+        relative = row.get("kind", "unknown")
+        validate_attempt_protocol(row, relative)
+        status = row["status"]
         status_counts[status] = status_counts.get(status, 0) + 1
         retry_attempts += max(0, len(row.get("attempts", [])) - 1)
     exclusions = []
     for path in sorted((namespace / "tasks").rglob("*.json")):
         row = load_json(path)
         if row.get("status") == "excluded":
-            exclusions.append({"path": str(path.relative_to(namespace)), "reason": row.get("reason")})
+            reason = row.get("reason")
+            if not isinstance(reason, str) or not reason.strip():
+                raise HarnessError(f"excluded task requires a non-empty reason: {path.relative_to(namespace)}")
+            exclusions.append({"path": str(path.relative_to(namespace)), "reason": reason})
     return {
         "call_manifest": {
             "completed": sum(row.get("event") == "completed" for row in record_rows),
@@ -1938,8 +2094,18 @@ def artifact_execution_summary(namespace: Path, interviews, tasks):
     }, sorted(exclusions, key=lambda row: row["path"])
 
 
+def validate_artifact_schedules(metadata, interviews, tasks):
+    expected_task_schedule = measured_task_schedule(interviews)
+    expected_judge_schedule = measured_judge_schedule(tasks)
+    if metadata.get("task_schedule") != expected_task_schedule:
+        raise HarnessError("measured task schedule differs from frozen records and seed")
+    if metadata.get("judge_schedule") != expected_judge_schedule:
+        raise HarnessError("measured judge schedule differs from frozen records and seed")
+
+
 def artifact_plan(namespace: Path, head: str, supersedes=None):
     verify_measured_manifest(namespace)
+    require_exact_frozen_head(head, "artifact packaging")
     metadata_path = namespace / "metadata.json"
     if not metadata_path.exists():
         raise HarnessError("measured metadata is absent")
@@ -1948,13 +2114,12 @@ def artifact_plan(namespace: Path, head: str, supersedes=None):
         raise HarnessError("measured metadata base_commit differs from HEAD")
     if metadata.get("schedule") != measured_schedule():
         raise HarnessError("measured interview schedule differs from the frozen seed")
-    for name in ("task_schedule", "judge_schedule"):
-        if not isinstance(metadata.get(name), list) or not metadata[name]:
-            raise HarnessError(f"measured metadata is missing {name}")
     interviews = iter_records(namespace / "interviews")
     tasks = iter_records(namespace / "tasks")
     if len(interviews) != 20 or len(tasks) != 120:
         raise HarnessError("artifact packaging requires 20 interviews and 120 task records")
+    validate_artifact_record_identities(namespace, tasks)
+    validate_artifact_schedules(metadata, interviews, tasks)
     judgments = {record["blind_id"]: record for record in iter_records(namespace / "judgments" / "task")}
     for task in tasks:
         if task.get("status") != "ok":
@@ -1979,7 +2144,7 @@ def artifact_plan(namespace: Path, head: str, supersedes=None):
         counts[kind] = counts.get(kind, 0) + 1
     frozen = load_json(E09 / "freeze.json")
     return {
-        "schema_version": 1,
+        "schema_version": artifact_store.SCHEMA_VERSION,
         "repository": spec["repository"],
         "experiment": "E-09",
         "batch_id": batch_id,
@@ -2014,6 +2179,7 @@ def artifact_paths():
     return (
         ARTIFACT_STAGING / (batch_id + spec["archive_asset_suffix"]),
         ARTIFACT_STAGING / (batch_id + spec["manifest_asset_suffix"]),
+        ARTIFACT_STAGING / f"{batch_id}.plan.json",
         ARTIFACT_MANIFESTS / f"{batch_id}.json",
     )
 
@@ -2022,15 +2188,11 @@ def cmd_artifact_pack(args):
     head = ensure_measured_gate()
     namespace = RAW / "measured" / measured_id()
     plan = artifact_plan(namespace, head, args.supersedes)
-    archive_path, manifest_path, committed_path = artifact_paths()
+    archive_path, manifest_path, plan_path, committed_path = artifact_paths()
     try:
-        if archive_path.exists() or manifest_path.exists():
-            if not archive_path.exists() or not manifest_path.exists():
-                raise artifact_store.ArtifactError("artifact staging pair is incomplete")
-            artifact_store.verify_local(manifest_path, archive_path)
-            manifest = artifact_store.verify_source(manifest_path, plan, namespace, ROOT)
-        else:
-            manifest = artifact_store.pack(plan, namespace, archive_path, manifest_path, ROOT)
+        manifest = artifact_store.pack(plan, namespace, archive_path, manifest_path, ROOT)
+        artifact_store.verify_source(manifest_path, plan, namespace, ROOT)
+        artifact_store.write_json_idempotent(plan_path, plan)
     except artifact_store.ArtifactError as exc:
         raise HarnessError(str(exc)) from exc
     print(json.dumps({
@@ -2039,7 +2201,9 @@ def cmd_artifact_pack(args):
         "batch_id": plan["batch_id"],
         "committed_manifest_after_publication": str(committed_path.relative_to(ROOT)),
         "manifest": str(manifest_path.relative_to(ROOT)),
-        "next": "inspect both files, then stage a draft with experiments/artifacts.py stage-release",
+        "plan": str(plan_path.relative_to(ROOT)),
+        "raw_root": str(namespace.relative_to(ROOT)),
+        "next": "inspect the archive, manifest, and plan; then stage with the printed plan and raw_root",
         "release_tag": plan["release"]["tag"],
     }, indent=2))
 
@@ -2061,7 +2225,7 @@ def validate_artifact_binding(namespace: Path, manifest_path: Path, head: str):
     frozen = load_json(E09 / "freeze.json")
     batch_id = measured_id()
     expected = {
-        "schema_version": 1,
+        "schema_version": artifact_store.SCHEMA_VERSION,
         "repository": spec["repository"],
         "experiment": "E-09",
         "batch_id": batch_id,
@@ -2318,6 +2482,7 @@ def cmd_finalize(args):
             "schema_version": 2,
             "type": "experiment",
             "experiment": "E-09",
+            "batch_id": measured_id(),
             "family": family,
             "arms": family_results,
             "claim_checks": claim_checks,
@@ -2337,7 +2502,7 @@ def cmd_finalize(args):
         stable_payload = {key: value for key, value in payload.items() if key != "completed_at"}
         run_id = "r-" + datetime.now(timezone.utc).strftime("%Y%m%d") + "-" + digest(stable_payload, 10)
         lines.append({"run_id": run_id, "date": completed_at, **payload})
-    saved = {"lines": lines}
+    saved = {"schema_version": 2, "lines": lines}
     write_json_exclusive(results_path, saved)
     ensure_ledger_lines(lines)
     print(json.dumps(saved, indent=2))

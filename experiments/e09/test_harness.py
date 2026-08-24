@@ -78,6 +78,29 @@ class FrozenInputsTest(unittest.TestCase):
         pattern_ids = {row["id"] for row in spec["forbidden_patterns"]}
         self.assertTrue({"host_windows_path", "host_uuid", "host_project_id"} <= pattern_ids)
 
+    def test_pr_ci_separates_candidate_code_from_release_credentials(self):
+        workflow = (H.ROOT / ".github" / "workflows" / "verify-experiment-artifacts.yml").read_text(
+            encoding="utf-8"
+        )
+        candidate, trusted = workflow.split("  trusted-verification:", 1)
+        self.assertIn("  pull_request:\n", candidate)
+        self.assertIn("pull_request_target:", candidate)
+        self.assertIn('      - "ledger/**"', candidate)
+        self.assertIn("if: github.event_name == 'pull_request' || github.event_name == 'push'", candidate)
+        self.assertNotIn("GH_TOKEN", candidate)
+        self.assertIn("persist-credentials: false", candidate)
+        self.assertIn("if: github.event_name == 'pull_request_target' || github.event_name == 'push'", trusted)
+        self.assertIn("github.event.pull_request.base.sha", trusted)
+        self.assertIn("github.event.pull_request.merge_commit_sha", trusted)
+        self.assertIn("github.event.pull_request.head.sha", trusted)
+        self.assertIn('git -C candidate rev-parse HEAD^2', trusted)
+        self.assertIn("GH_TOKEN", trusted)
+        self.assertIn('verifier_root="$GITHUB_WORKSPACE/trusted"', trusted)
+        self.assertIn("--verify-remote", trusted)
+        self.assertIn("--baseline-ledger", trusted)
+        self.assertIn("GITHUB_EVENT_BEFORE: ${{ github.event.before }}", trusted)
+        self.assertNotIn("< <(find", trusted)
+
 
 class ArmIsolationTest(unittest.TestCase):
     def test_treatment_is_one_insertion_replacement(self):
@@ -511,6 +534,66 @@ class RunnerSafetyTest(unittest.TestCase):
         self.assertIn("metadata.json", expected)
         self.assertIn("record-manifest.jsonl", expected)
 
+    def test_artifact_records_bind_embedded_identity_to_path(self):
+        record = {"kind": "task", "family": "fable-subject", "arm": "control", "rep": 1}
+        H.validate_record_identity(record, record.copy(), "tasks/example.json")
+        with self.assertRaisesRegex(H.HarnessError, "identity differs from path"):
+            H.validate_record_identity(record, {**record, "rep": 2}, "tasks/example.json")
+        job = H.measured_schedule()[0]
+        interview = {"kind": "interview", **job}
+        H.validate_record_identity(interview, {"kind": "interview", **job}, "interviews/example.json")
+
+    def test_artifact_attempts_follow_the_exact_retry_protocol(self):
+        H.validate_attempt_protocol({
+            "kind": "task", "status": "ok", "result": "done",
+            "attempts": [{"attempt": 1, "status": "ok", "elapsed_seconds": 0.1}],
+        }, "tasks/ok.json")
+        H.validate_attempt_protocol({
+            "kind": "task", "status": "transport_error", "error": "offline",
+            "attempts": [
+                {"attempt": 1, "status": "transport_error", "error": "offline", "elapsed_seconds": 0.1},
+                {"attempt": 2, "status": "transport_error", "error": "offline", "elapsed_seconds": 0.1},
+            ],
+        }, "tasks/error.json")
+        with self.assertRaisesRegex(H.HarnessError, "retry protocol"):
+            H.validate_attempt_protocol({
+                "kind": "task", "status": "ok", "result": "done",
+                "attempts": [
+                    {"attempt": 1, "status": "ok", "elapsed_seconds": 0.1},
+                    {"attempt": 2, "status": "ok", "elapsed_seconds": 0.1},
+                ],
+            }, "tasks/bad.json")
+        with self.assertRaisesRegex(H.HarnessError, "non-empty reason"):
+            H.validate_attempt_protocol({"kind": "task", "status": "excluded"}, "tasks/excluded.json")
+        with self.assertRaisesRegex(H.HarnessError, "elapsed_seconds"):
+            H.validate_attempt_protocol({
+                "kind": "task", "status": "ok", "result": "done",
+                "attempts": [{"attempt": 1, "status": "ok", "elapsed_seconds": float("nan")}],
+            }, "tasks/nan.json")
+
+    def test_artifact_schedules_are_rederived_from_frozen_records(self):
+        interviews = [{**job, "kind": "interview"} for job in H.measured_schedule()]
+        tasks = [{"status": "excluded"}] * 120
+        metadata = {
+            "task_schedule": H.measured_task_schedule(interviews),
+            "judge_schedule": H.measured_judge_schedule(tasks),
+        }
+        self.assertEqual(len(metadata["task_schedule"]), 120)
+        H.validate_artifact_schedules(metadata, interviews, tasks)
+        metadata["task_schedule"] = list(reversed(metadata["task_schedule"]))
+        with self.assertRaisesRegex(H.HarnessError, "task schedule differs"):
+            H.validate_artifact_schedules(metadata, interviews, tasks)
+
+    def test_measured_operations_require_the_commit_that_last_changed_freeze(self):
+        old_frozen_commit = H.frozen_commit
+        try:
+            H.frozen_commit = lambda: "a" * 40
+            H.require_exact_frozen_head("a" * 40, "measured mode")
+            with self.assertRaisesRegex(H.HarnessError, "exact frozen commit"):
+                H.require_exact_frozen_head("b" * 40, "measured mode")
+        finally:
+            H.frozen_commit = old_frozen_commit
+
     def test_artifact_call_manifest_requires_exact_provider_path_set(self):
         old_rows = H.measured_manifest_rows
         with tempfile.TemporaryDirectory() as tmp:
@@ -568,7 +651,7 @@ class RunnerSafetyTest(unittest.TestCase):
             try:
                 H.measured_id = lambda: "m-test"
                 manifest = {
-                    "schema_version": 1,
+                    "schema_version": H.artifact_store.SCHEMA_VERSION,
                     "repository": spec["repository"],
                     "experiment": "E-09",
                     "batch_id": "m-test",

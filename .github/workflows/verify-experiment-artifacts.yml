@@ -5,35 +5,117 @@ on:
     paths:
       - ".github/workflows/verify-experiment-artifacts.yml"
       - "experiments/**"
+      - "ledger/**"
+  pull_request_target:
+    paths:
+      - ".github/workflows/verify-experiment-artifacts.yml"
+      - "experiments/**"
+      - "ledger/**"
   push:
     branches: [main]
     paths:
       - ".github/workflows/verify-experiment-artifacts.yml"
       - "experiments/**"
+      - "ledger/**"
 
-permissions:
-  attestations: read
-  contents: read
+permissions: {}
 
 jobs:
-  verify:
+  candidate-tests:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out pull request candidate
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check out main candidate
+        if: github.event_name == 'push'
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Test packager and E-09 harness
+      - name: Test packager and E-09 harness without credentials
         run: |
           python3 -m unittest experiments.test_artifacts -v
           python3 experiments/e09/test_harness.py
           python3 experiments/e09/harness.py validate
-      - name: Verify every committed release manifest
+
+  trusted-verification:
+    if: github.event_name == 'pull_request_target' || github.event_name == 'push'
+    permissions:
+      attestations: read
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out trusted base verifier
+        if: github.event_name == 'pull_request_target'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          persist-credentials: false
+      - name: Require a pinned pull request merge commit
+        if: github.event_name == 'pull_request_target'
+        env:
+          CANDIDATE_MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          [[ "$CANDIDATE_MERGE_SHA" =~ ^[0-9a-f]{40}$ ]]
+      - name: Check out pull request data
+        if: github.event_name == 'pull_request_target'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          path: candidate
+          persist-credentials: false
+      - name: Bind candidate checkout to the event head
+        if: github.event_name == 'pull_request_target'
+        env:
+          CANDIDATE_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CANDIDATE_MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          test "$(git -C candidate rev-parse HEAD)" = "$CANDIDATE_MERGE_SHA"
+          test "$(git -C candidate rev-parse HEAD^2)" = "$CANDIDATE_HEAD_SHA"
+      - name: Check out trusted main verifier and data
+        if: github.event_name == 'push'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: trusted
+          persist-credentials: false
+      - name: Verify ledger pins and every committed release manifest
         env:
           GH_TOKEN: ${{ github.token }}
+          GITHUB_EVENT_BEFORE: ${{ github.event.before }}
         run: |
+          set -euo pipefail
+          verifier_root="$GITHUB_WORKSPACE/trusted"
+          candidate_root="$GITHUB_WORKSPACE/trusted"
+          if [ "$GITHUB_EVENT_NAME" = "pull_request_target" ]; then
+            candidate_root="$GITHUB_WORKSPACE/candidate"
+          fi
+          baseline_ledger="$verifier_root/ledger/runs.jsonl"
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            [[ "$GITHUB_EVENT_BEFORE" =~ ^[0-9a-f]{40}$ ]]
+            baseline_ledger="$RUNNER_TEMP/previous-ledger.jsonl"
+            git -C "$verifier_root" show "$GITHUB_EVENT_BEFORE:ledger/runs.jsonl" > "$baseline_ledger"
+          fi
+          python3 "$verifier_root/experiments/artifacts.py" verify-ledger \
+            --repo-root "$candidate_root" \
+            --expected-repository "$GITHUB_REPOSITORY" \
+            --verify-remote \
+            --baseline-ledger "$baseline_ledger"
           artifact_status=0
+          manifest_list="$RUNNER_TEMP/experiment-manifests"
+          find "$candidate_root/experiments" -path "*/artifacts/*.json" -type f -print0 > "$manifest_list"
           while IFS= read -r -d '' manifest; do
-            python3 experiments/artifacts.py verify-release --manifest "$manifest" || artifact_status=1
-          done < <(find experiments -path "*/artifacts/*.json" -type f -print0)
+            python3 "$verifier_root/experiments/artifacts.py" verify-release \
+              --manifest "$manifest" \
+              --expected-repository "$GITHUB_REPOSITORY" || artifact_status=1
+          done < "$manifest_list"
           exit "$artifact_status"
