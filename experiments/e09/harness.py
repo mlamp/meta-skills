@@ -1455,8 +1455,24 @@ def verify_measured_record(path: Path):
 
 def verify_measured_manifest(namespace: Path):
     paths = {row.get("path") for row in measured_manifest_rows(namespace)}
-    for relative in sorted(path for path in paths if path):
-        verify_measured_record(namespace / relative)
+    try:
+        root = namespace.resolve(strict=True)
+        for relative in sorted(path for path in paths if path):
+            safe = artifact_store.safe_relative(relative)
+            candidate = root.joinpath(*safe.parts)
+            unresolved = root
+            for part in safe.parts:
+                unresolved = unresolved / part
+                if unresolved.is_symlink():
+                    raise HarnessError(f"measured call manifest path contains a symlink: {relative}")
+            resolved = candidate.resolve(strict=True)
+            resolved.relative_to(root)
+            artifact_store.require_regular_file(resolved, "measured call record")
+            verify_measured_record(resolved)
+    except HarnessError:
+        raise
+    except (artifact_store.ArtifactError, OSError, ValueError, TypeError) as exc:
+        raise HarnessError(f"measured call manifest contains an unsafe path: {exc}") from exc
 
 
 def call_record(path, thunk, identity, finalize_record=None):
@@ -1819,6 +1835,19 @@ def build_adjudication_pending(expected, disagreement_rows, disagreements):
     }
 
 
+def adjudication_resolution_map(resolved, disagreements):
+    resolution_rows = resolved.get("resolutions") if isinstance(resolved, dict) else None
+    if not isinstance(resolution_rows, list) or any(not isinstance(row, dict) for row in resolution_rows):
+        raise HarnessError("human adjudication resolutions must be a list of objects")
+    blind_ids = [row.get("blind_id") for row in resolution_rows]
+    if len(blind_ids) != len(set(blind_ids)):
+        raise HarnessError("human adjudication must contain one resolution per blind ID")
+    rows = {row.get("blind_id"): row.get("verdicts") for row in resolution_rows}
+    if set(rows) != set(disagreements):
+        raise HarnessError("human adjudication must resolve every and only pending blind ID")
+    return rows
+
+
 def load_substitute_verdicts(namespace: Path, task_records):
     """Return confirmed verdicts by blind task ID or stop for blinded adjudication."""
     records = iter_records(namespace / "judgments" / "substitute")
@@ -1858,23 +1887,28 @@ def load_substitute_verdicts(namespace: Path, task_records):
         else:
             disagreements.append(blind)
             disagreement_rows[blind] = rows
+    pending_path = namespace / "adjudication-pending.json"
+    resolved_path = namespace / "adjudication-resolved.json"
     if not disagreements:
+        if pending_path.exists() or resolved_path.exists():
+            raise HarnessError("adjudication records exist without substitute-judge disagreements")
         judged_sets = len(expected) - len(judge_errors)
         return agreed, {"candidate_sets": len(expected), "judged_sets": judged_sets,
                         "agreement": 1.0 if judged_sets else None,
                         "judge_error_blind_ids": sorted(judge_errors), "human_resolutions": 0}
 
     pending = build_adjudication_pending(expected, disagreement_rows, disagreements)
-    pending_path = namespace / "adjudication-pending.json"
-    if not pending_path.exists():
+    if pending_path.exists():
+        if load_json(pending_path) != pending:
+            raise HarnessError("adjudication pending record differs from current disagreements")
+    else:
+        if resolved_path.exists():
+            raise HarnessError("adjudication resolved record exists without its pending record")
         write_json_atomic(pending_path, pending)
-    resolved_path = namespace / "adjudication-resolved.json"
     if not resolved_path.exists():
         raise HarnessError(f"substitute-judge disagreements require blinded human adjudication: {len(disagreements)}")
     resolved = load_json(resolved_path)
-    rows = {row.get("blind_id"): row.get("verdicts") for row in resolved.get("resolutions", [])}
-    if set(rows) != set(disagreements):
-        raise HarnessError("human adjudication must resolve every and only pending blind ID")
+    rows = adjudication_resolution_map(resolved, disagreements)
     for blind in disagreements:
         schema = substitute_judge_schema(expected[blind]["candidate_ids"])
         payload = {"verdicts": rows[blind]}
@@ -1912,7 +1946,7 @@ def artifact_kind(relative: str) -> str:
     raise HarnessError(f"raw artifact has no inventory kind: {relative}")
 
 
-def artifact_expected_paths(namespace: Path, tasks):
+def artifact_expected_paths(namespace: Path, tasks, adjudication_required=False):
     expected = {"metadata.json", "record-manifest.jsonl"}
     for job in measured_schedule():
         expected.add(f"interviews/{job['family']}/{job['arm']}/rep-{job['rep']}.json")
@@ -1939,10 +1973,12 @@ def artifact_expected_paths(namespace: Path, tasks):
         expected.add(f"judgments/substitute/{blind}/pass-2.json")
     pending = namespace / "adjudication-pending.json"
     resolved = namespace / "adjudication-resolved.json"
-    if pending.exists() != resolved.exists():
-        raise HarnessError("adjudication pending and resolved records must either both exist or both be absent")
-    if pending.exists():
+    if adjudication_required:
+        if not pending.exists() or not resolved.exists():
+            raise HarnessError("substitute-judge disagreements require both adjudication records")
         expected.update((pending.name, resolved.name))
+    elif pending.exists() or resolved.exists():
+        raise HarnessError("adjudication records exist without substitute-judge disagreements")
     return expected
 
 
@@ -1990,6 +2026,8 @@ def validate_attempt_protocol(record, relative: str):
             raise HarnessError(f"excluded task requires a non-empty reason: {relative}")
         if "attempts" in record:
             raise HarnessError(f"excluded task must not carry provider attempts: {relative}")
+        if "result" in record:
+            raise HarnessError(f"excluded task must not carry a result: {relative}")
         return
     allowed_sequences = {
         ("ok",),
@@ -2021,6 +2059,8 @@ def validate_attempt_protocol(record, relative: str):
         raise HarnessError(f"successful provider record requires result: {relative}")
     if status != "ok" and (not isinstance(record.get("error"), str) or not record["error"]):
         raise HarnessError(f"failed provider record requires an error: {relative}")
+    if status != "ok" and "result" in record:
+        raise HarnessError(f"failed provider record must not carry a result: {relative}")
 
 
 def validate_success_schema(record, schema, relative: str):
@@ -2206,8 +2246,10 @@ def artifact_plan(namespace: Path, head: str, supersedes=None):
         blind = digest({"text": task["result"], "task": task["task_id"]})
         if blind not in judgments:
             raise HarnessError(f"missing task judgment for {blind}")
-    load_substitute_verdicts(namespace, tasks)
-    expected = artifact_expected_paths(namespace, tasks)
+    _, substitute_summary = load_substitute_verdicts(namespace, tasks)
+    expected = artifact_expected_paths(
+        namespace, tasks, adjudication_required=substitute_summary["human_resolutions"] > 0
+    )
     verify_complete_call_manifest(namespace, expected)
     execution, exclusions = artifact_execution_summary(namespace, interviews, tasks)
     spec = load_artifact_spec()
@@ -2290,6 +2332,12 @@ def cmd_artifact_pack(args):
     }, indent=2))
 
 
+def cmd_artifact_plan_json(args):
+    head = ensure_measured_gate()
+    namespace = RAW / "measured" / measured_id()
+    print(canonical(artifact_plan(namespace, head, args.supersedes)))
+
+
 def verify_published_artifact(manifest_path: Path):
     try:
         return artifact_store.download_and_verify(
@@ -2368,6 +2416,25 @@ def write_or_verify_compact_result(results_path: Path, saved, existing_saved):
         write_json_exclusive(results_path, saved)
 
 
+def verify_current_artifact_source(namespace: Path, manifest_path: Path, plan, manifest):
+    validate_artifact_namespace(namespace)
+    verify_measured_manifest(namespace)
+    try:
+        artifact_store.require_local_frozen_source(ROOT, manifest)
+        artifact_store.verify_source(manifest_path, plan, namespace, ROOT)
+    except artifact_store.ArtifactError as exc:
+        raise HarnessError(str(exc)) from exc
+
+
+def persist_verified_compact_result(
+    namespace: Path, manifest_path: Path, plan, manifest,
+    results_path: Path, saved, existing_saved, lines,
+):
+    verify_current_artifact_source(namespace, manifest_path, plan, manifest)
+    write_or_verify_compact_result(results_path, saved, existing_saved)
+    ensure_ledger_lines(lines)
+
+
 def cmd_finalize(args):
     head = ensure_measured_gate()
     namespace = RAW / "measured" / measured_id()
@@ -2378,12 +2445,9 @@ def cmd_finalize(args):
         raise HarnessError("published raw-artifact manifest is absent; package, inspect, stage, and publish first")
     manifest = validate_artifact_binding(namespace, manifest_path, head)
     current_plan = artifact_plan(namespace, head, manifest.get("supersedes"))
-    try:
-        artifact_store.require_local_frozen_source(ROOT, manifest)
-        artifact_store.verify_source(manifest_path, current_plan, namespace, ROOT)
-    except artifact_store.ArtifactError as exc:
-        raise HarnessError(str(exc)) from exc
+    verify_current_artifact_source(namespace, manifest_path, current_plan, manifest)
     artifact_receipt = verify_published_artifact(manifest_path)
+    verify_current_artifact_source(namespace, manifest_path, current_plan, manifest)
     results_path = RESULTS / f"{measured_id()}.json"
     existing_saved, existing_completed_at = load_existing_compact_result(results_path)
     interviews = iter_records(namespace / "interviews")
@@ -2623,8 +2687,10 @@ def cmd_finalize(args):
         run_id = "r-" + run_date + "-" + digest(stable_payload, 10)
         lines.append({"run_id": run_id, "date": completed_at, **payload})
     saved = {"schema_version": 2, "lines": lines}
-    write_or_verify_compact_result(results_path, saved, existing_saved)
-    ensure_ledger_lines(lines)
+    persist_verified_compact_result(
+        namespace, manifest_path, current_plan, manifest,
+        results_path, saved, existing_saved, lines,
+    )
     print(json.dumps(saved, indent=2))
 
 
@@ -2651,6 +2717,9 @@ def build_parser():
     artifact_pack = sub.add_parser("artifact-pack")
     artifact_pack.add_argument("--supersedes")
     artifact_pack.set_defaults(func=cmd_artifact_pack)
+    artifact_plan_json = sub.add_parser("artifact-plan-json")
+    artifact_plan_json.add_argument("--supersedes")
+    artifact_plan_json.set_defaults(func=cmd_artifact_plan_json)
     sub.add_parser("finalize").set_defaults(func=cmd_finalize)
     return parser
 

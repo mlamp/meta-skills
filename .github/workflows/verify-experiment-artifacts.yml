@@ -105,15 +105,22 @@ jobs:
             baseline_ledger="$RUNNER_TEMP/previous-ledger.jsonl"
             git -C "$verifier_root" show "$GITHUB_EVENT_BEFORE:ledger/runs.jsonl" > "$baseline_ledger"
           fi
+          ledger_manifests="$RUNNER_TEMP/ledger-manifests"
           python3 "$verifier_root/experiments/artifacts.py" verify-ledger \
             --repo-root "$candidate_root" \
             --expected-repository "$GITHUB_REPOSITORY" \
             --verify-remote \
-            --baseline-ledger "$baseline_ledger"
+            --baseline-ledger "$baseline_ledger" \
+            --verified-manifest-list "$ledger_manifests"
           artifact_status=0
           manifest_list="$RUNNER_TEMP/experiment-manifests"
           find "$candidate_root/experiments" -path "*/artifacts/*.json" -type f -print0 > "$manifest_list"
           while IFS= read -r -d '' manifest; do
+            relative="${manifest#"$candidate_root"/}"
+            if python3 "$verifier_root/experiments/artifacts.py" manifest-list-contains \
+              --verified-manifest-list "$ledger_manifests" --path "$relative" >/dev/null 2>&1; then
+              continue
+            fi
             python3 "$verifier_root/experiments/artifacts.py" verify-release \
               --manifest "$manifest" \
               --expected-repository "$GITHUB_REPOSITORY" || artifact_status=1

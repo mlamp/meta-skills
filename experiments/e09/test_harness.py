@@ -99,6 +99,9 @@ class FrozenInputsTest(unittest.TestCase):
         self.assertIn('verifier_root="$GITHUB_WORKSPACE/trusted"', trusted)
         self.assertIn("--verify-remote", trusted)
         self.assertIn("--baseline-ledger", trusted)
+        self.assertIn("--verified-manifest-list", trusted)
+        self.assertIn("manifest-list-contains", trusted)
+        self.assertNotIn("grep -Fqx", trusted)
         self.assertIn("GITHUB_EVENT_BEFORE: ${{ github.event.before }}", trusted)
         self.assertNotIn("< <(find", trusted)
 
@@ -519,6 +522,45 @@ class RunnerSafetyTest(unittest.TestCase):
             finally:
                 H.RAW = old_raw
 
+    def test_measured_manifest_rejects_paths_outside_its_namespace(self):
+        old_raw = H.RAW
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                H.RAW = Path(tmp) / "raw"
+                namespace = H.RAW / "measured" / "m-test"
+                namespace.mkdir(parents=True)
+                for unsafe in ("../outside.json", "/tmp/outside.json", r"interviews\outside.json"):
+                    with mock.patch.object(H, "measured_manifest_rows", return_value=[{"path": unsafe}]), \
+                         self.assertRaisesRegex(H.HarnessError, "unsafe path"):
+                        H.verify_measured_manifest(namespace)
+            finally:
+                H.RAW = old_raw
+
+    def test_measured_manifest_rejects_linked_records_inside_its_namespace(self):
+        old_raw = H.RAW
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                H.RAW = Path(tmp) / "raw"
+                namespace = H.RAW / "measured" / "m-test"
+                records = namespace / "interviews"
+                records.mkdir(parents=True)
+                outside = Path(tmp) / "outside.json"
+                outside.write_text("{}\n", encoding="utf-8")
+                linked = records / "linked.json"
+                linked.symlink_to(outside)
+                with mock.patch.object(H, "measured_manifest_rows", return_value=[{
+                    "path": "interviews/linked.json",
+                }]), self.assertRaisesRegex(H.HarnessError, "contains a symlink"):
+                    H.verify_measured_manifest(namespace)
+                linked.unlink()
+                os.link(outside, linked)
+                with mock.patch.object(H, "measured_manifest_rows", return_value=[{
+                    "path": "interviews/linked.json",
+                }]), self.assertRaisesRegex(H.HarnessError, "unsafe path"):
+                    H.verify_measured_manifest(namespace)
+            finally:
+                H.RAW = old_raw
+
     def test_freeze_excludes_run_outputs(self):
         frozen = set(H.freeze_payload()["files"])
         self.assertTrue(frozen)
@@ -534,6 +576,45 @@ class RunnerSafetyTest(unittest.TestCase):
         self.assertEqual(len(tasks), 120)
         self.assertIn("metadata.json", expected)
         self.assertIn("record-manifest.jsonl", expected)
+
+    def test_adjudication_files_exist_only_for_derived_disagreements(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            namespace = Path(tmp)
+            H.write_json_atomic(namespace / "adjudication-pending.json", {})
+            with mock.patch.object(H, "iter_records", return_value=[]), \
+                 self.assertRaisesRegex(H.HarnessError, "without substitute-judge disagreements"):
+                H.load_substitute_verdicts(namespace, [])
+            H.write_json_atomic(namespace / "adjudication-resolved.json", {})
+            expected = H.artifact_expected_paths(namespace, [], adjudication_required=True)
+            self.assertIn("adjudication-pending.json", expected)
+            self.assertIn("adjudication-resolved.json", expected)
+
+    def test_stale_or_partial_adjudication_state_stops_inventory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            namespace = Path(tmp)
+            with self.assertRaisesRegex(H.HarnessError, "require both adjudication records"):
+                H.artifact_expected_paths(namespace, [], adjudication_required=True)
+            H.write_json_atomic(namespace / "adjudication-resolved.json", {"resolutions": []})
+            task = {"status": "ok", "result": "candidate response", "task_id": "T01"}
+            blind = H.digest({"text": task["result"], "task": task["task_id"]})
+            judgments = [
+                {"blind_id": blind, "pass": 1, "status": "ok", "result": {"verdicts": []}},
+                {"blind_id": blind, "pass": 2, "status": "ok", "result": {
+                    "verdicts": [{"different": True}],
+                }},
+            ]
+            with mock.patch.object(H, "iter_records", return_value=judgments), \
+                 mock.patch.object(H, "matcher_hits", return_value=[{"text": "candidate"}]), \
+                 mock.patch.object(H, "build_adjudication_pending", return_value={"current": True}), \
+                 self.assertRaisesRegex(H.HarnessError, "without its pending record"):
+                H.load_substitute_verdicts(namespace, [task])
+            (namespace / "adjudication-resolved.json").unlink()
+            H.write_json_atomic(namespace / "adjudication-pending.json", {"stale": True})
+            with mock.patch.object(H, "iter_records", return_value=judgments), \
+                 mock.patch.object(H, "matcher_hits", return_value=[{"text": "candidate"}]), \
+                 mock.patch.object(H, "build_adjudication_pending", return_value={"current": True}), \
+                 self.assertRaisesRegex(H.HarnessError, "differs from current disagreements"):
+                H.load_substitute_verdicts(namespace, [task])
 
     def test_artifact_records_bind_embedded_identity_to_path(self):
         record = {"kind": "task", "family": "fable-subject", "arm": "control", "rep": 1}
@@ -604,6 +685,17 @@ class RunnerSafetyTest(unittest.TestCase):
                 "kind": "task", "status": "ok", "result": "done",
                 "attempts": [{"attempt": 1, "status": "ok", "elapsed_seconds": float("nan")}],
             }, "tasks/nan.json")
+        with self.assertRaisesRegex(H.HarnessError, "must not carry a result"):
+            H.validate_attempt_protocol({
+                "kind": "task", "status": "request_error", "error": "bad request", "result": "fabricated",
+                "attempts": [{
+                    "attempt": 1, "status": "request_error", "error": "bad request", "elapsed_seconds": 0.1,
+                }],
+            }, "tasks/failed-result.json")
+        with self.assertRaisesRegex(H.HarnessError, "must not carry a result"):
+            H.validate_attempt_protocol({
+                "kind": "task", "status": "excluded", "reason": "not scheduled", "result": "fabricated",
+            }, "tasks/excluded-result.json")
 
     def test_artifact_schedules_are_rederived_from_frozen_records(self):
         interviews = [{**job, "kind": "interview"} for job in H.measured_schedule()]
@@ -799,6 +891,44 @@ class RunnerSafetyTest(unittest.TestCase):
             frozen.assert_called_once_with(root, manifest)
             remote.assert_not_called()
 
+    def test_finalize_rebinds_source_after_remote_and_before_persisting(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifests = root / "manifests"
+            manifest_path = manifests / "m-test.json"
+            H.write_json_atomic(manifest_path, {})
+            plan = {"plan": True}
+            manifest = {"manifest": True}
+            with mock.patch.object(H, "ROOT", root), \
+                 mock.patch.object(H, "RAW", root / "raw"), \
+                 mock.patch.object(H, "ARTIFACT_MANIFESTS", manifests), \
+                 mock.patch.object(H, "ensure_measured_gate", return_value="a" * 40), \
+                 mock.patch.object(H, "measured_id", return_value="m-test"), \
+                 mock.patch.object(H, "validate_artifact_namespace"), \
+                 mock.patch.object(H, "verify_measured_manifest"), \
+                 mock.patch.object(H, "validate_artifact_binding", return_value=manifest), \
+                 mock.patch.object(H, "artifact_plan", return_value=plan), \
+                 mock.patch.object(H, "verify_current_artifact_source",
+                                   side_effect=[None, H.HarnessError("post-remote rebind")]) as source, \
+                 mock.patch.object(H, "verify_published_artifact", return_value={"verified": True}) as remote:
+                with self.assertRaisesRegex(H.HarnessError, "post-remote rebind"):
+                    H.cmd_finalize(None)
+            self.assertEqual(source.call_count, 2)
+            remote.assert_called_once_with(manifest_path)
+
+        with mock.patch.object(H, "verify_current_artifact_source",
+                               side_effect=H.HarnessError("pre-persist rebind")) as source, \
+             mock.patch.object(H, "write_or_verify_compact_result") as writer, \
+             mock.patch.object(H, "ensure_ledger_lines") as ledger, \
+             self.assertRaisesRegex(H.HarnessError, "pre-persist rebind"):
+            H.persist_verified_compact_result(
+                Path("raw"), Path("manifest"), plan, manifest,
+                Path("results"), {"schema_version": 2, "lines": []}, None, [],
+            )
+        source.assert_called_once()
+        writer.assert_not_called()
+        ledger.assert_not_called()
+
     def test_finalize_manifest_must_bind_current_batch_freeze_and_commit(self):
         old_id = H.measured_id
         head = "a" * 40
@@ -906,6 +1036,15 @@ class RunnerSafetyTest(unittest.TestCase):
         rendered = H.canonical(sheet)
         for forbidden in ('"arm"', '"family"', '"rep"', '"condition"', '"path"'):
             self.assertNotIn(forbidden, rendered)
+
+    def test_human_adjudication_has_one_resolution_per_current_disagreement(self):
+        resolved = {"resolutions": [{"blind_id": "blind-1", "verdicts": []}]}
+        self.assertEqual(H.adjudication_resolution_map(resolved, ["blind-1"]), {"blind-1": []})
+        duplicate = {"resolutions": [resolved["resolutions"][0], resolved["resolutions"][0]]}
+        with self.assertRaisesRegex(H.HarnessError, "one resolution per blind ID"):
+            H.adjudication_resolution_map(duplicate, ["blind-1"])
+        with self.assertRaisesRegex(H.HarnessError, "every and only pending blind ID"):
+            H.adjudication_resolution_map(resolved, ["blind-2"])
 
 
 if __name__ == "__main__":

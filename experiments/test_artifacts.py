@@ -617,14 +617,35 @@ class ReleaseGateTest(unittest.TestCase):
             payload["execution"]["exclusion_count"] = 1
             manifest_path.unlink()
             A.write_json_exclusive(manifest_path, payload)
-            with self.assertRaisesRegex(A.ArtifactError, "current plan: exclusions"):
+            with mock.patch.object(A, "require_local_frozen_source"), \
+                 self.assertRaisesRegex(A.ArtifactError, "current plan: exclusions"):
                 A.stage_release(manifest_path, archive, plan(), root / "raw", root)
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
             archive, manifest_path = self.packed(root)
             (root / "raw" / "interviews" / "one.json").write_text('{"changed":true}\n', encoding="utf-8")
-            with self.assertRaisesRegex(A.ArtifactError, "differs"):
+            with mock.patch.object(A, "require_local_frozen_source"), \
+                 self.assertRaisesRegex(A.ArtifactError, "differs"):
                 A.stage_release(manifest_path, archive, plan(), root / "raw", root)
+
+    def test_numeric_release_plan_is_rederived_by_its_frozen_harness(self):
+        value = plan()
+        retarget_manifest_experiment(value, "E-09")
+        with mock.patch.object(A, "repo_file", return_value=Path("/repo/experiments/e09/harness.py")), \
+             mock.patch.object(A, "run", return_value=A.canonical(value)) as runner:
+            A.verify_trusted_plan(value, Path("/repo"))
+        runner.assert_called_once_with([
+            A.sys.executable, "/repo/experiments/e09/harness.py", "artifact-plan-json",
+        ], cwd=Path("/repo"), timeout=300)
+        changed = json.loads(json.dumps(value))
+        changed["execution"]["retry_attempts"] = 1
+        with mock.patch.object(A, "repo_file", return_value=Path("/repo/experiments/e09/harness.py")), \
+             mock.patch.object(A, "run", return_value=A.canonical(value)), \
+             self.assertRaisesRegex(A.ArtifactError, "differs from the frozen harness"):
+            A.verify_trusted_plan(changed, Path("/repo"))
+        disguised = {**value, "experiment": "artifact-storage-smoke"}
+        with self.assertRaisesRegex(A.ArtifactError, "wrong experiment id"):
+            A.verify_trusted_plan(disguised, Path("/repo"))
 
     def test_remote_verifier_binds_expected_repository_before_network(self):
         with tempfile.TemporaryDirectory() as name:
@@ -781,6 +802,7 @@ class LedgerReferenceTest(unittest.TestCase):
                 "type": "experiment",
                 "experiment": "E-99",
                 "batch_id": "m-test",
+                "freeze_sha256": manifest["freeze_sha256"],
                 "artifact": artifact,
                 "results_path": str(results_path.relative_to(root)),
             }
@@ -788,9 +810,27 @@ class LedgerReferenceTest(unittest.TestCase):
             results_path.write_text(json.dumps({"schema_version": 2, "lines": [row]}) + "\n", encoding="utf-8")
             ledger = root / "ledger" / "runs.jsonl"
             write_test_ledger(ledger, [row])
-            self.assertEqual(A.verify_ledger_references(root, "mlamp/meta-skills"), {
+            verified_list = root / "verified-manifests.txt"
+            self.assertEqual(A.verify_ledger_references(
+                root, "mlamp/meta-skills", verified_manifest_list=verified_list
+            ), {
                 "artifact_ledger_rows_verified": 1, "verified": True,
             })
+            self.assertEqual(verified_list.read_bytes(), artifact["manifest_path"].encode() + b"\0")
+            self.assertTrue(A.require_manifest_list_membership(
+                verified_list, artifact["manifest_path"]
+            )["verified_through_ledger"])
+            verified_list.unlink()
+            verified_list.write_bytes(b"verified\x1ephantom\0")
+            with self.assertRaisesRegex(A.ArtifactError, "not verified through the ledger"):
+                A.require_manifest_list_membership(verified_list, "phantom")
+            self.assertTrue(A.require_manifest_list_membership(
+                verified_list, "verified\x1ephantom"
+            )["verified_through_ledger"])
+            verified_list.unlink()
+            verified_list.write_bytes(b"unterminated")
+            with self.assertRaisesRegex(A.ArtifactError, "not NUL-terminated"):
+                A.require_manifest_list_membership(verified_list, "unterminated")
             remote_receipt = {key: value for key, value in artifact.items() if key != "manifest_path"}
             with mock.patch.object(A, "download_and_verify", return_value=remote_receipt) as remote:
                 self.assertEqual(A.verify_ledger_references(
@@ -810,6 +850,20 @@ class LedgerReferenceTest(unittest.TestCase):
             with mock.patch.object(A, "download_and_verify", return_value=wrong_remote):
                 with self.assertRaisesRegex(A.ArtifactError, "remote verification"):
                     A.verify_ledger_references(root, "mlamp/meta-skills", verify_remote=True)
+            extra = {**row, "run_id": "r-unledgered"}
+            results_path.write_text(
+                json.dumps({"schema_version": 2, "lines": [row, extra]}) + "\n", encoding="utf-8"
+            )
+            with self.assertRaisesRegex(A.ArtifactError, "complete ledger set"):
+                A.verify_ledger_references(root, "mlamp/meta-skills")
+            results_path.write_text(
+                json.dumps({"schema_version": 2, "lines": [row]}) + "\n", encoding="utf-8"
+            )
+            row["freeze_sha256"] = "0" * 64
+            write_test_ledger(ledger, [row])
+            with self.assertRaisesRegex(A.ArtifactError, "freeze_sha256 differs"):
+                A.verify_ledger_references(root, "mlamp/meta-skills")
+            row["freeze_sha256"] = manifest["freeze_sha256"]
             row["artifact"]["release_tag"] = "different-tag"
             write_test_ledger(ledger, [row])
             with self.assertRaisesRegex(A.ArtifactError, "release tag differs"):

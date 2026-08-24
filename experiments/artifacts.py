@@ -17,6 +17,7 @@ import os
 import re
 import stat
 import subprocess
+import sys
 import tarfile
 import tempfile
 import time
@@ -781,6 +782,35 @@ def verify_source(manifest_path: Path, plan, raw_root: Path, repo_root: Path):
     return manifest
 
 
+def verify_trusted_plan(plan, repo_root: Path):
+    """Require numeric experiments to reproduce their plan from frozen code."""
+    validate_plan(plan)
+    experiment = plan["experiment"]
+    trusted_sources = {
+        "experiments/e09/freeze.json": ("E-09", "experiments/e09/harness.py"),
+    }
+    trusted = trusted_sources.get(plan["provenance_index"])
+    if trusted is None:
+        if EXPERIMENT_RE.fullmatch(experiment) is None:
+            return
+        raise ArtifactError(f"numeric experiment has no trusted plan derivation: {experiment}")
+    expected_experiment, harness_relative = trusted
+    if experiment != expected_experiment:
+        raise ArtifactError("trusted experiment provenance is paired with the wrong experiment id")
+    harness = repo_file(repo_root, harness_relative)
+    command = [sys.executable, str(harness), "artifact-plan-json"]
+    if plan.get("supersedes") is not None:
+        command.extend(("--supersedes", plan["supersedes"]))
+    output = run(command, cwd=repo_root, timeout=300)
+    try:
+        derived = json.loads(output)
+    except json.JSONDecodeError as exc:
+        raise ArtifactError("frozen experiment harness returned an invalid artifact plan") from exc
+    validate_plan(derived)
+    if derived != plan:
+        raise ArtifactError("saved artifact plan differs from the frozen harness derivation")
+
+
 def run(command: list[str], cwd: Path | None = None, timeout: int = 120) -> str:
     try:
         process = subprocess.run(command, cwd=cwd, text=True, capture_output=True, timeout=timeout)
@@ -967,8 +997,9 @@ def verify_superseded_release(manifest):
 
 def stage_release(manifest_path: Path, archive_path: Path, plan, raw_root: Path, repo_root: Path):
     manifest = verify_local(manifest_path, archive_path)
-    verify_source(manifest_path, plan, raw_root, repo_root)
     require_local_frozen_source(repo_root, manifest)
+    verify_trusted_plan(plan, repo_root)
+    verify_source(manifest_path, plan, raw_root, repo_root)
     repo = manifest["repository"]["name"]
     require_immutable_releases(repo)
     repository = verify_repository_identity(manifest)
@@ -1084,8 +1115,9 @@ def publish_release(
     plan, raw_root: Path, repo_root: Path,
 ):
     manifest = verify_local(manifest_path, archive_path)
-    verify_source(manifest_path, plan, raw_root, repo_root)
     require_local_frozen_source(repo_root, manifest)
+    verify_trusted_plan(plan, repo_root)
+    verify_source(manifest_path, plan, raw_root, repo_root)
     repo = manifest["repository"]["name"]
     tag = manifest["release"]["tag"]
     if confirm_tag != tag:
@@ -1193,9 +1225,27 @@ def experiment_directory(experiment: str) -> str:
     return experiment.lower().replace("-", "")
 
 
+def require_manifest_list_membership(path: Path, relative: str):
+    try:
+        data = path.read_bytes()
+    except OSError as exc:
+        raise ArtifactError(f"cannot read verified manifest list: {path}") from exc
+    if data:
+        if not data.endswith(b"\0"):
+            raise ArtifactError("verified manifest list is not NUL-terminated")
+        entries = data.split(b"\0")[:-1]
+    else:
+        entries = []
+    if any(not entry for entry in entries) or len(entries) != len(set(entries)):
+        raise ArtifactError("verified manifest list contains an invalid or duplicate entry")
+    if os.fsencode(relative) not in set(entries):
+        raise ArtifactError("manifest was not verified through the ledger")
+    return {"manifest_path": relative, "verified_through_ledger": True}
+
+
 def verify_ledger_references(
     repo_root: Path, expected_repository: str | None = None, verify_remote=False,
-    baseline_ledger: Path | None = None,
+    baseline_ledger: Path | None = None, verified_manifest_list: Path | None = None,
 ):
     if verify_remote and expected_repository is None:
         raise ArtifactError("remote ledger verification requires expected_repository")
@@ -1213,6 +1263,9 @@ def verify_ledger_references(
     checked = 0
     legacy_seen = set()
     remote_receipts = {}
+    result_rows = {}
+    ledger_result_rows = {}
+    verified_manifests = set()
     for row in ledger_rows:
         legacy = LEGACY_ARTIFACTLESS_RUNS.get(row.get("run_id"))
         if legacy is not None:
@@ -1248,6 +1301,8 @@ def verify_ledger_references(
             raise ArtifactError(f"ledger experiment differs from manifest: {row.get('run_id')}")
         if row.get("batch_id") != manifest["batch_id"]:
             raise ArtifactError(f"ledger batch_id differs from manifest: {row.get('run_id')}")
+        if row.get("freeze_sha256") != manifest["freeze_sha256"]:
+            raise ArtifactError(f"ledger freeze_sha256 differs from manifest: {row.get('run_id')}")
         directory = experiment_directory(row["experiment"])
         expected_manifest_path = f"experiments/{directory}/artifacts/{manifest['batch_id']}.json"
         expected_results_path = f"experiments/{directory}/results/{manifest['batch_id']}.json"
@@ -1277,14 +1332,21 @@ def verify_ledger_references(
         }
         if attestations != expected_attestations:
             raise ArtifactError(f"ledger attestation subjects differ: {row.get('run_id')}")
-        results_path = repo_file(repo_root, row.get("results_path"))
-        results = load_json(results_path)
-        if not isinstance(results, dict) or not isinstance(results.get("lines"), list):
-            raise ArtifactError(f"ledger results file is invalid: {row.get('run_id')}")
-        if results.get("schema_version") != 2:
-            raise ArtifactError(f"ledger results file requires schema_version 2: {row.get('run_id')}")
-        if canonical(row) not in {canonical(result) for result in results["lines"]}:
-            raise ArtifactError(f"ledger row differs from its compact result: {row.get('run_id')}")
+        results_key = row["results_path"]
+        if results_key not in result_rows:
+            results_path = repo_file(repo_root, results_key)
+            results = load_json(results_path)
+            if not isinstance(results, dict) or set(results) != {"schema_version", "lines"} \
+                    or results.get("schema_version") != 2 or not isinstance(results.get("lines"), list):
+                raise ArtifactError(f"ledger results file is invalid: {row.get('run_id')}")
+            lines = results["lines"]
+            line_ids = [line.get("run_id") for line in lines if isinstance(line, dict)]
+            if len(line_ids) != len(lines) or any(not isinstance(run_id, str) or not run_id for run_id in line_ids) \
+                    or len(line_ids) != len(set(line_ids)):
+                raise ArtifactError(f"ledger results lines require unique non-empty run_ids: {results_key}")
+            result_rows[results_key] = lines
+        ledger_result_rows.setdefault(results_key, []).append(row)
+        verified_manifests.add(artifact["manifest_path"])
         if verify_remote:
             key = artifact["manifest_path"]
             if key not in remote_receipts:
@@ -1297,6 +1359,13 @@ def verify_ledger_references(
         checked += 1
     if legacy_seen != set(LEGACY_ARTIFACTLESS_RUNS):
         raise ArtifactError("ledger is missing pinned legacy artifactless rows")
+    for results_key, lines in result_rows.items():
+        expected_lines = ledger_result_rows[results_key]
+        if sorted(map(canonical, lines)) != sorted(map(canonical, expected_lines)):
+            raise ArtifactError(f"compact result lines differ from their complete ledger set: {results_key}")
+    if verified_manifest_list is not None:
+        data = b"".join(path.encode() + b"\0" for path in sorted(verified_manifests))
+        write_bytes_atomic(verified_manifest_list, data)
     return {"artifact_ledger_rows_verified": checked, "verified": True}
 
 
@@ -1334,6 +1403,10 @@ def build_parser():
     ledger.add_argument("--expected-repository")
     ledger.add_argument("--verify-remote", action="store_true")
     ledger.add_argument("--baseline-ledger", type=Path)
+    ledger.add_argument("--verified-manifest-list", type=Path)
+    membership = sub.add_parser("manifest-list-contains")
+    membership.add_argument("--verified-manifest-list", type=Path, required=True)
+    membership.add_argument("--path", required=True)
     return parser
 
 
@@ -1358,7 +1431,10 @@ def main():
             result = verify_ledger_references(
                 args.repo_root, args.expected_repository, verify_remote=args.verify_remote,
                 baseline_ledger=args.baseline_ledger,
+                verified_manifest_list=args.verified_manifest_list,
             )
+        elif args.command == "manifest-list-contains":
+            result = require_manifest_list_membership(args.verified_manifest_list, args.path)
         else:
             manifest = load_json(args.manifest)
             result = download_and_verify(manifest, args.manifest, args.expected_repository)
