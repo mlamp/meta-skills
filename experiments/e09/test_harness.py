@@ -6,6 +6,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 HERE = Path(__file__).resolve().parent
@@ -18,6 +19,20 @@ class FrozenInputsTest(unittest.TestCase):
     def test_all_json_files_parse(self):
         for path in H.DATA_FILES.values():
             self.assertIsInstance(H.load_json(path), dict, path.name)
+
+    def test_measured_id_hashes_complete_validated_freeze(self):
+        first = H.freeze_payload()
+        first["frozen_at"] = "2026-08-24"
+        second = {**first, "frozen_at": "2026-08-25"}
+        with mock.patch.object(H, "load_json", return_value=first):
+            first_id = H.measured_id()
+        with mock.patch.object(H, "load_json", return_value=second):
+            second_id = H.measured_id()
+        self.assertNotEqual(first_id, second_id)
+        with self.assertRaisesRegex(H.HarnessError, "invalid schema"):
+            H.validate_freeze_payload({**first, "unexpected": True})
+        with self.assertRaisesRegex(H.HarnessError, "invalid schema"):
+            H.validate_freeze_payload({**first, "schema_version": True})
 
     def test_source_hashes_match(self):
         persona = H.load_json(H.DATA_FILES["persona.json"])
@@ -65,6 +80,119 @@ class FrozenInputsTest(unittest.TestCase):
         payload = H.freeze_payload()
         expected = {str(path.relative_to(H.ROOT)) for path in H.FREEZE_INPUTS}
         self.assertEqual(set(payload["files"]), expected)
+
+    def test_adapter_smoke_key_binds_case_suite(self):
+        first = H.adapter_smoke_namespace()[1]
+        with mock.patch.object(H, "sha256", side_effect=lambda path: (
+            "changed" if path == H.DATA_FILES["cold_reader_cases.json"] else H.sha256_value(str(path))
+        )):
+            second = H.adapter_smoke_namespace()[1]
+        self.assertNotEqual(first["suite_sha256"], second["suite_sha256"])
+
+    def test_frozen_gate_compares_every_working_byte_with_head(self):
+        old_root, old_e09, old_inputs = H.ROOT, H.E09, H.FREEZE_INPUTS
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                root = Path(tmp)
+                H.ROOT = root
+                H.E09 = root / "experiments" / "e09"
+                source = H.E09 / "design.md"
+                freeze = H.E09 / "freeze.json"
+                source.parent.mkdir(parents=True)
+                source.write_bytes(b"design\n")
+                freeze.write_bytes(b"freeze\n")
+                H.FREEZE_INPUTS = (source,)
+
+                def committed(command, **kwargs):
+                    relative = command[-1].split(":", 1)[1]
+                    data = b"design\n" if relative.endswith("design.md") else b"freeze\n"
+                    return mock.Mock(returncode=0, stdout=data)
+
+                with mock.patch.object(H.subprocess, "run", side_effect=committed):
+                    H.require_worktree_matches_frozen_commit("a" * 40, "gate")
+                    source.write_bytes(b"changed\n")
+                    with self.assertRaisesRegex(H.HarnessError, "differs from the frozen commit"):
+                        H.require_worktree_matches_frozen_commit("a" * 40, "gate")
+            finally:
+                H.ROOT, H.E09, H.FREEZE_INPUTS = old_root, old_e09, old_inputs
+
+    def test_provider_gates_bind_working_source_before_input_reads(self):
+        for gate in (H.ensure_qualification_start_gate, H.ensure_measured_gate):
+            with self.subTest(gate=gate.__name__), \
+                 mock.patch.object(H, "git", return_value="a" * 40), \
+                 mock.patch.object(H, "require_exact_frozen_head"), \
+                 mock.patch.object(
+                     H, "require_worktree_matches_frozen_commit",
+                     side_effect=H.HarnessError("source sentinel"),
+                 ) as source, mock.patch.object(H, "validate_inputs") as inputs, \
+                 self.assertRaisesRegex(H.HarnessError, "source sentinel"):
+                gate()
+            source.assert_called_once()
+            inputs.assert_not_called()
+
+    def test_smoke_commands_secure_namespace_before_provider_call(self):
+        cases = (
+            (
+                H.cmd_cold_reader,
+                mock.Mock(tier="smoke", profiles=["haiku-reader"]),
+                "run_with_transport_retry",
+            ),
+            (H.cmd_adapter_smoke, mock.Mock(), "call_tool"),
+        )
+        for command, args, provider_name in cases:
+            attempt = H.RAW / "smoke" / "test-attempt"
+            with self.subTest(command=command.__name__), \
+                 mock.patch.object(H, "next_smoke_attempt", return_value=attempt), \
+                 mock.patch.object(
+                     H, "ensure_local_namespace",
+                     side_effect=[None, H.HarnessError("namespace sentinel")],
+                 ) as namespace, mock.patch.object(H, provider_name) as provider, \
+                 self.assertRaisesRegex(H.HarnessError, "namespace sentinel"):
+                command(args)
+            self.assertEqual(namespace.call_count, 2)
+            self.assertEqual(namespace.call_args_list[-1].args[0], attempt)
+            provider.assert_not_called()
+
+    def test_artifact_spec_covers_provider_credentials_and_repository_identity(self):
+        spec = H.load_json(H.DATA_FILES["artifact-spec.json"])
+        models = H.load_json(H.DATA_FILES["models.json"])
+        credentials = {
+            row.get("credential_env") for row in models["profiles"].values()
+            if row.get("credential_env")
+        }
+        self.assertLessEqual(credentials, set(spec["credential_env_names"]))
+        self.assertEqual(spec["repository"], {"id": 1337622598, "name": "mlamp/meta-skills"})
+        pattern_ids = {row["id"] for row in spec["forbidden_patterns"]}
+        self.assertTrue({"host_windows_path", "host_uuid", "host_project_id"} <= pattern_ids)
+
+    def test_pr_ci_separates_candidate_code_from_release_credentials(self):
+        workflow = (H.ROOT / ".github" / "workflows" / "verify-experiment-artifacts.yml").read_text(
+            encoding="utf-8"
+        )
+        candidate, trusted = workflow.split("  trusted-verification:", 1)
+        self.assertIn("  pull_request:\n", candidate)
+        self.assertIn("pull_request_target:", candidate)
+        self.assertIn('      - "ledger/**"', candidate)
+        self.assertIn("if: github.event_name == 'pull_request' || github.event_name == 'push'", candidate)
+        self.assertNotIn("GH_TOKEN", candidate)
+        self.assertIn("persist-credentials: false", candidate)
+        self.assertIn("if: github.event_name == 'pull_request_target' || github.event_name == 'push'", trusted)
+        self.assertIn("github.event.pull_request.base.sha", trusted)
+        self.assertIn("github.event.pull_request.merge_commit_sha", trusted)
+        self.assertIn("github.event.pull_request.head.sha", trusted)
+        self.assertIn('git -C candidate rev-parse HEAD^2', trusted)
+        self.assertIn("GH_TOKEN", trusted)
+        self.assertIn('verifier_root="$GITHUB_WORKSPACE/trusted"', trusted)
+        self.assertIn("--verify-remote", trusted)
+        self.assertIn("--baseline-ledger", trusted)
+        self.assertIn("--verified-manifest-list", trusted)
+        self.assertIn("manifest-list-contains", trusted)
+        self.assertNotIn("grep -Fqx", trusted)
+        manifest_find = next(line for line in trusted.splitlines() if "find \"$candidate_root/experiments\"" in line)
+        self.assertIn("-print0", manifest_find)
+        self.assertNotIn("-type f", manifest_find)
+        self.assertIn("GITHUB_EVENT_BEFORE: ${{ github.event.before }}", trusted)
+        self.assertNotIn("< <(find", trusted)
 
 
 class ArmIsolationTest(unittest.TestCase):
@@ -171,6 +299,41 @@ class StructuredInterfaceTest(unittest.TestCase):
         self.assertEqual(payload, {"ok": True})
         with self.assertRaises(H.FormatError):
             H.parse_claude_stream(json.dumps(event) + "\n" + json.dumps(event), H.CLAUDE_STRUCTURED_TOOL)
+        with self.assertRaises(H.FormatError):
+            H.parse_claude_stream('{"type":"assistant","type":"result"}', H.CLAUDE_STRUCTURED_TOOL)
+
+    def test_deepinfra_strict_tool_argument_failure_uses_format_protocol(self):
+        raw = {"choices": [{"message": {"tool_calls": [{"function": {
+            "name": H.TOOL_NAME, "arguments": '{"value":1,"value":2}',
+        }}]}}]}
+        profile = {"model": "test", "temperature": 0, "provider": "test"}
+        with mock.patch.object(H, "deepinfra_request", return_value=raw), \
+             self.assertRaisesRegex(H.FormatError, "invalid tool arguments"):
+            H.call_deepinfra_tool(profile, "prompt", {"type": "object"})
+        with mock.patch.object(H, "deepinfra_request", return_value=[]), \
+             self.assertRaisesRegex(H.FormatError, "invalid response object"):
+            H.call_deepinfra_tool(profile, "prompt", {"type": "object"})
+        with mock.patch.object(H, "deepinfra_request", return_value={"choices": [None]}), \
+             self.assertRaisesRegex(H.FormatError, "exactly one required tool call"):
+            H.call_deepinfra_tool(profile, "prompt", {"type": "object"})
+
+    def test_deepinfra_malformed_http_json_is_nonretryable_format_failure(self):
+        profile = {
+            "api_base": "https://example.invalid",
+            "timeout_seconds": 1,
+            "credential_env": "TEST_KEY",
+        }
+        response = mock.MagicMock()
+        response.__enter__.return_value.read.return_value = b'{"value":1,"value":2}'
+        with mock.patch.object(H, "credential", return_value="secret"), \
+             mock.patch.object(H.urllib.request, "urlopen", return_value=response), \
+             self.assertRaisesRegex(H.FormatError, "invalid strict JSON"):
+            H.deepinfra_request(profile, {"test": True})
+        failure = H.FormatError("bad format")
+        with mock.patch.object(H, "call_tool", side_effect=failure) as caller, \
+             self.assertRaises(H.FormatError):
+            H.run_with_transport_retry({}, "prompt", {})
+        caller.assert_called_once()
 
 
 class MatcherAndMetricTest(unittest.TestCase):
@@ -216,6 +379,18 @@ class MatcherAndMetricTest(unittest.TestCase):
         self.assertEqual(H.rendered_catalog_ids(interview), {"U03", "U05", "U06"})
         self.assertNotIn("U01", H.rendered_catalog_ids(interview))
 
+    def test_density_counts_only_selected_relevant_rules(self):
+        interview = {"result": {"rules": [
+            {"catalog_ids": ["U01", "U03"], "evidence_ids": []},
+        ]}}
+        relevant = {"U01", "U03", "U05", "U06"}
+        self.assertEqual(
+            H.rendered_selected_relevant(interview, {"U01"}, relevant, True), {"U01"}
+        )
+        self.assertEqual(
+            H.rendered_selected_relevant(interview, {"U01"}, relevant, False), set()
+        )
+
     def test_undefined_rates_stay_out_of_pooled_totals(self):
         records = [
             {"substitute_hits": None, "output_tokens": 10},
@@ -254,6 +429,119 @@ class MatcherAndMetricTest(unittest.TestCase):
 
 
 class RunnerSafetyTest(unittest.TestCase):
+    def write_valid_reader_smoke(self, namespace, profile_name="haiku-reader"):
+        case = H.load_json(H.DATA_FILES["cold_reader_cases.json"])["smoke"]["case"]
+        payload = {
+            "case_id": case["id"],
+            "answers": [{**row, "sublabel": None} for row in case["expected"]],
+        }
+        assertions = H.grade_case(case, payload)
+        _, key = H.cold_reader_namespace("smoke", profile_name)
+        timestamp = "2026-08-24T00:00:00+00:00"
+        profile = H.profile_map()[profile_name]
+        record = {
+            "profile": profile_name,
+            "tier": "smoke",
+            "rep": 1,
+            "case_id": case["id"],
+            "started_at": timestamp,
+            "key": key,
+            "status": "pass",
+            "payload": payload,
+            "assertions": assertions,
+            "model": {
+                "requested_model": profile["model"],
+                "reported_models": [profile["reported_identity_required"]],
+                "reported_providers": [profile["reported_provider_required"]],
+            },
+            "attempts": [{"attempt": 1, "status": "ok", "elapsed_seconds": 0}],
+        }
+        H.write_json_atomic(
+            namespace / profile_name / "rep-1" / f"{case['id']}.json", record
+        )
+        H.write_json_atomic(namespace / "summary.json", {
+            "type": "cold_reader",
+            "tier": "smoke",
+            "profile": profile_name,
+            "key": key,
+            "started_calls": 1,
+            "passed": True,
+            "assertions": len(assertions),
+            "failed_assertions": 0,
+            "errors": 0,
+            "completed_at": timestamp,
+        })
+
+    def write_valid_adapter_smoke(self, namespace):
+        profiles = H.profile_map()
+        case = H.load_json(H.DATA_FILES["cold_reader_cases.json"])["smoke"]["case"]
+        payload = {
+            "case_id": case["id"],
+            "answers": [{**row, "sublabel": None} for row in case["expected"]],
+        }
+
+        def metadata(name):
+            profile = profiles[name]
+            value = {
+                "requested_model": profile["model"],
+                "reported_models": ([profile["reported_identity_required"]]
+                                    if profile.get("reported_identity_required") else []),
+                "reported_providers": ([profile["reported_provider_required"]]
+                                       if profile.get("reported_provider_required") else []),
+            }
+            if profile["adapter"] == "codex_cli":
+                value.update({
+                    "identity_evidence": profile["identity_evidence"],
+                    "cli_version": "codex-cli test",
+                })
+            return value
+
+        def record(name, probe, result):
+            return {
+                "kind": "adapter_smoke",
+                "profile": name,
+                "path": probe,
+                "status": "ok",
+                "result": result,
+                "model": metadata(name),
+                "attempts": [{"attempt": 1, "status": "ok", "elapsed_seconds": 0}],
+            }
+
+        for name in ("fable-subject", "kimi-subject"):
+            H.write_json_atomic(namespace / name / "tool.json", record(
+                name, "tool", {"payload": payload, "assertions": H.grade_case(case, payload)}
+            ))
+            H.write_json_atomic(namespace / name / "text.json", record(name, "text", "SMOKE_OK"))
+        judge = H.load_json(H.DATA_FILES["models.json"])["judge_profile"]
+        H.write_json_atomic(namespace / judge / "task-schema.json", record(
+            judge, "task_schema",
+            {"task_id": "SMOKE", "required_pass": [True, True], "fatal_hits": [False]},
+        ))
+        H.write_json_atomic(namespace / judge / "substitute-schema.json", record(
+            judge, "substitute_schema",
+            {"verdicts": [
+                {"candidate_id": "c1", "pattern_id": None},
+                {"candidate_id": "c2", "pattern_id": "U01"},
+            ]},
+        ))
+        _, key = H.adapter_smoke_namespace()
+        H.write_json_atomic(namespace / "summary.json", {
+            "type": "adapter_smoke",
+            "key": key,
+            "passed": True,
+            "calls": 6,
+            "errors": 0,
+            "completed_at": "2026-08-24T00:00:00+00:00",
+        })
+
+    def test_strict_json_rejects_duplicate_keys_and_nonfinite_numbers(self):
+        with self.assertRaisesRegex(H.HarnessError, "duplicate JSON object key"):
+            H.strict_json_loads('{"value":1,"value":2}')
+        with self.assertRaisesRegex(H.HarnessError, "non-finite JSON number"):
+            H.strict_json_loads('{"value":NaN}')
+        with self.assertRaisesRegex(H.HarnessError, "non-finite JSON number"):
+            H.strict_json_loads('{"value":1e999}')
+
     def test_schedule_has_five_per_arm_and_family(self):
         schedule = H.measured_schedule()
         self.assertEqual(len(schedule), 20)
@@ -288,7 +576,137 @@ class RunnerSafetyTest(unittest.TestCase):
         self.assertEqual(qualification_key["catalog_sha256"], H.sha256(H.DATA_FILES["catalog.json"]))
         self.assertTrue(namespace.name.startswith("cr-"))
 
-    def test_smoke_attempts_are_repeatable_and_pass_lookup_is_explicit(self):
+    def test_harness_qualification_row_round_trips_through_trusted_verifier(self):
+        suite = H.load_json(H.DATA_FILES["cold_reader_cases.json"])
+        namespace, key = H.cold_reader_namespace("qualification", "haiku-reader")
+        assertions_per_rep = 0
+        for case in suite["qualification"]["cases"]:
+            payload = {"case_id": case["id"]}
+            if case["kind"] == "semantics":
+                payload.update(case["expected"])
+            else:
+                payload["answers"] = case["expected"]
+            assertions_per_rep += len(H.grade_case(case, payload))
+        repetitions = suite["qualification"]["repetitions_per_profile"]
+        summary = {
+            "profile": "haiku-reader",
+            "tier": "qualification",
+            "passed": True,
+            "started_calls": len(suite["qualification"]["cases"]) * repetitions,
+            "assertions": assertions_per_rep * repetitions,
+            "failed_assertions": 0,
+            "errors": 0,
+            "key": key,
+            "completed_at": "2026-08-24T00:00:00+00:00",
+        }
+        row = H.cold_reader_ledger_line(summary, namespace)
+        H.artifact_store.validate_cold_reader_qualification_row(row, H.ROOT)
+
+    def test_measured_gate_regrades_complete_qualification_evidence(self):
+        old_raw = H.RAW
+        with tempfile.TemporaryDirectory(dir=H.ROOT) as name:
+            try:
+                H.RAW = Path(name) / "raw"
+                suite = H.load_json(H.DATA_FILES["cold_reader_cases.json"])
+                namespace, key = H.cold_reader_namespace("qualification", "haiku-reader")
+                timestamp = "2026-08-24T00:00:00+00:00"
+                H.write_json_atomic(namespace / "attempt.json", {
+                    "status": "started", "started_at": timestamp, "key": key,
+                })
+                records = []
+                for rep in range(1, suite["qualification"]["repetitions_per_profile"] + 1):
+                    for case in suite["qualification"]["cases"]:
+                        payload = {"case_id": case["id"]}
+                        if case["kind"] == "semantics":
+                            payload.update(case["expected"])
+                        else:
+                            payload["answers"] = case["expected"]
+                        assertions = H.grade_case(case, payload)
+                        record = {
+                            "profile": "haiku-reader",
+                            "tier": "qualification",
+                            "rep": rep,
+                            "case_id": case["id"],
+                            "started_at": timestamp,
+                            "key": key,
+                            "status": "pass",
+                            "payload": payload,
+                            "assertions": assertions,
+                            "model": {
+                                "requested_model": "claude-haiku-4-5-20251001",
+                                "reported_models": ["claude-haiku-4-5-20251001"],
+                                "reported_providers": ["firstParty"],
+                            },
+                            "attempts": [{"attempt": 1, "status": "ok", "elapsed_seconds": 0}],
+                        }
+                        H.write_json_atomic(
+                            namespace / "haiku-reader" / f"rep-{rep}" / f"{case['id']}.json",
+                            record,
+                        )
+                        records.append(record)
+                summary = {
+                    "type": "cold_reader",
+                    "tier": "qualification",
+                    "profile": "haiku-reader",
+                    "key": key,
+                    "started_calls": len(records),
+                    "passed": True,
+                    "assertions": sum(len(record["assertions"]) for record in records),
+                    "failed_assertions": 0,
+                    "errors": 0,
+                    "completed_at": timestamp,
+                }
+                line = H.cold_reader_ledger_line(summary, namespace)
+                summary["ledger_run_id"] = line["run_id"]
+                H.write_json_atomic(namespace / "summary.json", summary)
+                self.assertEqual(
+                    H.validate_qualification_evidence(summary, namespace, "haiku-reader"), line
+                )
+                first = namespace / "haiku-reader" / "rep-1" / "C0.json"
+                changed = H.load_json(first)
+                changed["payload"]["automatic_bans"] = True
+                H.write_json_atomic(first, changed)
+                with self.assertRaisesRegex(H.HarnessError, "assertions differ"):
+                    H.validate_qualification_evidence(summary, namespace, "haiku-reader")
+                changed["assertions"] = H.grade_case(
+                    suite["qualification"]["cases"][0], changed["payload"]
+                )
+                changed["status"] = "fail"
+                H.write_json_atomic(first, changed)
+                failed_summary = {
+                    **summary,
+                    "passed": False,
+                    "failed_assertions": 1,
+                }
+                failed_payload = {
+                    key: value for key, value in failed_summary.items() if key != "ledger_run_id"
+                }
+                failed_line = H.cold_reader_ledger_line(failed_payload, namespace)
+                failed_summary["ledger_run_id"] = failed_line["run_id"]
+                H.write_json_atomic(namespace / "summary.json", failed_summary)
+                self.assertEqual(
+                    H.validate_qualification_evidence(
+                        failed_summary, namespace, "haiku-reader"
+                    ),
+                    failed_line,
+                )
+                with self.assertRaisesRegex(H.HarnessError, "has not passed"):
+                    H.validate_qualification_evidence(
+                        failed_summary, namespace, "haiku-reader", require_pass=True
+                    )
+            finally:
+                H.RAW = old_raw
+
+    def test_harness_result_identity_round_trips_through_trusted_verifier(self):
+        from experiments.test_artifacts import e09_manifest, e09_result_row
+
+        expected = e09_result_row()
+        payload = {key: value for key, value in expected.items() if key not in ("run_id", "date")}
+        row = H.measured_result_ledger_line(payload, expected["completed_at"])
+        self.assertEqual(row, expected)
+        H.artifact_store.validate_e09_result_row(row, e09_manifest())
+
+    def test_smoke_attempts_are_repeatable_and_latest_selection_does_not_read_summary(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp) / "smoke"
             self.assertEqual(H.next_smoke_attempt(base).name, "attempt-001")
@@ -299,11 +717,82 @@ class RunnerSafetyTest(unittest.TestCase):
             second = base / "attempt-002"
             second.mkdir()
             H.write_json_atomic(second / "summary.json", {"passed": True})
-            self.assertEqual(H.passed_smoke_attempt(base), second)
+            self.assertEqual(H.latest_smoke_attempt(base), second)
             third = base / "attempt-003"
             third.mkdir()
             H.write_json_atomic(third / "summary.json", {"passed": False})
-            self.assertIsNone(H.passed_smoke_attempt(base))
+            self.assertEqual(H.latest_smoke_attempt(base), third)
+
+    def test_adapter_smoke_gate_revalidates_records_not_summary_claims(self):
+        with tempfile.TemporaryDirectory(dir=H.ROOT) as tmp:
+            namespace = Path(tmp) / "attempt-001"
+            self.write_valid_adapter_smoke(namespace)
+            self.assertTrue(H.validate_adapter_smoke_evidence(namespace)["passed"])
+            summary = H.load_json(namespace / "summary.json")
+            summary["calls"] = 1
+            H.write_json_atomic(namespace / "summary.json", summary)
+            with self.assertRaisesRegex(H.HarnessError, "summary differs"):
+                H.validate_adapter_smoke_evidence(namespace)
+            summary["calls"] = 6.0
+            H.write_json_atomic(namespace / "summary.json", summary)
+            with self.assertRaisesRegex(H.HarnessError, "summary differs"):
+                H.validate_adapter_smoke_evidence(namespace)
+
+    def test_reader_smoke_gate_validates_namespace_before_summary(self):
+        with tempfile.TemporaryDirectory(dir=H.ROOT) as tmp:
+            namespace = Path(tmp) / "attempt-001"
+            self.write_valid_reader_smoke(namespace)
+            self.assertTrue(H.validate_reader_smoke_evidence(
+                namespace, "haiku-reader", require_pass=True
+            )["passed"])
+            outside = Path(tmp) / "outside.json"
+            outside.write_text("{}\n", encoding="utf-8")
+            summary = namespace / "summary.json"
+            summary.unlink()
+            summary.symlink_to(outside)
+            with self.assertRaisesRegex(H.HarnessError, "symlink"):
+                H.validate_reader_smoke_evidence(
+                    namespace, "haiku-reader", require_pass=True
+                )
+
+    def test_qualification_namespace_rejects_redirected_parent(self):
+        with tempfile.TemporaryDirectory(dir=H.ROOT) as tmp:
+            base = Path(tmp)
+            real = base / "real"
+            namespace = real / "qualification"
+            namespace.mkdir(parents=True)
+            linked_parent = base / "redirected"
+            linked_parent.symlink_to(real, target_is_directory=True)
+            with self.assertRaisesRegex(H.HarnessError, "redirected parent"):
+                H.validate_qualification_evidence(
+                    {}, linked_parent / "qualification", "haiku-reader"
+                )
+
+    def test_new_qualification_namespace_rejects_redirected_parent(self):
+        with tempfile.TemporaryDirectory(dir=H.ROOT) as tmp:
+            base = Path(tmp)
+            real = base / "real"
+            real.mkdir()
+            linked_parent = base / "redirected"
+            linked_parent.symlink_to(real, target_is_directory=True)
+            with self.assertRaisesRegex(H.HarnessError, "symlink"):
+                H.ensure_local_namespace(
+                    linked_parent / "qualification", "qualification evidence"
+                )
+            self.assertFalse((real / "qualification").exists())
+
+    def test_partial_qualification_namespace_stops_before_any_call(self):
+        with tempfile.TemporaryDirectory(dir=H.ROOT) as tmp:
+            namespace = Path(tmp) / "qualification"
+            namespace.mkdir()
+            self.assertIsNone(H.validated_qualification_summary(
+                namespace, "haiku-reader", allow_empty=True
+            ))
+            H.write_json_atomic(namespace / "haiku-reader" / "rep-1" / "C0.json", {})
+            with self.assertRaisesRegex(H.HarnessError, "namespace is incomplete"):
+                H.validated_qualification_summary(
+                    namespace, "haiku-reader", allow_empty=True
+                )
 
     def test_dotenv_parser_never_evaluates_shell_text(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -340,6 +829,29 @@ class RunnerSafetyTest(unittest.TestCase):
             path.write_text('{"value": 1}\n', encoding="utf-8")
             with self.assertRaisesRegex(H.HarnessError, "non-empty string run_id"):
                 H.append_jsonl(path, {"run_id": "r-1"})
+
+    def test_measured_gate_requires_current_qualification_ledger_additions(self):
+        diff = "\n".join([
+            "diff --git a/ledger/runs.jsonl b/ledger/runs.jsonl",
+            "--- a/ledger/runs.jsonl",
+            "+++ b/ledger/runs.jsonl",
+            "@@ -1,0 +2 @@",
+            '+{"run_id":"qualification-one"}',
+        ])
+        completed = mock.Mock(returncode=0, stdout=diff)
+        with mock.patch.object(H.subprocess, "run", return_value=completed):
+            self.assertTrue(H.ledger_diff_contains_only(
+                ["qualification-one"], required_run_ids=["qualification-one"]
+            ))
+            self.assertFalse(H.ledger_diff_contains_only(
+                ["qualification-one", "qualification-two"],
+                required_run_ids=["qualification-one", "qualification-two"],
+            ))
+        committed_only = mock.Mock(returncode=0, stdout="")
+        with mock.patch.object(H.subprocess, "run", return_value=committed_only):
+            self.assertFalse(H.ledger_diff_contains_only(
+                ["qualification-one"], required_run_ids=["qualification-one"]
+            ))
 
     def test_host_metadata_sanitizer_removes_paths_and_session_identifiers(self):
         raw = {
@@ -483,11 +995,615 @@ class RunnerSafetyTest(unittest.TestCase):
             finally:
                 H.RAW = old_raw
 
+    def test_measured_manifest_recovers_both_append_crash_windows_without_repeating_call(self):
+        old_raw = H.RAW
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                H.RAW = Path(tmp) / "raw"
+                namespace = H.RAW / "measured" / "m-test"
+                missing = namespace / "interviews" / "missing.json"
+                H.start_measured_record(missing)
+                provider = mock.Mock(side_effect=AssertionError("provider must not run"))
+                interrupted = H.call_record(
+                    missing, provider, {"kind": "interview", "rep": 1}
+                )
+                self.assertEqual(interrupted["status"], "interrupted")
+                provider.assert_not_called()
+                H.validate_attempt_protocol(interrupted, "interviews/missing.json")
+                H.verify_measured_record(missing)
+
+                written = namespace / "interviews" / "written.json"
+                H.start_measured_record(written)
+                H.write_json_atomic(written, {"kind": "interview", "status": "ok"})
+                provider = mock.Mock(side_effect=AssertionError("provider must not run"))
+                recovered = H.call_record(
+                    written, provider, {"kind": "interview", "rep": 2}
+                )
+                self.assertEqual(recovered["status"], "ok")
+                provider.assert_not_called()
+                H.verify_measured_record(written)
+            finally:
+                H.RAW = old_raw
+
+    def test_measured_manifest_rejects_paths_outside_its_namespace(self):
+        old_raw = H.RAW
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                H.RAW = Path(tmp) / "raw"
+                namespace = H.RAW / "measured" / "m-test"
+                namespace.mkdir(parents=True)
+                for unsafe in ("../outside.json", "/tmp/outside.json", r"interviews\outside.json"):
+                    with mock.patch.object(H, "measured_manifest_rows", return_value=[{"path": unsafe}]), \
+                         self.assertRaisesRegex(H.HarnessError, "unsafe path"):
+                        H.verify_measured_manifest(namespace)
+            finally:
+                H.RAW = old_raw
+
+    def test_measured_manifest_rejects_linked_records_inside_its_namespace(self):
+        old_raw = H.RAW
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                H.RAW = Path(tmp) / "raw"
+                namespace = H.RAW / "measured" / "m-test"
+                records = namespace / "interviews"
+                records.mkdir(parents=True)
+                outside = Path(tmp) / "outside.json"
+                outside.write_text("{}\n", encoding="utf-8")
+                linked = records / "linked.json"
+                linked.symlink_to(outside)
+                with mock.patch.object(H, "measured_manifest_rows", return_value=[{
+                    "path": "interviews/linked.json",
+                }]), self.assertRaisesRegex(H.HarnessError, "contains a symlink"):
+                    H.verify_measured_manifest(namespace)
+                linked.unlink()
+                os.link(outside, linked)
+                with mock.patch.object(H, "measured_manifest_rows", return_value=[{
+                    "path": "interviews/linked.json",
+                }]), self.assertRaisesRegex(H.HarnessError, "unsafe path"):
+                    H.verify_measured_manifest(namespace)
+            finally:
+                H.RAW = old_raw
+
     def test_freeze_excludes_run_outputs(self):
         frozen = set(H.freeze_payload()["files"])
         self.assertTrue(frozen)
         self.assertFalse(any("/raw/" in path for path in frozen))
         self.assertNotIn("ledger/runs.jsonl", frozen)
+
+    def test_artifact_inventory_derives_all_planned_interviews_and_tasks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            expected = H.artifact_expected_paths(Path(tmp), [{"status": "excluded"}] * 120)
+        interviews = [path for path in expected if path.startswith("interviews/")]
+        tasks = [path for path in expected if path.startswith("tasks/")]
+        self.assertEqual(len(interviews), 20)
+        self.assertEqual(len(tasks), 120)
+        self.assertIn("metadata.json", expected)
+        self.assertIn("record-manifest.jsonl", expected)
+
+    def test_adjudication_files_exist_only_for_derived_disagreements(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            namespace = Path(tmp)
+            H.write_json_atomic(namespace / "adjudication-pending.json", {})
+            with mock.patch.object(H, "iter_records", return_value=[]), \
+                 self.assertRaisesRegex(H.HarnessError, "without substitute-judge disagreements"):
+                H.load_substitute_verdicts(namespace, [])
+            H.write_json_atomic(namespace / "adjudication-resolved.json", {})
+            expected = H.artifact_expected_paths(namespace, [], adjudication_required=True)
+            self.assertIn("adjudication-pending.json", expected)
+            self.assertIn("adjudication-resolved.json", expected)
+
+    def test_stale_or_partial_adjudication_state_stops_inventory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            namespace = Path(tmp)
+            with self.assertRaisesRegex(H.HarnessError, "require both adjudication records"):
+                H.artifact_expected_paths(namespace, [], adjudication_required=True)
+            H.write_json_atomic(namespace / "adjudication-resolved.json", {"resolutions": []})
+            task = {"status": "ok", "result": "candidate response", "task_id": "T01"}
+            blind = H.digest({"text": task["result"], "task": task["task_id"]})
+            judgments = [
+                {"blind_id": blind, "pass": 1, "status": "ok", "result": {"verdicts": []}},
+                {"blind_id": blind, "pass": 2, "status": "ok", "result": {
+                    "verdicts": [{"different": True}],
+                }},
+            ]
+            with mock.patch.object(H, "iter_records", return_value=judgments), \
+                 mock.patch.object(H, "matcher_hits", return_value=[{"text": "candidate"}]), \
+                 mock.patch.object(H, "build_adjudication_pending", return_value={"current": True}), \
+                 self.assertRaisesRegex(H.HarnessError, "without its pending record"):
+                H.load_substitute_verdicts(namespace, [task])
+            (namespace / "adjudication-resolved.json").unlink()
+            H.write_json_atomic(namespace / "adjudication-pending.json", {"stale": True})
+            with mock.patch.object(H, "iter_records", return_value=judgments), \
+                 mock.patch.object(H, "matcher_hits", return_value=[{"text": "candidate"}]), \
+                 mock.patch.object(H, "build_adjudication_pending", return_value={"current": True}), \
+                 self.assertRaisesRegex(H.HarnessError, "differs from current disagreements"):
+                H.load_substitute_verdicts(namespace, [task])
+
+    def test_artifact_records_bind_embedded_identity_to_path(self):
+        record = {"kind": "task", "family": "fable-subject", "arm": "control", "rep": 1}
+        H.validate_record_identity(record, record.copy(), "tasks/example.json")
+        with self.assertRaisesRegex(H.HarnessError, "identity differs from path"):
+            H.validate_record_identity(record, {**record, "rep": 2}, "tasks/example.json")
+        with self.assertRaisesRegex(H.HarnessError, "identity differs from path"):
+            H.validate_record_identity({**record, "rep": True}, record, "tasks/example.json")
+        job = H.measured_schedule()[0]
+        interview = {"kind": "interview", **job}
+        H.validate_record_identity(interview, {"kind": "interview", **job}, "interviews/example.json")
+
+    def test_successful_artifact_payloads_must_match_frozen_schemas(self):
+        valid = {"status": "ok", "result": "task output"}
+        H.validate_success_schema(valid, {"type": "string", "minLength": 1}, "tasks/T01.json")
+        with self.assertRaisesRegex(H.HarnessError, "frozen schema"):
+            H.validate_success_schema(
+                {"status": "ok", "result": {}}, H.contract_schema("control"), "interviews/rep-1.json"
+            )
+        task = H.load_json(H.DATA_FILES["tasks.json"])["tasks"][0]
+        schema = H.task_judge_schema(
+            task["id"], len(task["rubric"]["required"]), len(task["rubric"]["fatal"])
+        )
+        with self.assertRaisesRegex(H.HarnessError, "frozen schema"):
+            H.validate_success_schema({"status": "ok", "result": {}}, schema, "judgments/task/x.json")
+
+    def test_interview_derived_fields_are_recomputed_from_successful_payload(self):
+        record = {
+            "status": "ok",
+            "result": {"contract": "Lead with the outcome."},
+            "contract_lexical_tokens": 999,
+            "over_cap": False,
+            "contract_violations": [],
+        }
+        with mock.patch.object(H, "contract_violations", return_value=[]):
+            with self.assertRaisesRegex(H.HarnessError, "derived fields differ"):
+                H.validate_interview_derived_fields(record, "control", "interviews/rep-1.json")
+
+    def test_substitute_blind_requires_a_matching_successful_task(self):
+        task = {"status": "ok", "result": "candidate", "task_id": "T01"}
+        blind = H.digest({"text": task["result"], "task": task["task_id"]})
+        self.assertEqual(H.successful_task_for_blind([task], blind), task)
+        with self.assertRaisesRegex(H.HarnessError, "no matching successful task"):
+            H.successful_task_for_blind([task], "missing")
+
+    def test_artifact_attempts_follow_the_exact_retry_protocol(self):
+        H.validate_attempt_protocol({
+            "kind": "task", "status": "ok", "result": "done",
+            "attempts": [{"attempt": 1, "status": "ok", "elapsed_seconds": 0.1}],
+        }, "tasks/ok.json")
+        H.validate_attempt_protocol({
+            "kind": "task", "status": "transport_error", "error": "offline",
+            "attempts": [
+                {"attempt": 1, "status": "transport_error", "error": "offline", "elapsed_seconds": 0.1},
+                {"attempt": 2, "status": "transport_error", "error": "offline", "elapsed_seconds": 0.1},
+            ],
+        }, "tasks/error.json")
+        with self.assertRaisesRegex(H.HarnessError, "retry protocol"):
+            H.validate_attempt_protocol({
+                "kind": "task", "status": "ok", "result": "done",
+                "attempts": [
+                    {"attempt": 1, "status": "ok", "elapsed_seconds": 0.1},
+                    {"attempt": 2, "status": "ok", "elapsed_seconds": 0.1},
+                ],
+            }, "tasks/bad.json")
+        with self.assertRaisesRegex(H.HarnessError, "non-empty reason"):
+            H.validate_attempt_protocol({"kind": "task", "status": "excluded"}, "tasks/excluded.json")
+        with self.assertRaisesRegex(H.HarnessError, "elapsed_seconds"):
+            H.validate_attempt_protocol({
+                "kind": "task", "status": "ok", "result": "done",
+                "attempts": [{"attempt": 1, "status": "ok", "elapsed_seconds": float("nan")}],
+            }, "tasks/nan.json")
+        with self.assertRaisesRegex(H.HarnessError, "must not carry a result"):
+            H.validate_attempt_protocol({
+                "kind": "task", "status": "request_error", "error": "bad request", "result": "fabricated",
+                "attempts": [{
+                    "attempt": 1, "status": "request_error", "error": "bad request", "elapsed_seconds": 0.1,
+                }],
+            }, "tasks/failed-result.json")
+        with self.assertRaisesRegex(H.HarnessError, "must not carry a result"):
+            H.validate_attempt_protocol({
+                "kind": "task", "status": "excluded", "reason": "not scheduled", "result": "fabricated",
+            }, "tasks/excluded-result.json")
+
+    def test_artifact_schedules_are_rederived_from_frozen_records(self):
+        interviews = [{**job, "kind": "interview"} for job in H.measured_schedule()]
+        tasks = [{"status": "excluded"}] * 120
+        metadata = {
+            "task_schedule": H.measured_task_schedule(interviews),
+            "judge_schedule": H.measured_judge_schedule(tasks),
+        }
+        self.assertEqual(len(metadata["task_schedule"]), 120)
+        H.validate_artifact_schedules(metadata, interviews, tasks)
+        metadata["task_schedule"] = list(reversed(metadata["task_schedule"]))
+        with self.assertRaisesRegex(H.HarnessError, "task schedule differs"):
+            H.validate_artifact_schedules(metadata, interviews, tasks)
+
+    def test_artifact_metadata_binds_experiment_freeze_commit_and_schedule(self):
+        head = "a" * 40
+        metadata = {
+            "experiment": "E-09",
+            "freeze_sha256": H.sha256(H.E09 / "freeze.json"),
+            "base_commit": head,
+            "started_at": "2026-08-24T00:00:00+00:00",
+            "schedule": H.measured_schedule(),
+        }
+        H.validate_artifact_metadata(metadata, head)
+        for field, value in (("experiment", "E-08"), ("freeze_sha256", "0" * 64)):
+            changed = {**metadata, field: value}
+            with self.assertRaises(H.HarnessError):
+                H.validate_artifact_metadata(changed, head)
+
+    def test_measured_namespace_rejects_missing_or_stale_metadata_before_reuse(self):
+        head = "a" * 40
+        with tempfile.TemporaryDirectory(dir=H.ROOT) as tmp:
+            namespace = Path(tmp) / "measured"
+            namespace.mkdir()
+            self.assertIsNone(H.validate_existing_measured_metadata(namespace, head))
+            H.write_json_atomic(namespace / "record-manifest.jsonl", {})
+            with self.assertRaisesRegex(H.HarnessError, "missing metadata"):
+                H.validate_existing_measured_metadata(namespace, head)
+            (namespace / "record-manifest.jsonl").unlink()
+            metadata = {
+                "experiment": "E-09",
+                "freeze_sha256": H.sha256(H.E09 / "freeze.json"),
+                "base_commit": head,
+                "started_at": "2026-08-24T00:00:00+00:00",
+                "schedule": H.measured_schedule(),
+            }
+            H.write_json_atomic(namespace / "metadata.json", metadata)
+            self.assertEqual(H.validate_existing_measured_metadata(namespace, head), metadata)
+            metadata["base_commit"] = "b" * 40
+            H.write_json_atomic(namespace / "metadata.json", metadata)
+            with self.assertRaisesRegex(H.HarnessError, "differs from HEAD"):
+                H.validate_existing_measured_metadata(namespace, head)
+
+    def test_artifact_namespace_rejects_root_or_child_symlinks_before_reads(self):
+        old_root = H.ROOT
+        with tempfile.TemporaryDirectory() as name:
+            try:
+                H.ROOT = Path(name)
+                real = H.ROOT / "real"
+                real.mkdir()
+                os.symlink(real, H.ROOT / "namespace")
+                with self.assertRaisesRegex(H.HarnessError, "symlink"):
+                    H.validate_artifact_namespace(H.ROOT / "namespace")
+                (H.ROOT / "namespace").unlink()
+                namespace = H.ROOT / "namespace"
+                namespace.mkdir()
+                target = H.ROOT / "outside.json"
+                target.write_text("{}\n", encoding="utf-8")
+                os.symlink(target, namespace / "linked.json")
+                with self.assertRaisesRegex(H.HarnessError, "symlink"):
+                    H.validate_artifact_namespace(namespace)
+            finally:
+                H.ROOT = old_root
+
+    def test_measured_namespace_is_created_and_rejects_redirected_children_before_calls(self):
+        old_root = H.ROOT
+        with tempfile.TemporaryDirectory() as name:
+            try:
+                H.ROOT = Path(name)
+                namespace = H.ROOT / "experiments" / "e09" / "raw" / "measured" / "m-test"
+                H.ensure_measured_namespace(namespace)
+                self.assertTrue(namespace.is_dir())
+                outside = H.ROOT / "outside"
+                outside.mkdir()
+                os.symlink(outside, namespace / "interviews")
+                with self.assertRaisesRegex(H.HarnessError, "symlink"):
+                    H.ensure_measured_namespace(namespace)
+            finally:
+                H.ROOT = old_root
+
+    def test_artifact_spec_cannot_redirect_e09_repository(self):
+        original = H.DATA_FILES["artifact-spec.json"]
+        with tempfile.TemporaryDirectory() as name:
+            changed = H.load_json(original)
+            changed["repository"] = {"id": 1, "name": "other/repo"}
+            path = Path(name) / "artifact-spec.json"
+            path.write_text(json.dumps(changed), encoding="utf-8")
+            H.DATA_FILES["artifact-spec.json"] = path
+            try:
+                with self.assertRaisesRegex(H.HarnessError, "canonical E-09 repository"):
+                    H.load_artifact_spec()
+            finally:
+                H.DATA_FILES["artifact-spec.json"] = original
+
+    def test_e09_remote_verification_passes_canonical_repository(self):
+        with mock.patch.object(H, "load_json", return_value={"manifest": True}), \
+             mock.patch.object(H.artifact_store, "download_and_verify", return_value={"verified": True}) as remote:
+            self.assertEqual(H.verify_published_artifact(Path("manifest.json")), {"verified": True})
+        remote.assert_called_once_with(
+            {"manifest": True}, Path("manifest.json"), expected_repository="mlamp/meta-skills"
+        )
+
+    def test_existing_compact_result_must_equal_recomputed_lines(self):
+        with tempfile.TemporaryDirectory() as name:
+            path = Path(name) / "result.json"
+            completed = "2026-08-24T00:00:00+00:00"
+            saved = {"schema_version": 2, "lines": [
+                {"run_id": "r-one", "completed_at": completed},
+                {"run_id": "r-two", "completed_at": completed},
+            ]}
+            H.write_json_atomic(path, saved)
+            existing, timestamp = H.load_existing_compact_result(path)
+            self.assertEqual(timestamp, completed)
+            H.write_or_verify_compact_result(path, saved, existing)
+            changed = {**saved, "lines": [{**saved["lines"][0], "fabricated": True}, saved["lines"][1]]}
+            with self.assertRaisesRegex(H.HarnessError, "differs from recomputed"):
+                H.write_or_verify_compact_result(path, changed, existing)
+            saved["lines"][0]["completed_at"] = "not-a-time"
+            saved["lines"][1]["completed_at"] = "not-a-time"
+            H.write_json_atomic(path, saved)
+            with self.assertRaisesRegex(H.HarnessError, "not ISO 8601"):
+                H.load_existing_compact_result(path)
+
+    def test_measured_operations_require_the_commit_that_last_changed_freeze(self):
+        old_frozen_commit = H.frozen_commit
+        try:
+            H.frozen_commit = lambda: "a" * 40
+            H.require_exact_frozen_head("a" * 40, "measured mode")
+            with self.assertRaisesRegex(H.HarnessError, "exact frozen commit"):
+                H.require_exact_frozen_head("b" * 40, "measured mode")
+        finally:
+            H.frozen_commit = old_frozen_commit
+
+    def test_artifact_call_manifest_requires_exact_provider_path_set(self):
+        old_rows = H.measured_manifest_rows
+        with tempfile.TemporaryDirectory() as tmp:
+            namespace = Path(tmp)
+            try:
+                H.write_json_atomic(namespace / "tasks" / "excluded.json", {"status": "excluded"})
+                started = {"event": "started", "path": "interviews/one.json",
+                           "started_at": "2026-08-24T00:00:00+00:00"}
+                completed = {"event": "completed", "path": "interviews/one.json",
+                             "sha256": "a" * 64}
+                H.measured_manifest_rows = lambda current: [
+                    {"run_id": "record-start-" + H.digest({"namespace": namespace.name, **started}, 20),
+                     **started},
+                    {"run_id": "record-complete-" + H.digest({"namespace": namespace.name, **completed}, 20),
+                     **completed},
+                ]
+                H.verify_complete_call_manifest(namespace, {
+                    "interviews/one.json", "tasks/excluded.json", "metadata.json", "record-manifest.jsonl"
+                })
+                H.measured_manifest_rows = lambda current: [
+                    {"run_id": "record-start-" + H.digest({"namespace": namespace.name, **started}, 20),
+                     **started}
+                ]
+                with self.assertRaisesRegex(H.HarnessError, "paths differ"):
+                    H.verify_complete_call_manifest(namespace, {
+                        "interviews/one.json", "metadata.json", "record-manifest.jsonl"
+                    })
+            finally:
+                H.measured_manifest_rows = old_rows
+
+    def test_measured_manifest_run_ids_bind_the_namespace(self):
+        started = {"event": "started", "path": "interviews/one.json",
+                   "started_at": "2026-08-24T00:00:00+00:00"}
+        old_namespace = Path("m-old")
+        new_namespace = Path("m-new")
+        row = {
+            "run_id": "record-start-" + H.digest(
+                {"namespace": old_namespace.name, **started}, 20
+            ),
+            **started,
+        }
+        H.validate_measured_manifest_row(old_namespace, row)
+        with self.assertRaisesRegex(H.HarnessError, "differs from its namespace"):
+            H.validate_measured_manifest_row(new_namespace, row)
+
+    def test_persisted_provider_identity_is_revalidated(self):
+        profile = H.profile_map()["fable-subject"]
+        record = {
+            "status": "ok",
+            "model": {
+                "requested_model": profile["model"],
+                "reported_models": [
+                    profile["reported_identity_required"],
+                    *profile["allowed_auxiliary_models"],
+                ],
+                "reported_providers": ["firstParty"],
+            },
+        }
+        H.validate_model_metadata(record, profile, "interviews/example.json")
+        record["model"]["requested_model"] = "substitute-model"
+        with self.assertRaisesRegex(H.HarnessError, "requested model differs"):
+            H.validate_model_metadata(record, profile, "interviews/example.json")
+        judge = H.profile_map()["gpt-judge"]
+        impossible = {
+            "status": "ok",
+            "model": {
+                "requested_model": judge["model"],
+                "reported_models": ["unreported-model"],
+                "reported_providers": [],
+                "identity_evidence": judge["identity_evidence"],
+                "cli_version": "codex-cli test",
+            },
+        }
+        with self.assertRaisesRegex(H.HarnessError, "reported model differs"):
+            H.validate_model_metadata(impossible, judge, "judgments/example.json")
+        record["model"] = {
+            "requested_model": profile["model"],
+            "reported_models": [profile["reported_identity_required"]],
+            "reported_providers": [profile["reported_provider_required"], "unapproved"],
+        }
+        with self.assertRaisesRegex(H.HarnessError, "reported provider differs"):
+            H.validate_model_metadata(record, profile, "interviews/example.json")
+        deepseek = H.profile_map()["deepseek-reader"]
+        deepseek_record = {
+            "status": "pass",
+            "model": {
+                "provider": deepseek["provider"],
+                "requested_model": deepseek["model"],
+                "reported_models": [deepseek["reported_identity_required"]],
+                "reported_providers": [],
+            },
+        }
+        H.validate_model_metadata(deepseek_record, deepseek, "reader/example.json")
+        del deepseek_record["model"]["provider"]
+        with self.assertRaisesRegex(H.HarnessError, "configured provider metadata differs"):
+            H.validate_model_metadata(deepseek_record, deepseek, "reader/example.json")
+
+    def test_codex_minimum_version_is_required_before_exec(self):
+        profile = H.profile_map()["gpt-judge"]
+        old = mock.Mock(returncode=0, stdout="codex-cli 0.147.9\n", stderr="")
+        with mock.patch.object(H.subprocess, "run", return_value=old):
+            with self.assertRaisesRegex(H.HarnessError, "below required 0.148.0"):
+                H.require_codex_cli_version(profile, "/bin/codex")
+        current = mock.Mock(returncode=0, stdout="codex-cli 0.148.0\n", stderr="")
+        with mock.patch.object(H.subprocess, "run", return_value=current):
+            self.assertEqual(
+                H.require_codex_cli_version(profile, "/bin/codex"), "codex-cli 0.148.0"
+            )
+
+    def test_finalize_requires_published_artifact_manifest_before_evidence(self):
+        old_raw = H.RAW
+        old_manifests = H.ARTIFACT_MANIFESTS
+        old_gate = H.ensure_measured_gate
+        old_verify = H.verify_measured_manifest
+        old_namespace_check = H.validate_artifact_namespace
+        old_id = H.measured_id
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                H.RAW = Path(tmp) / "raw"
+                H.ARTIFACT_MANIFESTS = Path(tmp) / "manifests"
+                H.ensure_measured_gate = lambda: "a" * 40
+                H.verify_measured_manifest = lambda namespace: None
+                H.validate_artifact_namespace = lambda namespace: None
+                H.measured_id = lambda: "m-test"
+                with self.assertRaisesRegex(H.HarnessError, "published raw-artifact manifest is absent"):
+                    H.cmd_finalize(None)
+            finally:
+                H.RAW = old_raw
+                H.ARTIFACT_MANIFESTS = old_manifests
+                H.ensure_measured_gate = old_gate
+                H.verify_measured_manifest = old_verify
+                H.validate_artifact_namespace = old_namespace_check
+                H.measured_id = old_id
+
+    def test_pack_and_finalize_invoke_frozen_source_verifier(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plan = {"batch_id": "m-test", "release": {"tag": "evidence-e09-m-test"}}
+            manifest = {"archive": {"sha256": "a" * 64}}
+            paths = (
+                root / "staging" / "archive.tar.gz",
+                root / "staging" / "manifest.json",
+                root / "staging" / "plan.json",
+                root / "artifacts" / "m-test.json",
+            )
+            with mock.patch.object(H, "ROOT", root), \
+                 mock.patch.object(H, "RAW", root / "raw"), \
+                 mock.patch.object(H, "ensure_measured_gate", return_value="a" * 40), \
+                 mock.patch.object(H, "measured_id", return_value="m-test"), \
+                 mock.patch.object(H, "artifact_plan", return_value=plan), \
+                 mock.patch.object(H, "artifact_paths", return_value=paths), \
+                 mock.patch.object(H.artifact_store, "pack", return_value=manifest), \
+                 mock.patch.object(H.artifact_store, "require_local_frozen_source",
+                                   side_effect=H.artifact_store.ArtifactError("frozen sentinel")) as frozen, \
+                 mock.patch.object(H.artifact_store, "verify_source") as source:
+                with self.assertRaisesRegex(H.HarnessError, "frozen sentinel"):
+                    H.cmd_artifact_pack(mock.Mock(supersedes=None))
+            frozen.assert_called_once_with(root, manifest)
+            source.assert_not_called()
+
+            manifest_dir = root / "manifests"
+            H.write_json_atomic(manifest_dir / "m-test.json", {})
+            with mock.patch.object(H, "ROOT", root), \
+                 mock.patch.object(H, "RAW", root / "raw"), \
+                 mock.patch.object(H, "ARTIFACT_MANIFESTS", manifest_dir), \
+                 mock.patch.object(H, "ensure_measured_gate", return_value="a" * 40), \
+                 mock.patch.object(H, "measured_id", return_value="m-test"), \
+                 mock.patch.object(H, "validate_artifact_namespace"), \
+                 mock.patch.object(H, "verify_measured_manifest"), \
+                 mock.patch.object(H, "validate_artifact_binding", return_value=manifest), \
+                 mock.patch.object(H, "artifact_plan", return_value=plan), \
+                 mock.patch.object(H.artifact_store, "require_local_frozen_source",
+                                   side_effect=H.artifact_store.ArtifactError("frozen sentinel")) as frozen, \
+                 mock.patch.object(H, "verify_published_artifact") as remote:
+                with self.assertRaisesRegex(H.HarnessError, "frozen sentinel"):
+                    H.cmd_finalize(None)
+            frozen.assert_called_once_with(root, manifest)
+            remote.assert_not_called()
+
+    def test_finalize_rebinds_source_after_remote_and_before_persisting(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifests = root / "manifests"
+            manifest_path = manifests / "m-test.json"
+            H.write_json_atomic(manifest_path, {})
+            plan = {"plan": True}
+            manifest = {"manifest": True}
+            with mock.patch.object(H, "ROOT", root), \
+                 mock.patch.object(H, "RAW", root / "raw"), \
+                 mock.patch.object(H, "ARTIFACT_MANIFESTS", manifests), \
+                 mock.patch.object(H, "ensure_measured_gate", return_value="a" * 40), \
+                 mock.patch.object(H, "measured_id", return_value="m-test"), \
+                 mock.patch.object(H, "validate_artifact_namespace"), \
+                 mock.patch.object(H, "verify_measured_manifest"), \
+                 mock.patch.object(H, "validate_artifact_binding", return_value=manifest), \
+                 mock.patch.object(H, "artifact_plan", return_value=plan), \
+                 mock.patch.object(H, "verify_current_artifact_source",
+                                   side_effect=[None, H.HarnessError("post-remote rebind")]) as source, \
+                 mock.patch.object(H, "verify_published_artifact", return_value={"verified": True}) as remote:
+                with self.assertRaisesRegex(H.HarnessError, "post-remote rebind"):
+                    H.cmd_finalize(None)
+            self.assertEqual(source.call_count, 2)
+            remote.assert_called_once_with(manifest_path)
+
+        with mock.patch.object(H, "verify_current_artifact_source",
+                               side_effect=H.HarnessError("pre-persist rebind")) as source, \
+             mock.patch.object(H, "write_or_verify_compact_result") as writer, \
+             mock.patch.object(H, "ensure_ledger_lines") as ledger, \
+             self.assertRaisesRegex(H.HarnessError, "pre-persist rebind"):
+            H.persist_verified_compact_result(
+                Path("raw"), Path("manifest"), plan, manifest,
+                Path("results"), {"schema_version": 2, "lines": []}, None, [],
+            )
+        source.assert_called_once()
+        writer.assert_not_called()
+        ledger.assert_not_called()
+
+    def test_finalize_manifest_must_bind_current_batch_freeze_and_commit(self):
+        old_id = H.measured_id
+        head = "a" * 40
+        with tempfile.TemporaryDirectory() as tmp:
+            namespace = Path(tmp) / "raw" / "m-test"
+            manifest_path = Path(tmp) / "manifest.json"
+            H.write_json_atomic(namespace / "metadata.json", {
+                "experiment": "E-09",
+                "base_commit": head,
+                "freeze_sha256": H.sha256(H.E09 / "freeze.json"),
+            })
+            spec = H.load_json(H.DATA_FILES["artifact-spec.json"])
+            frozen = H.load_json(H.E09 / "freeze.json")
+            try:
+                H.measured_id = lambda: "m-test"
+                manifest = {
+                    "schema_version": H.artifact_store.SCHEMA_VERSION,
+                    "repository": spec["repository"],
+                    "experiment": "E-09",
+                    "batch_id": "m-test",
+                    "frozen_commit": head,
+                    "freeze_sha256": H.sha256(H.E09 / "freeze.json"),
+                    "packager_commit": head,
+                    "provenance": {
+                        **frozen["files"],
+                        "experiments/e09/freeze.json": H.sha256(H.E09 / "freeze.json"),
+                    },
+                    "provenance_index": "experiments/e09/freeze.json",
+                    "sanitization_policy_source": "experiments/e09/artifact-spec.json",
+                    "release": {
+                        "tag": "evidence-e09-m-test",
+                        "archive_asset_name": "m-test.raw.tar.gz",
+                        "manifest_asset_name": "m-test.manifest.json",
+                    },
+                }
+                H.write_json_atomic(manifest_path, manifest)
+                self.assertEqual(H.validate_artifact_binding(namespace, manifest_path, head), manifest)
+                manifest["batch_id"] = "m-other"
+                H.write_json_atomic(manifest_path, manifest)
+                with self.assertRaisesRegex(H.HarnessError, "current batch_id"):
+                    H.validate_artifact_binding(namespace, manifest_path, head)
+            finally:
+                H.measured_id = old_id
 
     def test_unselected_or_rejected_rule_sources_invalidate_contract(self):
         payload = {
@@ -552,6 +1668,15 @@ class RunnerSafetyTest(unittest.TestCase):
         rendered = H.canonical(sheet)
         for forbidden in ('"arm"', '"family"', '"rep"', '"condition"', '"path"'):
             self.assertNotIn(forbidden, rendered)
+
+    def test_human_adjudication_has_one_resolution_per_current_disagreement(self):
+        resolved = {"resolutions": [{"blind_id": "blind-1", "verdicts": []}]}
+        self.assertEqual(H.adjudication_resolution_map(resolved, ["blind-1"]), {"blind-1": []})
+        duplicate = {"resolutions": [resolved["resolutions"][0], resolved["resolutions"][0]]}
+        with self.assertRaisesRegex(H.HarnessError, "one resolution per blind ID"):
+            H.adjudication_resolution_map(duplicate, ["blind-1"])
+        with self.assertRaisesRegex(H.HarnessError, "every and only pending blind ID"):
+            H.adjudication_resolution_map(resolved, ["blind-2"])
 
 
 if __name__ == "__main__":

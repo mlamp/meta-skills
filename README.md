@@ -38,7 +38,7 @@ to its home repo, not mine.
 - `skills/<name>/SKILL.md` — the skills; frontmatter `status: draft | testing | proven`.
 - `research/CLAIMS.md` — every borrowed idea: status, the test that moves it, the evidence.
 - `ledger/` — append-only run records, one JSON line per run, written only by scripts.
-- `experiments/` — one dir per experiment: frozen design, harness, raw outputs.
+- `experiments/` — one dir per experiment: frozen design and harness in Git; measured raw bundles in immutable releases; manifests and results in Git.
 - `fixtures/` — SKILL.md eval corpus: pinned real snapshots + planted-defect files with answer keys.
 - `docs/` — theory and design docs, experiment queue, session kickoffs.
 - `DECISIONS.md` — durable decisions, append-only.
