@@ -1,6 +1,6 @@
 {
   "files": {
-    ".github/workflows/verify-experiment-artifacts.yml": "17cdcf96b0d1a25a36020cbc7415de3bd711b17acdcab506abd17a93f1e40f10",
+    ".github/workflows/verify-experiment-artifacts.yml": "417341dad690da29822978593b4b8922ecad95c2fc24248da023c687bc1cae97",
     "experiments/artifacts.py": "edc5d075981d7bd6e1523ded80a5e415022eb4b9eb7c233dec1aa256b6c65729",
     "experiments/e09/artifact-spec.json": "4d9d0b48bfd355ee39fd60e71d5a0aa45dd3747372a70ffb504572dade3693b5",
     "experiments/e09/catalog.json": "0751e6455395c20d155c409d67419615b10f8386f4b206e7d824fd7ca1a0d3d8",
@@ -17,6 +17,6 @@
     "experiments/e09/test_harness.py": "4891da1bba11dd10c663fe687daff20e2475c6fa5a3eee252cfb2c469e6ac44f",
     "experiments/test_artifacts.py": "ea2a888801a352599a710cffedbd8181035dd80e917d590ed060b4aa364b6b01"
   },
-  "frozen_at": "2026-08-24",
+  "frozen_at": "2026-08-25",
   "schema_version": 1
 }
