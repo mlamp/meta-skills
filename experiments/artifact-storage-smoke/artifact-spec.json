@@ -1,0 +1,39 @@
+{
+  "archive_asset_suffix": ".raw.tar.gz",
+  "credential_env_names": [
+    "DEEPINFRA_API_KEY"
+  ],
+  "forbidden_patterns": [
+    {
+      "id": "bearer_secret",
+      "regex": "(?i)\\bBearer\\s+(?!<SECRET>)[A-Za-z0-9][A-Za-z0-9._~+/=-]*"
+    },
+    {
+      "id": "credential_assignment",
+      "regex": "(?i)\\b[A-Za-z_][A-Za-z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD)\\s*=\\s*(?!<SECRET>)(?:\\\"[^\\\"]+\\\"|'[^']+'|[^\\s,;]+)"
+    },
+    {
+      "id": "host_home_path",
+      "regex": "(?<![A-Za-z0-9:])/(?:Users|home)/[^/\\s\\\"']+(?:/[^\\s\\\"']*)?"
+    },
+    {
+      "id": "host_temp_path",
+      "regex": "(?<![A-Za-z0-9:])/(?:private/)?var/folders/[^\\s\\\"']+|(?<![A-Za-z0-9:])/tmp/[^\\s\\\"']+"
+    },
+    {
+      "id": "host_windows_path",
+      "regex": "(?i)\\b[A-Z]:\\\\Users\\\\[^\\\\\\s\\\"']+(?:\\\\[^\\\\\\s\\\"']*)?"
+    },
+    {
+      "id": "host_uuid",
+      "regex": "\\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\\b"
+    }
+  ],
+  "manifest_asset_suffix": ".manifest.json",
+  "purpose": "Sanitization policy source for the pre-measurement publication lifecycle proof. Not measured evidence.",
+  "release_tag_prefix": "artifact-storage-smoke",
+  "repository": {
+    "id": 1337622598,
+    "name": "mlamp/meta-skills"
+  }
+}

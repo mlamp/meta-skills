@@ -1,0 +1,9 @@
+{
+  "files": {
+    "experiments/artifact-storage-smoke/artifact-spec.json": "16a470db8b59c1a9b31cdfa68f94a1e83b20f240ab0bb065eb25de51a55ca0c7",
+    "experiments/artifact-storage-smoke/make_plan.py": "c3bda612d831c28f9e037087655a1225b1fe4bffab5f86e82542f9cf09ec1415",
+    "experiments/artifacts.py": "edc5d075981d7bd6e1523ded80a5e415022eb4b9eb7c233dec1aa256b6c65729"
+  },
+  "frozen_at": "2026-08-25",
+  "purpose": "Frozen provenance index for the pre-measurement publication lifecycle proof. Not measured evidence."
+}

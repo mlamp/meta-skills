@@ -58,7 +58,46 @@ Retry a transient or interrupted command with the identical plan, raw root, arch
 
 ## Pre-measurement lifecycle proof
 
-After this policy merges and before the first measured E-09 provider call, run the publication lifecycle through stage six from the merged exact frozen commit on a synthetic one-record raw root. Stage seven remains the measured E-09 finalizer and does not run in this smoke. Use `experiment: artifact-storage-smoke` and a unique `artifact-storage-smoke-<frozen-sha-prefix>` tag. This smoke is not measured evidence. Do not create a result or ledger line. Record the immutable release URL, tag, archive and manifest SHA-256 values, remote receipt, and outcome on issue #10. Close the issue only after a fresh download and both GitHub attestations verify. Keep the local smoke root and do not commit it.
+After this policy merges and before the first measured E-09 provider call, run the publication lifecycle through stage six from the merged exact frozen commit on a synthetic one-record raw root. Stage seven remains the measured E-09 finalizer and does not run in this smoke. This smoke is not measured evidence. Do not create a result or ledger line.
+
+`experiments/artifact-storage-smoke/` holds the fixture: its own frozen provenance index, sanitization policy source, and plan generator. The smoke needs its own index because the trusted plan check pairs `experiments/e09/freeze.json` with E-09 alone and rejects any other experiment that names it. The generator writes the plan and the one synthetic record; the packager revalidates every field it wrote before an archive, draft, or release exists.
+
+```sh
+python3 experiments/artifact-storage-smoke/make_plan.py
+SMOKE_ID=smoke-... # paste the batch_id printed by make_plan.py
+SMOKE_TAG=artifact-storage-smoke-... # paste the tag printed by make_plan.py
+SMOKE_DIR=experiments/artifact-storage-smoke
+python3 experiments/artifacts.py pack \
+  --plan "${SMOKE_DIR}/.artifacts/${SMOKE_ID}.plan.json" \
+  --raw-root "${SMOKE_DIR}/raw/measured/${SMOKE_ID}" \
+  --archive "${SMOKE_DIR}/.artifacts/${SMOKE_ID}.raw.tar.gz" \
+  --manifest "${SMOKE_DIR}/.artifacts/${SMOKE_ID}.manifest.json" \
+  --repo-root .
+python3 experiments/artifacts.py verify-local \
+  --manifest "${SMOKE_DIR}/.artifacts/${SMOKE_ID}.manifest.json" \
+  --archive "${SMOKE_DIR}/.artifacts/${SMOKE_ID}.raw.tar.gz"
+python3 experiments/artifacts.py stage-release \
+  --manifest "${SMOKE_DIR}/.artifacts/${SMOKE_ID}.manifest.json" \
+  --archive "${SMOKE_DIR}/.artifacts/${SMOKE_ID}.raw.tar.gz" \
+  --plan "${SMOKE_DIR}/.artifacts/${SMOKE_ID}.plan.json" \
+  --raw-root "${SMOKE_DIR}/raw/measured/${SMOKE_ID}" \
+  --repo-root .
+```
+
+Review the draft the same way a measured batch is reviewed, then publish.
+
+```sh
+python3 experiments/artifacts.py publish-release \
+  --manifest "${SMOKE_DIR}/.artifacts/${SMOKE_ID}.manifest.json" \
+  --archive "${SMOKE_DIR}/.artifacts/${SMOKE_ID}.raw.tar.gz" \
+  --plan "${SMOKE_DIR}/.artifacts/${SMOKE_ID}.plan.json" \
+  --raw-root "${SMOKE_DIR}/raw/measured/${SMOKE_ID}" \
+  --repo-root . \
+  --confirm-tag "${SMOKE_TAG}" \
+  --committed-copy "${SMOKE_DIR}/artifacts/${SMOKE_ID}.json"
+```
+
+Commit the manifest copy that `publish-release` writes. No ledger row names it, so CI's orphan pass verifies the release stays published and immutable. Record the immutable release URL, tag, archive and manifest SHA-256 values, remote receipt, and outcome on issue #10. Close the issue only after a fresh download and both GitHub attestations verify. Keep the local smoke root and do not commit it.
 
 ## Smoke retention
 
