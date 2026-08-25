@@ -97,6 +97,8 @@ python3 experiments/artifacts.py publish-release \
   --committed-copy "${SMOKE_DIR}/artifacts/${SMOKE_ID}.json"
 ```
 
+The packager writes generic release notes, so the immutable smoke release reads "Raw evidence for artifact-storage-smoke batch ...". That wording is packager boilerplate, not a claim: the smoke is not evidence, and no ledger row can cite it. Say so on issue #10.
+
 Commit the manifest copy that `publish-release` writes. No ledger row names it, so CI's orphan pass verifies the release stays published and immutable. Record the immutable release URL, tag, archive and manifest SHA-256 values, remote receipt, and outcome on issue #10. Close the issue only after a fresh download and both GitHub attestations verify. Keep the local smoke root and do not commit it.
 
 ## Smoke retention
