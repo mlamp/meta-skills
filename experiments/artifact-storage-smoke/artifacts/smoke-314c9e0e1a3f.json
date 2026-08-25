@@ -1,0 +1,89 @@
+{
+  "archive": {
+    "asset_name": "smoke-314c9e0e1a3f.raw.tar.gz",
+    "bytes": 227,
+    "format": "tar.gz:pax; gzip=9; mtime=0; uid=gid=0; mode=0644; sorted=true",
+    "sha256": "cc6c1c1d16a685e3f86ff2fa2e6698024fc68f2d90280b5912b49fef8e822f98"
+  },
+  "batch_id": "smoke-314c9e0e1a3f",
+  "exclusions": [],
+  "execution": {
+    "call_manifest": {
+      "completed": 1,
+      "started": 1
+    },
+    "exclusion_count": 0,
+    "record_status_counts": {
+      "ok": 1
+    },
+    "retry_attempts": 0
+  },
+  "experiment": "artifact-storage-smoke",
+  "freeze_sha256": "c860bd43ebca72d93df6570755f43fcf43f00c492f3816bc139dba0050270df2",
+  "frozen_commit": "314c9e0e1a3fb2e7687c1c443702b6bbc399d898",
+  "inventory": {
+    "actual_counts": {
+      "call_manifest": 1,
+      "record": 1
+    },
+    "expected_counts": {
+      "call_manifest": 1,
+      "record": 1
+    },
+    "members": [
+      {
+        "bytes": 112,
+        "kind": "call_manifest",
+        "path": "record-manifest.jsonl",
+        "sha256": "1bf5df7a83198225970aea42de464267637c01e616803c38d6596b0d6dbd7083"
+      },
+      {
+        "bytes": 67,
+        "kind": "record",
+        "path": "records/one.json",
+        "sha256": "06190f61694d897f5215ddc1ea9f70c9ddabe12df32c3283981041e797c3cd3d"
+      }
+    ]
+  },
+  "packager_commit": "314c9e0e1a3fb2e7687c1c443702b6bbc399d898",
+  "provenance": {
+    "experiments/artifact-storage-smoke/artifact-spec.json": "16a470db8b59c1a9b31cdfa68f94a1e83b20f240ab0bb065eb25de51a55ca0c7",
+    "experiments/artifact-storage-smoke/freeze.json": "c860bd43ebca72d93df6570755f43fcf43f00c492f3816bc139dba0050270df2",
+    "experiments/artifact-storage-smoke/make_plan.py": "c3bda612d831c28f9e037087655a1225b1fe4bffab5f86e82542f9cf09ec1415",
+    "experiments/artifacts.py": "edc5d075981d7bd6e1523ded80a5e415022eb4b9eb7c233dec1aa256b6c65729"
+  },
+  "provenance_index": "experiments/artifact-storage-smoke/freeze.json",
+  "raw_root": "experiments/artifact-storage-smoke/raw/measured/smoke-314c9e0e1a3f",
+  "release": {
+    "archive_asset_name": "smoke-314c9e0e1a3f.raw.tar.gz",
+    "manifest_asset_name": "smoke-314c9e0e1a3f.manifest.json",
+    "tag": "artifact-storage-smoke-314c9e0e1a3f"
+  },
+  "repository": {
+    "id": 1337622598,
+    "name": "mlamp/meta-skills"
+  },
+  "sanitization": {
+    "exact_secret_scan": "configured names plus credential-suffixed environment and .env values",
+    "files_scanned": 2,
+    "forbidden_pattern_ids": [
+      "bearer_secret",
+      "credential_assignment",
+      "host_home_path",
+      "host_temp_path",
+      "host_windows_path",
+      "host_uuid"
+    ],
+    "policy_sha256": "4ec279f24f2a16ffecf078ee2605339179998af44fcaef12319589edc8d589ac",
+    "report_sha256": "1b31d496d6fc6294df63a394c16851800e6fb9c9184a2a7fa68c81bbd9b58ef2",
+    "scanned_bytes": 179,
+    "status": "passed"
+  },
+  "sanitization_policy_source": "experiments/artifact-storage-smoke/artifact-spec.json",
+  "schedule": {
+    "call_manifest_sha256": "1bf5df7a83198225970aea42de464267637c01e616803c38d6596b0d6dbd7083",
+    "record_sha256": "06190f61694d897f5215ddc1ea9f70c9ddabe12df32c3283981041e797c3cd3d"
+  },
+  "schema_version": 2,
+  "supersedes": null
+}
