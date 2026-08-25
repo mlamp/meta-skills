@@ -6,19 +6,19 @@
   "forbidden_patterns": [
     {
       "id": "bearer_secret",
-      "regex": "(?i)\\bBearer\\s+(?!<SECRET>)[A-Za-z0-9][A-Za-z0-9._~+/=-]*"
+      "regex": "\\b(?i:Bearer)\\s+(?!(?:[a-z]{1,20}|[A-Z][a-z]{0,19}|[A-Z]{1,20})(?:[-_](?:[a-z]{1,20}|[A-Z][a-z]{0,19}|[A-Z]{1,20}))*\\.?(?:[\\s,;:!?)\\]}\\\"'`]|$))[A-Za-z0-9][A-Za-z0-9._~+/=-]{7,}"
     },
     {
       "id": "credential_assignment",
-      "regex": "(?i)\\b[A-Za-z_][A-Za-z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD)\\s*=\\s*(?!<SECRET>)(?:\\\"[^\\\"]+\\\"|'[^']+'|[^\\s,;]+)"
+      "regex": "(?i)\\b[A-Za-z_][A-Za-z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD)\\s*=\\s*(?!(?:<[A-Za-z][A-Za-z_ -]{0,30}>|\\*+|\\.{3,}|\\$\\{?[A-Za-z_][A-Za-z0-9_]{0,39}\\}?|REDACTED|null|none|\\\"\\\"|'')\\.?(?:[\\s,;:!?)\\]}\\\"'`]|$))(?:\\\"[^\\\"]+\\\"|'[^']+'|[^\\s,;]+)"
     },
     {
       "id": "host_home_path",
-      "regex": "(?<![A-Za-z0-9:])/(?:Users|home)/[^/\\s\\\"']+(?:/[^\\s\\\"']*)?"
+      "regex": "(?i)(?<![A-Za-z0-9:])/(?:Users|home)/(?!(?:user|users|username|youruser|your-user|myuser|you|yourname|yourusername|me|my|name|example|someone|somebody|alice|bob|carol|dave|jdoe|john|jane|johndoe|ubuntu|debian|dev|developer|appuser|app|admin|demo|test|foo|bar|<[^/>]*>)(?:[/\\s\\\"']|$))[^/\\s\\\"']+(?:/[^\\s\\\"']*)?"
     },
     {
       "id": "host_temp_path",
-      "regex": "(?<![A-Za-z0-9:])/(?:private/)?var/folders/[^\\s\\\"']+|(?<![A-Za-z0-9:])/tmp/[^\\s\\\"']+"
+      "regex": "(?<![A-Za-z0-9:])/(?:private/)?var/folders/[^\\s\\\"']+|(?<![A-Za-z0-9:])/(?:private/|var/)?tmp/(?![^\\s\\\"'/]{1,28}(?:[\\s,;:!?)\\]}\\\"'`]|$))[^\\s\\\"']+"
     },
     {
       "id": "host_windows_path",

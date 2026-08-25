@@ -2,7 +2,7 @@
   "files": {
     ".github/workflows/verify-experiment-artifacts.yml": "417341dad690da29822978593b4b8922ecad95c2fc24248da023c687bc1cae97",
     "experiments/artifacts.py": "edc5d075981d7bd6e1523ded80a5e415022eb4b9eb7c233dec1aa256b6c65729",
-    "experiments/e09/artifact-spec.json": "4d9d0b48bfd355ee39fd60e71d5a0aa45dd3747372a70ffb504572dade3693b5",
+    "experiments/e09/artifact-spec.json": "5a94ee90112d3afe9608376ac97c20da0f650e87572dfb39155824f0875ae6e9",
     "experiments/e09/catalog.json": "0751e6455395c20d155c409d67419615b10f8386f4b206e7d824fd7ca1a0d3d8",
     "experiments/e09/cold_reader_cases.json": "0fe710b17eea0d9302cce550ecd37a84f5a7bb1f8ca678c99968e97ed6886b6a",
     "experiments/e09/design.md": "2430a88cac1d998eae4a1a9b07f9f1f5190daa6a3506ef784b59ed2ad70b8482",
@@ -14,7 +14,7 @@
     "experiments/e09/reviews.md": "8623a1f34da29f9639a19c63ae2c3fb19dc9a97a92b74425c4330e0e7f11c199",
     "experiments/e09/substitutes.json": "9290f5ee3c0d7a03099f99d7cd8fa44c13e90ad31eb8245e90805b1efd0d4890",
     "experiments/e09/tasks.json": "c54b7dcdf992f4d32f4e22defaa9b57729e2dda21420552a1180331f45f014ee",
-    "experiments/e09/test_harness.py": "4891da1bba11dd10c663fe687daff20e2475c6fa5a3eee252cfb2c469e6ac44f",
+    "experiments/e09/test_harness.py": "c1851e16501c7c39fc96c3a70e8b372f5f8ef3f57e45889c9bd8f304fc601670",
     "experiments/test_artifacts.py": "ea2a888801a352599a710cffedbd8181035dd80e917d590ed060b4aa364b6b01"
   },
   "frozen_at": "2026-08-25",
