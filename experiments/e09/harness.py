@@ -344,6 +344,7 @@ def catalog_markdown(catalog=None) -> str:
             f"  Boundary: {entry['boundary']}{suffix}",
         ]
     lines += ["", "Overlap precedence: " + " > ".join(catalog["overlap_precedence"]) + "."]
+    lines += [catalog["overlap_note"], catalog["sublabel_note"]]
     return "\n".join(lines) + "\n"
 
 

@@ -1,60 +1,79 @@
 {
-  "schema_version": 1,
   "catalog_id": "unslop-u01-u06-v1",
-  "purpose": "Recognition aid for an interview. It is not a rule set or evidence of effectiveness.",
-  "introduction": "Review each candidate against the user's observed preferences. Select only candidates the user confirms. An unselected candidate must not enter the contract. Nothing here is an automatic ban.",
-  "overlap_precedence": ["U01", "U02", "U03", "U04", "U05", "U06"],
-  "sublabel_definitions": {
-    "opener": "stock assistant framing before the first task-bearing statement",
-    "closer": "stock assistant framing after the answer that adds no fact, status, decision, or next action",
-    "filler": "a removable word or phrase that does not change the claim",
-    "hedge_stack": "two or more uncertainty softeners applied to one claim",
-    "abstraction": "an abstract or evaluative label used instead of a mechanism, source, or number",
-    "promotion": "a promotional quality or superiority label used instead of evidence",
-    "unsupported_result": "a result or causal claim made without a shown mechanism, source, or measurement"
-  },
   "entries": [
     {
+      "boundary": "A direct yes/no answer or agreement supported by evidence is not sycophancy.",
       "id": "U01",
       "label": "Sycophancy",
       "prompt": "Do replies praise, validate, or agree before giving a reason or answer?",
-      "boundary": "A direct yes/no answer or agreement supported by evidence is not sycophancy.",
       "sublabels": []
     },
     {
+      "boundary": "An opening outcome or a closing fact, status, or next action is useful content.",
       "id": "U02",
       "label": "Canned framing",
       "prompt": "Do replies begin or end with stock assistant framing that carries no task information?",
-      "boundary": "An opening outcome or a closing fact, status, or next action is useful content.",
-      "sublabels": ["opener", "closer"]
+      "sublabels": [
+        "opener",
+        "closer"
+      ]
     },
     {
+      "boundary": "One explicit hypothesis or uncertainty label required by evidence discipline is not a hedge stack.",
       "id": "U03",
       "label": "Padding",
       "prompt": "Do replies use removable filler or stack two or more hedges on one claim?",
-      "boundary": "One explicit hypothesis or uncertainty label required by evidence discipline is not a hedge stack.",
-      "sublabels": ["filler", "hedge_stack"]
+      "sublabels": [
+        "filler",
+        "hedge_stack"
+      ]
     },
     {
+      "boundary": "Three real, distinct items are not forced structure.",
       "id": "U04",
       "label": "Forced triads",
       "prompt": "Do replies stretch two or four natural points into a group of three?",
-      "boundary": "Three real, distinct items are not forced structure.",
       "sublabels": []
     },
     {
+      "boundary": "A required recap that adds current status or evidence is not empty.",
       "id": "U05",
       "label": "Empty conclusions",
       "prompt": "Does the ending repeat the response without adding a fact, status, decision, or next action?",
-      "boundary": "A required recap that adds current status or evidence is not empty.",
       "sublabels": []
     },
     {
+      "boundary": "A project term with a precise local meaning is not vague. An -ing form alone is not a hit.",
       "id": "U06",
       "label": "Unsupported claims",
       "prompt": "Do abstract, evaluative, or promotional words replace a mechanism, source, or number, including an -ing clause that asserts an unshown result?",
-      "boundary": "A project term with a precise local meaning is not vague. An -ing form alone is not a hit.",
-      "sublabels": ["abstraction", "promotion", "unsupported_result"]
+      "sublabels": [
+        "abstraction",
+        "promotion",
+        "unsupported_result"
+      ]
     }
-  ]
+  ],
+  "introduction": "Review each candidate against the user's observed preferences. Select only candidates the user confirms. An unselected candidate must not enter the contract. Nothing here is an automatic ban.",
+  "overlap_note": "A span may match more than one entry. When it does, the entry earliest in this order wins, even when a later entry describes it more precisely.",
+  "overlap_precedence": [
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U05",
+    "U06"
+  ],
+  "purpose": "Recognition aid for an interview. It is not a rule set or evidence of effectiveness.",
+  "schema_version": 1,
+  "sublabel_definitions": {
+    "abstraction": "an abstract or evaluative label used instead of a mechanism, source, or number",
+    "closer": "stock assistant framing after the answer that adds no fact, status, decision, or next action",
+    "filler": "a removable word or phrase that does not change the claim",
+    "hedge_stack": "two or more uncertainty softeners applied to one claim",
+    "opener": "stock assistant framing before the first task-bearing statement",
+    "promotion": "a promotional quality or superiority label used instead of evidence",
+    "unsupported_result": "a result or causal claim made without a shown mechanism, source, or measurement"
+  },
+  "sublabel_note": "An entry with no sublabels listed above takes no sublabel."
 }
