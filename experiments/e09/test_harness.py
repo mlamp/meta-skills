@@ -3,6 +3,7 @@
 import importlib.util
 import json
 import os
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -164,6 +165,80 @@ class FrozenInputsTest(unittest.TestCase):
         self.assertEqual(spec["repository"], {"id": 1337622598, "name": "mlamp/meta-skills"})
         pattern_ids = {row["id"] for row in spec["forbidden_patterns"]}
         self.assertTrue({"host_windows_path", "host_uuid", "host_project_id"} <= pattern_ids)
+
+    def test_sanitizer_blocks_real_leaks_without_blocking_task_prose(self):
+        """D-033: the pack-time patterns must catch real secrets and host paths while
+        letting through the vocabulary the frozen tasks ask for. A false positive here
+        aborts artifact-pack and destroys a measured batch; a false negative publishes
+        a secret. Both directions are pinned."""
+        spec = H.load_json(H.DATA_FILES["artifact-spec.json"])
+        patterns = {row["id"]: re.compile(row["regex"]) for row in spec["forbidden_patterns"]}
+
+        def hits(text):
+            return [name for name, rx in patterns.items() if rx.search(text)]
+
+        must_block = [
+            "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+            "bearer sk-ant-api03-QWxhZGRpbjpvcGVuIHNlc2FtZQ",
+            "Authorization: Bearer a1b2c3d4e5f60718",
+            "Bearer keyO4WrHtEc31nY7z",
+            "Bearer thisisaverylongsecretvaluewithnodigits",
+            "DEEPINFRA_API_KEY=di-9f3a2b7c4e1d8a6b5c0f",
+            'GITHUB_TOKEN="ghp_abc123XYZ456def789"',
+            "AUTH_TOKEN=<ghp_16C7e42F292c6912E7710c838347Ae178B4a>",
+            "DEEPINFRA_API_KEY=***9f3a7c21b8e04d6fa1c5e7b90d2f4a83",
+            "AUTH_TOKEN=REDACTED-ghp_16C7e42F292c6912E7710c838347Ae178B4a",
+            "AUTH_TOKEN=**ghp_16C7e42F292c6912E7710c838347Ae178B4a**",
+            "AUTH_TOKEN=REDACTED.ghp_16C7e42F292c6912E7710c838347Ae178B4a",
+            "/Users/margus/_DEV/_AGENTIC/meta-skills",
+            "/users/margus/_DEV/_AGENTIC/meta-skills",
+            "/home/margus/.config/app",
+            "/Users/Shared/thing",
+            "/var/folders/4n/_9x49yyj2nbgwmg1qqljxqk00000gn/T",
+            "/private/var/folders/qd/8k2n7x9s1234/T/x",
+            "/tmp/claude-mcp-browser-bridge-margus",
+            "/private/tmp/claude-mcp-browser-bridge-margus",
+            "/tmp/e09-codex-7f3a91bc",
+            "e09-tool-f533t68y",
+        ]
+        must_pass = [
+            "Redact the Bearer token before logging.",
+            "Use a Bearer token.",
+            "Bearer credentials",
+            "Bearer authorization",
+            "Bearer <SECRET>",
+            "Bearer <token>",
+            "Bearer $ACCESS_TOKEN",
+            "Bearer ***",
+            "Bearer your-token",
+            "Strip the Authorization header from log output.",
+            "Set AUTH_TOKEN=<redacted> in the log formatter.",
+            "AUTH_TOKEN=<redacted>.",
+            "export API_TOKEN=$MY_TOKEN",
+            "Use ${AUTH_TOKEN} from the environment.",
+            'PASSWORD=""',
+            "AUTH_TOKEN=***",
+            "SESSION_TOKEN=REDACTED",
+            "API_TOKEN=null",
+            "/home/user/.local/share/app/store.db",
+            "/Users/you/Library/Application Support/app",
+            "/home/username/data",
+            "/home/ubuntu/app/store.db",
+            "~/.local/share/app/store.db",
+            "./svc --config /tmp/config.yaml",
+            "/tmp/app.sqlite3",
+            "/tmp/backup-2026-08-25.db",
+            "/tmp/dump-1.sql",
+            "/tmp/restore.db",
+            "Restore from store.db.bak beside the database.",
+            "Cap attempts at three and drop the token from the log message.",
+            "<HOST_PATH>",
+            "<PROJECT_ID>",
+        ]
+        for text in must_block:
+            self.assertTrue(hits(text), f"leak not blocked: {text}")
+        for text in must_pass:
+            self.assertEqual([], hits(text), f"task prose over-blocked: {text}")
 
     def test_pr_ci_separates_candidate_code_from_release_credentials(self):
         workflow = (H.ROOT / ".github" / "workflows" / "verify-experiment-artifacts.yml").read_text(
